@@ -1,315 +1,241 @@
-
 package org.cookcounty.tax.domain.model;
 
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 
-
-public class SeniorFreezeMaster {
-
-    private Long id;
-
-    // GENERATED-FIELDS:start
-
-    private String baseValueManualCalculationIndicator;
-
-    private String baseValueNoCalculationIndicator;
-
-    private Integer baseValueYear;
-
-    private Integer baseValueYearClass;
-
-    private Long baseYearEligibleComputedFullAssessedValue;
-
-    private Long baseYearEqualizedValue;
-
-    private Long baseYearFullAssessedValue;
-
-    private Long baseYearTotalEligibleComputedEqualizedValue;
-
-    private Integer buildingShares;
-
-    private Integer buildingUnits;
-
-    private String calculationType;
-
-    private Long class288ExpirationAssessedValue;
-
-    private Long class288ExpirationEqualizedValue;
-
-    private Long class288OverLimitAssessedValue;
-
-    private Long class288OverLimitEqualizedValue;
-
-    private Integer currentYearClass;
-
-    private Long currentYearEligibleComputedAssessedValue;
-
-    private Long currentYearEligibleComputedEqualizedValue;
-
-    private String currentYearFarmIndicator;
-
-    private Long currentYearFinalEqualizedValueDifference;
-
-    private Long currentYearFullAssessedValue;
-
-    private Long currentYearFullEqualizedValue;
-
-    private Long currentYearNotEligibleAssessedValue;
-
-    private Long currentYearNotEligibleEqualizedValue;
-
-    private Integer homeownerUnits;
-
-    private Integer homesteadUnits;
-
-    private Long keyParcelNumber;
-
-    private String mailingCity;
-
-    private String mailingDirection;
-
-    private String mailingHouseNumber;
-
-    private String mailingState;
-
-    private String mailingStreet;
-
-    private String mailingSuffix;
-
-    private Long mailingZipCode;
-
-    private Integer maintenanceIndicator;
-
-    private String masterName;
-
-    private BigDecimal occupancyFactor;
-
-    private Integer originalBaseValueYear;
-
-    private Long originalBaseYearEligibleComputedFullAssessedValue;
-
-    private Long originalBaseYearEqualizedValue;
-
-    private Long originalBaseYearFullAssessedValue;
-
-    private Long originalBaseYearTotalEligibleComputedEqualizedValue;
-
-    private Long originalCurrentYearFinalEqualizedValueDifference;
-
-    private String originalManualCalculationIndicator;
-
-    private BigDecimal propertyProration;
-
-    private String recordCode;
-
-    private Integer seniorFreezeShares;
-
-    private Integer splitCode;
-
-
-
-    // GENERATED-FIELDS:end
-
-    public SeniorFreezeMaster() {}
-
-    // GENERATED-ACCESSORS:start
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-
-    public String getBaseValueManualCalculationIndicator() { return baseValueManualCalculationIndicator; }
-    public void setBaseValueManualCalculationIndicator(String baseValueManualCalculationIndicator) { this.baseValueManualCalculationIndicator = baseValueManualCalculationIndicator; }
-
-
-    public String getBaseValueNoCalculationIndicator() { return baseValueNoCalculationIndicator; }
-    public void setBaseValueNoCalculationIndicator(String baseValueNoCalculationIndicator) { this.baseValueNoCalculationIndicator = baseValueNoCalculationIndicator; }
-
-
-    public Integer getBaseValueYear() { return baseValueYear; }
-    public void setBaseValueYear(Integer baseValueYear) { this.baseValueYear = baseValueYear; }
-
-
-    public Integer getBaseValueYearClass() { return baseValueYearClass; }
-    public void setBaseValueYearClass(Integer baseValueYearClass) { this.baseValueYearClass = baseValueYearClass; }
-
-
-    public Long getBaseYearEligibleComputedFullAssessedValue() { return baseYearEligibleComputedFullAssessedValue; }
-    public void setBaseYearEligibleComputedFullAssessedValue(Long baseYearEligibleComputedFullAssessedValue) { this.baseYearEligibleComputedFullAssessedValue = baseYearEligibleComputedFullAssessedValue; }
-
-
-    public Long getBaseYearEqualizedValue() { return baseYearEqualizedValue; }
-    public void setBaseYearEqualizedValue(Long baseYearEqualizedValue) { this.baseYearEqualizedValue = baseYearEqualizedValue; }
-
-
-    public Long getBaseYearFullAssessedValue() { return baseYearFullAssessedValue; }
-    public void setBaseYearFullAssessedValue(Long baseYearFullAssessedValue) { this.baseYearFullAssessedValue = baseYearFullAssessedValue; }
-
-
-    public Long getBaseYearTotalEligibleComputedEqualizedValue() { return baseYearTotalEligibleComputedEqualizedValue; }
-    public void setBaseYearTotalEligibleComputedEqualizedValue(Long baseYearTotalEligibleComputedEqualizedValue) { this.baseYearTotalEligibleComputedEqualizedValue = baseYearTotalEligibleComputedEqualizedValue; }
-
-
-    public Integer getBuildingShares() { return buildingShares; }
-    public void setBuildingShares(Integer buildingShares) { this.buildingShares = buildingShares; }
-
-
-    public Integer getBuildingUnits() { return buildingUnits; }
-    public void setBuildingUnits(Integer buildingUnits) { this.buildingUnits = buildingUnits; }
-
-
-    public String getCalculationType() { return calculationType; }
-    public void setCalculationType(String calculationType) { this.calculationType = calculationType; }
-
-
-    public Long getClass288ExpirationAssessedValue() { return class288ExpirationAssessedValue; }
-    public void setClass288ExpirationAssessedValue(Long class288ExpirationAssessedValue) { this.class288ExpirationAssessedValue = class288ExpirationAssessedValue; }
-
-
-    public Long getClass288ExpirationEqualizedValue() { return class288ExpirationEqualizedValue; }
-    public void setClass288ExpirationEqualizedValue(Long class288ExpirationEqualizedValue) { this.class288ExpirationEqualizedValue = class288ExpirationEqualizedValue; }
-
-
-    public Long getClass288OverLimitAssessedValue() { return class288OverLimitAssessedValue; }
-    public void setClass288OverLimitAssessedValue(Long class288OverLimitAssessedValue) { this.class288OverLimitAssessedValue = class288OverLimitAssessedValue; }
-
-
-    public Long getClass288OverLimitEqualizedValue() { return class288OverLimitEqualizedValue; }
-    public void setClass288OverLimitEqualizedValue(Long class288OverLimitEqualizedValue) { this.class288OverLimitEqualizedValue = class288OverLimitEqualizedValue; }
-
-
-    public Integer getCurrentYearClass() { return currentYearClass; }
-    public void setCurrentYearClass(Integer currentYearClass) { this.currentYearClass = currentYearClass; }
-
-
-    public Long getCurrentYearEligibleComputedAssessedValue() { return currentYearEligibleComputedAssessedValue; }
-    public void setCurrentYearEligibleComputedAssessedValue(Long currentYearEligibleComputedAssessedValue) { this.currentYearEligibleComputedAssessedValue = currentYearEligibleComputedAssessedValue; }
-
-
-    public Long getCurrentYearEligibleComputedEqualizedValue() { return currentYearEligibleComputedEqualizedValue; }
-    public void setCurrentYearEligibleComputedEqualizedValue(Long currentYearEligibleComputedEqualizedValue) { this.currentYearEligibleComputedEqualizedValue = currentYearEligibleComputedEqualizedValue; }
-
-
-    public String getCurrentYearFarmIndicator() { return currentYearFarmIndicator; }
-    public void setCurrentYearFarmIndicator(String currentYearFarmIndicator) { this.currentYearFarmIndicator = currentYearFarmIndicator; }
-
-
-    public Long getCurrentYearFinalEqualizedValueDifference() { return currentYearFinalEqualizedValueDifference; }
-    public void setCurrentYearFinalEqualizedValueDifference(Long currentYearFinalEqualizedValueDifference) { this.currentYearFinalEqualizedValueDifference = currentYearFinalEqualizedValueDifference; }
-
-
-    public Long getCurrentYearFullAssessedValue() { return currentYearFullAssessedValue; }
-    public void setCurrentYearFullAssessedValue(Long currentYearFullAssessedValue) { this.currentYearFullAssessedValue = currentYearFullAssessedValue; }
-
-
-    public Long getCurrentYearFullEqualizedValue() { return currentYearFullEqualizedValue; }
-    public void setCurrentYearFullEqualizedValue(Long currentYearFullEqualizedValue) { this.currentYearFullEqualizedValue = currentYearFullEqualizedValue; }
-
-
-    public Long getCurrentYearNotEligibleAssessedValue() { return currentYearNotEligibleAssessedValue; }
-    public void setCurrentYearNotEligibleAssessedValue(Long currentYearNotEligibleAssessedValue) { this.currentYearNotEligibleAssessedValue = currentYearNotEligibleAssessedValue; }
-
-
-    public Long getCurrentYearNotEligibleEqualizedValue() { return currentYearNotEligibleEqualizedValue; }
-    public void setCurrentYearNotEligibleEqualizedValue(Long currentYearNotEligibleEqualizedValue) { this.currentYearNotEligibleEqualizedValue = currentYearNotEligibleEqualizedValue; }
-
-
-    public Integer getHomeownerUnits() { return homeownerUnits; }
-    public void setHomeownerUnits(Integer homeownerUnits) { this.homeownerUnits = homeownerUnits; }
-
-
-    public Integer getHomesteadUnits() { return homesteadUnits; }
-    public void setHomesteadUnits(Integer homesteadUnits) { this.homesteadUnits = homesteadUnits; }
-
-
-    public Long getKeyParcelNumber() { return keyParcelNumber; }
-    public void setKeyParcelNumber(Long keyParcelNumber) { this.keyParcelNumber = keyParcelNumber; }
-
-
-    public String getMailingCity() { return mailingCity; }
-    public void setMailingCity(String mailingCity) { this.mailingCity = mailingCity; }
-
-
-    public String getMailingDirection() { return mailingDirection; }
-    public void setMailingDirection(String mailingDirection) { this.mailingDirection = mailingDirection; }
-
-
-    public String getMailingHouseNumber() { return mailingHouseNumber; }
-    public void setMailingHouseNumber(String mailingHouseNumber) { this.mailingHouseNumber = mailingHouseNumber; }
-
-
-    public String getMailingState() { return mailingState; }
-    public void setMailingState(String mailingState) { this.mailingState = mailingState; }
-
-
-    public String getMailingStreet() { return mailingStreet; }
-    public void setMailingStreet(String mailingStreet) { this.mailingStreet = mailingStreet; }
-
-
-    public String getMailingSuffix() { return mailingSuffix; }
-    public void setMailingSuffix(String mailingSuffix) { this.mailingSuffix = mailingSuffix; }
-
-
-    public Long getMailingZipCode() { return mailingZipCode; }
-    public void setMailingZipCode(Long mailingZipCode) { this.mailingZipCode = mailingZipCode; }
-
-
-    public Integer getMaintenanceIndicator() { return maintenanceIndicator; }
-    public void setMaintenanceIndicator(Integer maintenanceIndicator) { this.maintenanceIndicator = maintenanceIndicator; }
-
-
-    public String getMasterName() { return masterName; }
-    public void setMasterName(String masterName) { this.masterName = masterName; }
-
-
-    public BigDecimal getOccupancyFactor() { return occupancyFactor; }
-    public void setOccupancyFactor(BigDecimal occupancyFactor) { this.occupancyFactor = occupancyFactor; }
-
-
-    public Integer getOriginalBaseValueYear() { return originalBaseValueYear; }
-    public void setOriginalBaseValueYear(Integer originalBaseValueYear) { this.originalBaseValueYear = originalBaseValueYear; }
-
-
-    public Long getOriginalBaseYearEligibleComputedFullAssessedValue() { return originalBaseYearEligibleComputedFullAssessedValue; }
-    public void setOriginalBaseYearEligibleComputedFullAssessedValue(Long originalBaseYearEligibleComputedFullAssessedValue) { this.originalBaseYearEligibleComputedFullAssessedValue = originalBaseYearEligibleComputedFullAssessedValue; }
-
-
-    public Long getOriginalBaseYearEqualizedValue() { return originalBaseYearEqualizedValue; }
-    public void setOriginalBaseYearEqualizedValue(Long originalBaseYearEqualizedValue) { this.originalBaseYearEqualizedValue = originalBaseYearEqualizedValue; }
-
-
-    public Long getOriginalBaseYearFullAssessedValue() { return originalBaseYearFullAssessedValue; }
-    public void setOriginalBaseYearFullAssessedValue(Long originalBaseYearFullAssessedValue) { this.originalBaseYearFullAssessedValue = originalBaseYearFullAssessedValue; }
-
-
-    public Long getOriginalBaseYearTotalEligibleComputedEqualizedValue() { return originalBaseYearTotalEligibleComputedEqualizedValue; }
-    public void setOriginalBaseYearTotalEligibleComputedEqualizedValue(Long originalBaseYearTotalEligibleComputedEqualizedValue) { this.originalBaseYearTotalEligibleComputedEqualizedValue = originalBaseYearTotalEligibleComputedEqualizedValue; }
-
-
-    public Long getOriginalCurrentYearFinalEqualizedValueDifference() { return originalCurrentYearFinalEqualizedValueDifference; }
-    public void setOriginalCurrentYearFinalEqualizedValueDifference(Long originalCurrentYearFinalEqualizedValueDifference) { this.originalCurrentYearFinalEqualizedValueDifference = originalCurrentYearFinalEqualizedValueDifference; }
-
-
-    public String getOriginalManualCalculationIndicator() { return originalManualCalculationIndicator; }
-    public void setOriginalManualCalculationIndicator(String originalManualCalculationIndicator) { this.originalManualCalculationIndicator = originalManualCalculationIndicator; }
-
-
-    public BigDecimal getPropertyProration() { return propertyProration; }
-    public void setPropertyProration(BigDecimal propertyProration) { this.propertyProration = propertyProration; }
-
-
-    public String getRecordCode() { return recordCode; }
-    public void setRecordCode(String recordCode) { this.recordCode = recordCode; }
-
-
-    public Integer getSeniorFreezeShares() { return seniorFreezeShares; }
-    public void setSeniorFreezeShares(Integer seniorFreezeShares) { this.seniorFreezeShares = seniorFreezeShares; }
-
-
-    public Integer getSplitCode() { return splitCode; }
-    public void setSplitCode(Integer splitCode) { this.splitCode = splitCode; }
-
-
-
-    // GENERATED-ACCESSORS:end
+/// The Senior Freeze valuation and cooperative-share state for one parcel.
+///
+/// @param id Generated database identity. It is absent before the first successful persistence
+///   operation.
+/// @param version Optimistic-lock version. It is absent before persistence hydrates the record.
+/// @param baseValueManualCalculationIndicator whether base value was calculated manually, using the
+///   maintained code
+/// @param baseValueNoCalculationIndicator whether base value calculation was withheld, using the
+///   maintained code
+/// @param baseValueYear four-digit year selected for the frozen base value
+/// @param baseValueYearClass property classification in that base year
+/// @param baseYearEligibleComputedFullAssessedValue eligible base-year full assessed valuation in
+///   whole dollars
+/// @param baseYearEqualizedValue base-year equalized valuation in whole dollars
+/// @param baseYearFullAssessedValue base-year full assessed valuation in whole dollars
+/// @param baseYearTotalEligibleComputedEqualizedValue total eligible base-year computed equalized
+///   valuation in whole dollars
+/// @param buildingShares number of cooperative building shares
+/// @param buildingUnits number of building units
+/// @param calculationType maintained calculation-method code
+/// @param class288ExpirationAssessedValue assessed valuation in whole dollars when the class
+///   expires
+/// @param class288ExpirationEqualizedValue equalized valuation in whole dollars when the class
+///   expires
+/// @param class288OverLimitAssessedValue assessed valuation above the class limit in whole dollars
+/// @param class288OverLimitEqualizedValue equalized valuation above the class limit in whole
+///   dollars
+/// @param currentYearClass current property classification code
+/// @param currentYearEligibleComputedAssessedValue current eligible computed assessed valuation in
+///   whole dollars
+/// @param currentYearEligibleComputedEqualizedValue current eligible computed equalized valuation
+///   in whole dollars
+/// @param currentYearFarmIndicator whether the current record uses farm treatment, using the
+///   maintained code
+/// @param currentYearFinalEqualizedValueDifference signed final equalized-value difference in whole
+///   dollars
+/// @param currentYearFullAssessedValue current full assessed valuation in whole dollars
+/// @param currentYearFullEqualizedValue current full equalized valuation in whole dollars
+/// @param currentYearNotEligibleAssessedValue current ineligible assessed valuation in whole
+///   dollars
+/// @param currentYearNotEligibleEqualizedValue current ineligible equalized valuation in whole
+///   dollars
+/// @param homeownerUnits number of homeowner units
+/// @param homesteadUnits number of homestead units
+/// @param keyParcelNumber canonical source-width parcel identifier selected from qualifying
+///   assessment details
+/// @param mailingCity Mailing city retained from the applicant or mailing record.
+/// @param mailingDirection Mailing direction retained from the applicant or mailing record.
+/// @param mailingHouseNumber house-number characters retained from the mailing record
+/// @param mailingState mailing state code
+/// @param mailingStreet mailing street name
+/// @param mailingSuffix mailing street suffix
+/// @param mailingZipCode canonical nine-digit postal identifier
+/// @param maintenanceIndicator maintained record-maintenance code
+/// @param masterName applicant or owner name retained with the parcel
+/// @param occupancyFactor Occupancy percentage used by exemption eligibility.
+/// @param originalBaseValueYear base-value year before the current calculation
+/// @param originalBaseYearEligibleComputedFullAssessedValue prior eligible base-year full assessed
+///   valuation in whole dollars
+/// @param originalBaseYearEqualizedValue prior base-year equalized valuation in whole dollars
+/// @param originalBaseYearFullAssessedValue prior base-year full assessed valuation in whole
+///   dollars
+/// @param originalBaseYearTotalEligibleComputedEqualizedValue prior total eligible base-year
+///   computed equalized valuation in whole dollars
+/// @param originalCurrentYearFinalEqualizedValueDifference prior signed current-year
+///   equalized-value difference in whole dollars
+/// @param originalManualCalculationIndicator prior manual-calculation code
+/// @param propertyProration Eligible parcel share as a decimal fraction with six fractional digits.
+/// @param recordCode Record category within the Senior Freeze or homeowner output.
+/// @param seniorFreezeShares number of Senior Freeze cooperative shares
+/// @param splitCode Property split classification when qualifying detail supplied it.
+public record SeniorFreezeMaster(
+        @Nullable Long id,
+        @Nullable Long version,
+        String baseValueManualCalculationIndicator,
+        String baseValueNoCalculationIndicator,
+        Integer baseValueYear,
+        Integer baseValueYearClass,
+        BigDecimal baseYearEligibleComputedFullAssessedValue,
+        BigDecimal baseYearEqualizedValue,
+        BigDecimal baseYearFullAssessedValue,
+        BigDecimal baseYearTotalEligibleComputedEqualizedValue,
+        Integer buildingShares,
+        Integer buildingUnits,
+        String calculationType,
+        BigDecimal class288ExpirationAssessedValue,
+        BigDecimal class288ExpirationEqualizedValue,
+        BigDecimal class288OverLimitAssessedValue,
+        BigDecimal class288OverLimitEqualizedValue,
+        Integer currentYearClass,
+        BigDecimal currentYearEligibleComputedAssessedValue,
+        BigDecimal currentYearEligibleComputedEqualizedValue,
+        String currentYearFarmIndicator,
+        BigDecimal currentYearFinalEqualizedValueDifference,
+        BigDecimal currentYearFullAssessedValue,
+        BigDecimal currentYearFullEqualizedValue,
+        BigDecimal currentYearNotEligibleAssessedValue,
+        BigDecimal currentYearNotEligibleEqualizedValue,
+        Integer homeownerUnits,
+        Integer homesteadUnits,
+        String keyParcelNumber,
+        String mailingCity,
+        String mailingDirection,
+        String mailingHouseNumber,
+        String mailingState,
+        String mailingStreet,
+        String mailingSuffix,
+        String mailingZipCode,
+        Integer maintenanceIndicator,
+        String masterName,
+        BigDecimal occupancyFactor,
+        Integer originalBaseValueYear,
+        BigDecimal originalBaseYearEligibleComputedFullAssessedValue,
+        BigDecimal originalBaseYearEqualizedValue,
+        BigDecimal originalBaseYearFullAssessedValue,
+        BigDecimal originalBaseYearTotalEligibleComputedEqualizedValue,
+        BigDecimal originalCurrentYearFinalEqualizedValueDifference,
+        String originalManualCalculationIndicator,
+        BigDecimal propertyProration,
+        String recordCode,
+        Integer seniorFreezeShares,
+        Integer splitCode) {
+    /// Normalizes parcel and postal identifiers and fixes valuation scales without rounding.
+    ///
+    /// @throws IllegalArgumentException if an identifier is empty, contains nondigits, or exceeds
+    ///   its width
+    /// @throws ArithmeticException if a decimal exceeds its precision or requires rounding
+    public SeniorFreezeMaster {
+        baseYearEligibleComputedFullAssessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        baseYearEligibleComputedFullAssessedValue,
+                        9,
+                        0,
+                        "baseYearEligibleComputedFullAssessedValue");
+        baseYearEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        baseYearEqualizedValue, 9, 0, "baseYearEqualizedValue");
+        baseYearFullAssessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        baseYearFullAssessedValue, 9, 0, "baseYearFullAssessedValue");
+        baseYearTotalEligibleComputedEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        baseYearTotalEligibleComputedEqualizedValue,
+                        9,
+                        0,
+                        "baseYearTotalEligibleComputedEqualizedValue");
+        class288ExpirationAssessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        class288ExpirationAssessedValue, 9, 0, "class288ExpirationAssessedValue");
+        class288ExpirationEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        class288ExpirationEqualizedValue, 9, 0, "class288ExpirationEqualizedValue");
+        class288OverLimitAssessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        class288OverLimitAssessedValue, 9, 0, "class288OverLimitAssessedValue");
+        class288OverLimitEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        class288OverLimitEqualizedValue, 9, 0, "class288OverLimitEqualizedValue");
+        currentYearEligibleComputedAssessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        currentYearEligibleComputedAssessedValue,
+                        9,
+                        0,
+                        "currentYearEligibleComputedAssessedValue");
+        currentYearEligibleComputedEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        currentYearEligibleComputedEqualizedValue,
+                        9,
+                        0,
+                        "currentYearEligibleComputedEqualizedValue");
+        currentYearFinalEqualizedValueDifference =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        currentYearFinalEqualizedValueDifference,
+                        9,
+                        0,
+                        "currentYearFinalEqualizedValueDifference");
+        currentYearFullAssessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        currentYearFullAssessedValue, 9, 0, "currentYearFullAssessedValue");
+        currentYearFullEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        currentYearFullEqualizedValue, 9, 0, "currentYearFullEqualizedValue");
+        currentYearNotEligibleAssessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        currentYearNotEligibleAssessedValue,
+                        9,
+                        0,
+                        "currentYearNotEligibleAssessedValue");
+        currentYearNotEligibleEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        currentYearNotEligibleEqualizedValue,
+                        9,
+                        0,
+                        "currentYearNotEligibleEqualizedValue");
+        originalBaseYearEligibleComputedFullAssessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        originalBaseYearEligibleComputedFullAssessedValue,
+                        9,
+                        0,
+                        "originalBaseYearEligibleComputedFullAssessedValue");
+        originalBaseYearEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        originalBaseYearEqualizedValue, 9, 0, "originalBaseYearEqualizedValue");
+        originalBaseYearFullAssessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        originalBaseYearFullAssessedValue,
+                        9,
+                        0,
+                        "originalBaseYearFullAssessedValue");
+        originalBaseYearTotalEligibleComputedEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        originalBaseYearTotalEligibleComputedEqualizedValue,
+                        9,
+                        0,
+                        "originalBaseYearTotalEligibleComputedEqualizedValue");
+        originalCurrentYearFinalEqualizedValueDifference =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        originalCurrentYearFinalEqualizedValueDifference,
+                        9,
+                        0,
+                        "originalCurrentYearFinalEqualizedValueDifference");
+        keyParcelNumber =
+                PropertyTaxExemptionsNumericBoundary.unsignedIdentifier(
+                        keyParcelNumber, 14, "keyParcelNumber");
+        mailingZipCode =
+                PropertyTaxExemptionsNumericBoundary.unsignedIdentifier(
+                        mailingZipCode, 9, "mailingZipCode");
+        occupancyFactor =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        occupancyFactor, 5, 1, "occupancyFactor");
+        propertyProration =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        propertyProration, 7, 6, "propertyProration");
+    }
 }

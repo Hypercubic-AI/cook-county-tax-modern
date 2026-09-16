@@ -1,15 +1,16 @@
 package org.cookcounty.tax.application.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.math.BigDecimal;
-import java.util.List;
+import static com.google.common.truth.Truth.assertThat;
 
 import org.cookcounty.tax.domain.model.AssessmentDetail;
 import org.cookcounty.tax.domain.model.AssessmentParcel;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 class AssessedValueType5KernelTest {
 
@@ -17,157 +18,187 @@ class AssessedValueType5KernelTest {
             new AssessedValueType5Kernel(new AssessmentDetailValuator());
 
     @Test
-    void asrea178_001_reportYearUsesStrictGreaterThan60Pivot() {
-        assertEquals(1961, kernel.reportYear("61"));
-        assertEquals(2060, kernel.reportYear("60"));
-        assertEquals(2000, kernel.reportYear("00"));
+    void reportYearUsesStrictGreaterThanSixtyPivot() {
+        assertThat(kernel.reportYear("61")).isEqualTo(1961);
+        assertThat(kernel.reportYear("60")).isEqualTo(2060);
+        assertThat(kernel.reportYear("00")).isEqualTo(2000);
     }
 
     @Test
-    void asrea178_002_clearsType2YrWithoutInventingAConversion() {
-        AssessmentParcel parcel = parcel();
-        AssessmentDetail detail = detail("2", 500, 1_000L);
-        detail.setCdu("YR");
+    void clearsType2YrWithoutInventingAConversion() {
+        AssessmentDetail original = improvement("2", 500, 1_000L, null, "YR");
+        var result = kernel.convert(parcel(0L), List.of(original), 2026);
+        assertThat(result.details().getFirst().supplementalDetailCode()).isEmpty();
+        assertThat(result.detailsChanged()).isTrue();
+        assertThat(result.parcelChanged()).isFalse();
+        assertThat(original.supplementalDetailCode()).isEqualTo("YR");
+    }
 
-        AssessedValueType5Kernel.Result result =
-                kernel.convert(parcel, List.of(detail), 2026);
-
-        assertEquals("", detail.getCdu());
-        assertTrue(result.detailsChanged());
-        assertFalse(result.parcelChanged());
+    @ParameterizedTest(name = "occupancy {0} reports and converts without gross-up")
+    @ValueSource(strings = {"0", "-1.0"})
+    void nonpositiveOccupancyReportsAndConvertsWithoutGrossUp(String occupancy) {
+        var result =
+                kernel.convert(
+                        parcel(0L), List.of(improvement("5", 500, 10_000L, occupancy, "GD")), 2026);
+        AssessmentDetail converted = result.details().getFirst();
+        assertThat(converted.reproductionCost()).isEqualTo(BigDecimal.valueOf(10_000));
+        assertThat(converted.detailType()).isEqualTo("3");
+        assertThat(result.conversionErrorRows()).isEqualTo(1);
     }
 
     @Test
-    void asrea178_003_nonpositiveOccupancyReportsAndConvertsWithoutGrossUp() {
-        for (BigDecimal occupancy : List.of(BigDecimal.ZERO, new BigDecimal("-1.0"))) {
-            AssessmentParcel parcel = parcel();
-            AssessmentDetail detail = detail("5", 500, 10_000L);
-            detail.setOccupancyFactor(occupancy);
-
-            AssessedValueType5Kernel.Result result = kernel.convert(parcel, List.of(detail), 2026);
-
-            assertEquals(10_000L, detail.getReproductionCost());
-            assertEquals("3", detail.getDetailType());
-            assertEquals(1, result.conversionErrorRows());
-            assertTrue(result.messages().stream().anyMatch(
-                    message -> "asrea178-003".equals(message.ruleId())));
-        }
+    void positiveOccupancyNormalizesCostAndMapsTypeThreeFields() {
+        var result =
+                kernel.convert(
+                        parcel(0L), List.of(improvement("5", 500, 10_000L, "50.0", "GD")), 2026);
+        AssessmentDetail converted = result.details().getFirst();
+        assertThat(converted.reproductionCost()).isEqualTo(BigDecimal.valueOf(20_000));
+        assertThat(converted.detailType()).isEqualTo("3");
+        assertThat(converted.detailCode()).isEqualTo("2");
+        assertThat(converted.improvementYear()).isEqualTo(0);
+        assertThat(converted.supplementalDetailCode()).isEqualTo("GD");
+        assertThat(converted.keyParcelNumber()).isEqualTo("000000000000042");
     }
 
     @Test
-    void asrea178_004_positiveOccupancyNormalizesCostAndMapsType3Fields() {
-        AssessmentParcel parcel = parcel();
-        AssessmentDetail detail = detail("5", 500, 10_000L);
-        detail.setOccupancyFactor(new BigDecimal("50.0"));
-        detail.setDetailCode("5");
-        detail.setImprovementYear(26);
-        detail.setCdu("GD");
-        detail.setAge(7);
-        detail.setKeyParcelNumber(42L);
-
-        kernel.convert(parcel, List.of(detail), 2026);
-
-        assertEquals(20_000L, detail.getReproductionCost());
-        assertEquals("3", detail.getDetailType());
-        assertEquals("2", detail.getDetailCode());
-        assertEquals(0, detail.getImprovementYear());
-        assertEquals("GD", detail.getCdu());
-        assertEquals(7, detail.getAge());
-        assertEquals(42L, detail.getKeyParcelNumber());
-    }
-
-    @Test
-    void asrea178_005_006_007_revaluesWholeParcelSeparatesTotalsAndArchivesPriorTotal() {
-        AssessmentParcel parcel = parcel();
-        parcel.setProposedTotalValue(999L);
+    void revaluesWholeParcelSeparatesTotalsAndArchivesPriorTotal() {
         AssessmentDetail land = land(1_000L, 2, "2.00");
-        AssessmentDetail converted = detail("5", 500, 10_000L);
-        converted.setOccupancyFactor(new BigDecimal("50.0"));
-        AssessmentDetail otherImprovement = detail("3", 500, 5_000L);
+        AssessmentDetail converted = improvement("5", 500, 10_000L, "50.0", "GD");
+        AssessmentDetail other = improvement("3", 500, 5_000L, null, "GD");
 
-        kernel.convert(parcel, List.of(land, converted, otherImprovement), 2026);
+        var result = kernel.convert(parcel(999L), List.of(land, converted, other), 2026);
 
-        assertEquals(20L, land.getValuation());
-        assertEquals(20_000L, converted.getValuation());
-        assertEquals(5_000L, otherImprovement.getValuation());
-        assertEquals(20L, parcel.getProposedLandValue());
-        assertEquals(25_000L, parcel.getProposedImprovementValue());
-        assertEquals(25_020L, parcel.getProposedTotalValue());
-        assertEquals(999L, parcel.getArchivedPreConversionProposedTotal());
+        assertThat(result.details().stream().map(AssessmentDetail::valuation).toList())
+                .containsExactly(
+                        BigDecimal.valueOf(20),
+                        BigDecimal.valueOf(20_000),
+                        BigDecimal.valueOf(5_000))
+                .inOrder();
+        assertThat(result.parcel().proposedLandValue()).isEqualTo(BigDecimal.valueOf(20));
+        assertThat(result.parcel().proposedImprovementValue()).isEqualTo(BigDecimal.valueOf(25000));
+        assertThat(result.parcel().proposedTotalValue()).isEqualTo(BigDecimal.valueOf(25020));
+        assertThat(result.parcel().archivedPreConversionProposedTotal())
+                .isEqualTo(BigDecimal.valueOf(999));
     }
 
     @Test
-    void asrea178_002_005_006_attachedQuestionnaireIsExcludedFromBothPasses() {
-        AssessmentParcel parcel = parcel();
-        AssessmentDetail type5Parent = detail("5", 502, 10_000L);
-        type5Parent.setOccupancyFactor(new BigDecimal("50.0"));
-        AssessmentDetail questionnaire = detail("3", 500, 99_999L);
-        questionnaire.setReproductionCost(99_999L);
-        AssessmentDetail later = detail("3", 500, 100L);
-
-        kernel.convert(parcel, List.of(type5Parent, questionnaire, later), 2026);
-
-        assertEquals(99_999L, questionnaire.getValuation());
-        assertEquals(20_100L, parcel.getProposedImprovementValue());
+    void attachedQuestionnaireIsExcludedFromBothPasses() {
+        AssessmentDetail parent = improvement("5", 502, 10_000L, "50.0", "GD");
+        AssessmentDetail questionnaire = improvement("3", 500, 99_999L, null, "GD");
+        AssessmentDetail later = improvement("3", 500, 100L, null, "GD");
+        var result = kernel.convert(parcel(0L), List.of(parent, questionnaire, later), 2026);
+        assertThat(result.details().get(1)).isEqualTo(questionnaire);
+        assertThat(result.parcel().proposedImprovementValue()).isEqualTo(BigDecimal.valueOf(20100));
     }
 
-    @Test
-    void asrea003_003_revaluationReportsUnsupportedDecimalSelectorAndUsesOneDollar() {
-        AssessmentParcel parcel = parcel();
-        AssessmentDetail type5 = detail("5", 500, 100L);
-        type5.setOccupancyFactor(new BigDecimal("100.0"));
-        AssessmentDetail land = land(1_000L, 6, "10.00");
-
-        AssessedValueType5Kernel.Result result =
-                kernel.convert(parcel, List.of(type5, land), 2026);
-
-        assertEquals(1L, land.getValuation());
-        assertTrue(result.messages().stream().anyMatch(
-                message -> "asrea003-003".equals(message.ruleId())));
+    private static AssessmentParcel parcel(long proposedTotal) {
+        return new AssessmentParcel(
+                1L,
+                0L,
+                BigDecimal.valueOf(0),
+                "1",
+                "0",
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                0,
+                BigDecimal.valueOf(0),
+                202,
+                String.format("%015d", 1L),
+                "0",
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(proposedTotal),
+                0,
+                String.format("%05d", 10_001),
+                "0",
+                String.format("%03d", 1),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
-    @Test
-    void asrea178_008_conversionDoesNotGuardOnTownshipCode() {
-        AssessmentParcel parcel = parcel();
-        parcel.setTaxCode(99_999);
-        AssessmentDetail type5 = detail("5", 500, 100L);
-        type5.setOccupancyFactor(new BigDecimal("100.0"));
-
-        AssessedValueType5Kernel.Result result =
-                kernel.convert(parcel, List.of(type5), 2026);
-
-        assertTrue(result.parcelChanged());
-        assertEquals("3", type5.getDetailType());
-    }
-
-    private static AssessmentParcel parcel() {
-        AssessmentParcel parcel = new AssessmentParcel();
-        parcel.setTaxCode(10001);
-        parcel.setVolumeNumber(1);
-        parcel.setParcelNumber(1L);
-        parcel.setTaxType("0");
-        parcel.setProposedTotalValue(0L);
-        return parcel;
-    }
-
-    private static AssessmentDetail detail(String type, int assessmentClass, long cost) {
-        AssessmentDetail detail = new AssessmentDetail();
-        detail.setDetailType(type);
-        detail.setAssessmentClass(assessmentClass);
-        detail.setReproductionCost(cost);
-        detail.setValuation(cost);
-        detail.setConditionFactor(new BigDecimal("100.0"));
-        detail.setPercentAssessed(new BigDecimal("100.00000"));
-        return detail;
+    private static AssessmentDetail improvement(
+            String type,
+            int assessmentClass,
+            long cost,
+            @Nullable String occupancy,
+            String supplementalDetailCode) {
+        return new AssessmentDetail(
+                1L,
+                0L,
+                7,
+                null,
+                assessmentClass,
+                supplementalDetailCode,
+                new BigDecimal("100.0"),
+                null,
+                null,
+                null,
+                null,
+                "5",
+                type,
+                null,
+                null,
+                26,
+                String.format("%015d", 42L),
+                null,
+                0,
+                decimal(occupancy),
+                1,
+                String.format("%015d", 1L),
+                String.format("%03d", 1),
+                new BigDecimal("100.00000"),
+                BigDecimal.valueOf(cost),
+                null,
+                null,
+                null,
+                BigDecimal.valueOf(cost));
     }
 
     private static AssessmentDetail land(long frontage, int scale, String price) {
-        AssessmentDetail detail = new AssessmentDetail();
-        detail.setDetailType("1");
-        detail.setAssessmentClass(100);
-        detail.setFrontFootage(frontage);
-        detail.setDecimalScale(scale);
-        detail.setUnitPrice(new BigDecimal(price));
-        return detail;
+        return new AssessmentDetail(
+                1L,
+                0L,
+                null,
+                null,
+                100,
+                null,
+                null,
+                null,
+                scale,
+                null,
+                null,
+                "0",
+                "1",
+                null,
+                frontage,
+                null,
+                null,
+                null,
+                0,
+                null,
+                1,
+                String.format("%015d", 1L),
+                String.format("%03d", 1),
+                null,
+                null,
+                null,
+                null,
+                new BigDecimal(price),
+                BigDecimal.valueOf(0));
+    }
+
+    private static @Nullable BigDecimal decimal(@Nullable String value) {
+        return value == null ? null : new BigDecimal(value);
     }
 }

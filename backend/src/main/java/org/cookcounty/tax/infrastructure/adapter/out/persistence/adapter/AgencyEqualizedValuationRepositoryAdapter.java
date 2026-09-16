@@ -1,31 +1,33 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.adapter;
 
 import org.cookcounty.tax.domain.model.AgencyEqualizedValuation;
 import org.cookcounty.tax.domain.port.out.AgencyEqualizedValuationRepository;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.mapper.AgencyEqualizedValuationMapper;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.repository.JpaAgencyEqualizedValuationRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 import java.util.Optional;
 
-// GENERATED-IMPORTS:start
-// GENERATED-IMPORTS:end
-
+/// JPA adapter that maps complete agency equalized valuation snapshots.
 @Component
-public class AgencyEqualizedValuationRepositoryAdapter implements AgencyEqualizedValuationRepository {
+public final class AgencyEqualizedValuationRepositoryAdapter
+        implements AgencyEqualizedValuationRepository {
 
     private final JpaAgencyEqualizedValuationRepository jpaRepository;
 
-    public AgencyEqualizedValuationRepositoryAdapter(JpaAgencyEqualizedValuationRepository jpaRepository) {
+    /// Uses the supplied repository for complete snapshot mapping and database version checks.
+    public AgencyEqualizedValuationRepositoryAdapter(
+            JpaAgencyEqualizedValuationRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
 
-    // GENERATED-OVERRIDES:start
     @Override
-    public Page<AgencyEqualizedValuation> findAll(Pageable pageable) {
-        return jpaRepository.findAll(pageable).map(AgencyEqualizedValuationMapper::toDomain);
+    public List<AgencyEqualizedValuation> findAllInPersistenceOrder() {
+        return jpaRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
+                .map(AgencyEqualizedValuationMapper::toDomain)
+                .toList();
     }
 
     @Override
@@ -35,12 +37,13 @@ public class AgencyEqualizedValuationRepositoryAdapter implements AgencyEqualize
 
     @Override
     public AgencyEqualizedValuation save(AgencyEqualizedValuation agencyEqualizedValuation) {
-        return AgencyEqualizedValuationMapper.toDomain(jpaRepository.save(AgencyEqualizedValuationMapper.toEntity(agencyEqualizedValuation)));
+        return AgencyEqualizedValuationMapper.toDomain(
+                jpaRepository.save(
+                        AgencyEqualizedValuationMapper.toEntity(agencyEqualizedValuation)));
     }
 
     @Override
     public void deleteById(Long id) {
         jpaRepository.deleteById(id);
     }
-    // GENERATED-OVERRIDES:end
 }

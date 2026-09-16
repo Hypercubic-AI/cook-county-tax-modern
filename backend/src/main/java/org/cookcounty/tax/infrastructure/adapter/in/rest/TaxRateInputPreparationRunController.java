@@ -1,17 +1,16 @@
-
 package org.cookcounty.tax.infrastructure.adapter.in.rest;
-
-import java.net.URI;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 import jakarta.validation.Valid;
 
 import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder;
+import org.cookcounty.tax.domain.contract.BatchRunFailure;
+import org.cookcounty.tax.domain.contract.BatchRunStart;
+import org.cookcounty.tax.domain.contract.Result;
+import org.cookcounty.tax.domain.contract.dto.TaxRateInputPreparationApiResponse;
+import org.cookcounty.tax.domain.contract.dto.TaxRateInputPreparationErrorResponse;
+import org.cookcounty.tax.domain.contract.dto.TaxRateInputPreparationRunRequest;
+import org.cookcounty.tax.domain.contract.dto.TaxRateInputPreparationRunResponse;
 import org.cookcounty.tax.domain.port.in.TaxRateInputPreparationRunUseCase;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.TaxRateInputPreparationErrorResponse;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.TaxRateInputPreparationRunRequest;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.TaxRateInputPreparationRunResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,53 +22,93 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/// Translates tax-rate input preparation HTTP requests and typed application outcomes.
+///
+/// The controller starts asynchronous work and returns its resource location. It does not own the
+/// processing transaction or restart behavior.
 @RestController
 @RequestMapping("/api/tax-rate-input-preparation-runs")
-public class TaxRateInputPreparationRunController {
-
+public final class TaxRateInputPreparationRunController {
     private static final String RESOURCE_PATH = "/api/tax-rate-input-preparation-runs/";
     private static final String FACTOR_SCENARIO_ID = "clerk-agency-attachment";
+
     private final TaxRateInputPreparationRunUseCase useCase;
     private final FactorBatchOutcomeRecorder outcomeRecorder;
 
+    /// Creates the HTTP adapter for the run use case and accepted-request recorder.
     public TaxRateInputPreparationRunController(
-            TaxRateInputPreparationRunUseCase useCase,
-            FactorBatchOutcomeRecorder outcomeRecorder) {
+            TaxRateInputPreparationRunUseCase useCase, FactorBatchOutcomeRecorder outcomeRecorder) {
         this.useCase = useCase;
         this.outcomeRecorder = outcomeRecorder;
     }
 
+    /// Returns the latest run snapshot or a typed 404 error body.
     @GetMapping("/{id}")
-    public ResponseEntity<?> getTaxRateInputPreparationRun(@PathVariable Long id) {
-        return useCase.getTaxRateInputPreparationRun(id)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(error(
-                                "RUN_NOT_FOUND",
-                                "No run exists for the supplied identifier")));
+    public ResponseEntity<TaxRateInputPreparationApiResponse> getTaxRateInputPreparationRun(
+            @PathVariable Long id) {
+        return switch (useCase.getTaxRateInputPreparationRun(id)) {
+            case Result.Ok(var response) -> ResponseEntity.ok(response);
+            case Result.Err(var failure) -> failure(failure);
+        };
     }
 
+    /// Starts a structurally valid request or returns its typed expected failure.
+    ///
+    /// The response includes a resource location for new and exact replay outcomes.
     @PostMapping
-    public ResponseEntity<TaxRateInputPreparationRunResponse> startTaxRateInputPreparationRun(
+    public ResponseEntity<TaxRateInputPreparationApiResponse> startTaxRateInputPreparationRun(
             @Valid @RequestBody TaxRateInputPreparationRunRequest request,
             @RequestHeader HttpHeaders requestHeaders) {
-        var result = useCase.startTaxRateInputPreparationRun(request);
-        outcomeRecorder.accepted(
-                FACTOR_SCENARIO_ID, result.id(), request, flattened(requestHeaders));
-        URI location = URI.create(RESOURCE_PATH + result.id());
-        return ResponseEntity.created(location).body(result.response());
+        return switch (useCase.startTaxRateInputPreparationRun(request)) {
+            case Result.Ok(var start) -> accepted(start, request, requestHeaders);
+            case Result.Err(var failure) -> failure(failure);
+        };
     }
 
+    /// Records accepted request provenance and returns the run resource.
+    private ResponseEntity<TaxRateInputPreparationApiResponse> accepted(
+            BatchRunStart<TaxRateInputPreparationRunResponse> start,
+            TaxRateInputPreparationRunRequest request,
+            HttpHeaders requestHeaders) {
+        outcomeRecorder.accepted(
+                FACTOR_SCENARIO_ID, start.id(), request, flattened(requestHeaders));
+        URI location = URI.create(RESOURCE_PATH + start.id());
+        return ResponseEntity.created(location).body(start.response());
+    }
+
+    /// Exhaustively maps each expected failure to its documented HTTP status and code.
+    private static ResponseEntity<TaxRateInputPreparationApiResponse> failure(
+            BatchRunFailure failure) {
+        return switch (failure) {
+            case BatchRunFailure.InvalidRequest(var message) ->
+                    error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", message);
+            case BatchRunFailure.IdempotencyConflict(var message) ->
+                    error(HttpStatus.CONFLICT, "IDEMPOTENCY_CONFLICT", message);
+            case BatchRunFailure.RunNotFound(var id) ->
+                    error(
+                            HttpStatus.NOT_FOUND,
+                            "RUN_NOT_FOUND",
+                            "No run exists for the supplied identifier");
+            case BatchRunFailure.AdmissionRejected(var message) ->
+                    error(HttpStatus.SERVICE_UNAVAILABLE, "BATCH_CAPACITY_EXHAUSTED", message);
+        };
+    }
+
+    /// Creates the common safe error body without business-rule context.
+    private static ResponseEntity<TaxRateInputPreparationApiResponse> error(
+            HttpStatus status, String code, String message) {
+        return ResponseEntity.status(status)
+                .body(new TaxRateInputPreparationErrorResponse(code, message, null));
+    }
+
+    /// Copies request headers into an immutable single-value provenance map.
     private static Map<String, String> flattened(HttpHeaders headers) {
         Map<String, String> flattened = new LinkedHashMap<>();
         headers.forEach((name, values) -> flattened.put(name, String.join(",", values)));
         return Map.copyOf(flattened);
-    }
-
-    private static TaxRateInputPreparationErrorResponse error(String code, String message) {
-        TaxRateInputPreparationErrorResponse response = new TaxRateInputPreparationErrorResponse();
-        response.setError(code);
-        response.setMessage(message);
-        return response;
     }
 }

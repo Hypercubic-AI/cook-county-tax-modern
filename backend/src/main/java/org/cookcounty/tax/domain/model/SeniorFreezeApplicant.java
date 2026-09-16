@@ -1,357 +1,213 @@
-
 package org.cookcounty.tax.domain.model;
 
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 
-
-public class SeniorFreezeApplicant {
-
-    private Long id;
-
-    // GENERATED-FIELDS:start
-
-    private Integer age;
-
-    private String applicantAddress;
-
-    private String applicantCity;
-
-    private String applicantFirstName;
-
-    private String applicantLastName;
-
-    private String applicantMiddleInitial;
-
-    private String applicantOldName;
-
-    private String applicantState;
-
-    private String applicantTitle;
-
-    private Long applicantZipCode;
-
-    private Integer baseYear;
-
-    private Long baseYearEligibleEqualizedValue;
-
-    private String baseYearIndicator;
-
-    private Integer batchNumber;
-
-    private String birthDate;
-
-    private BigDecimal civilServiceBenefits;
-
-    private Integer cooperativeSeniorShares;
-
-    private Integer denialDate;
-
-    private Integer firstApplicationDate;
-
-    private Integer homeownerBaseYear;
-
-    private Long homeownerBaseYearAssessedValue;
-
-    private BigDecimal homeownerBaseYearEqualizationFactor;
-
-    private Long homeownerBaseYearEqualizedValue;
-
-    private Integer homeownerEligibilityIndicator;
-
-    private String homeownerStatus;
-
-    private Integer homesteadBatchNumber;
-
-    private BigDecimal homesteadPercentShares;
-
-    private Integer homesteadShares;
-
-    private String homesteadStatus;
-
-    private Integer homesteadYearApplied;
-
-    private BigDecimal interestIncome;
-
-    private Integer lastApplicationDate;
-
-    private String lifeCareFacilityIndicator;
-
-    private Integer maintenanceIndicator;
-
-    private Integer nameMaintenanceIndicator;
-
-    private BigDecimal netCapitalGain;
-
-    private BigDecimal netRentalIncome;
-
-    private String noIncomeIndicator;
-
-    private String notarizedIndicator;
-
-    private BigDecimal otherBenefits;
-
-    private BigDecimal otherIncome;
-
-    private BigDecimal percentSeniorShares;
-
-    private Long phoneNumber;
-
-    private BigDecimal publicAid;
-
-    private Integer qualificationDate;
-
-    private BigDecimal railroadBenefits;
-
-    private Integer returnedDate;
-
-    private BigDecimal seniorFreezePercent;
-
-    private String seniorFreezeStatus;
-
-    private String signedIndicator;
-
-    private BigDecimal socialSecurityIncome;
-
-    private Long socialSecurityNumber;
-
-    private BigDecimal totalIncome;
-
-    private BigDecimal veteransBenefits;
-
-    private BigDecimal wages;
-
-
-
-    // GENERATED-FIELDS:end
-
-    public SeniorFreezeApplicant() {}
-
-    // GENERATED-ACCESSORS:start
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-
-    public Integer getAge() { return age; }
-    public void setAge(Integer age) { this.age = age; }
-
-
-    public String getApplicantAddress() { return applicantAddress; }
-    public void setApplicantAddress(String applicantAddress) { this.applicantAddress = applicantAddress; }
-
-
-    public String getApplicantCity() { return applicantCity; }
-    public void setApplicantCity(String applicantCity) { this.applicantCity = applicantCity; }
-
-
-    public String getApplicantFirstName() { return applicantFirstName; }
-    public void setApplicantFirstName(String applicantFirstName) { this.applicantFirstName = applicantFirstName; }
-
-
-    public String getApplicantLastName() { return applicantLastName; }
-    public void setApplicantLastName(String applicantLastName) { this.applicantLastName = applicantLastName; }
-
-
-    public String getApplicantMiddleInitial() { return applicantMiddleInitial; }
-    public void setApplicantMiddleInitial(String applicantMiddleInitial) { this.applicantMiddleInitial = applicantMiddleInitial; }
-
-
-    public String getApplicantOldName() { return applicantOldName; }
-    public void setApplicantOldName(String applicantOldName) { this.applicantOldName = applicantOldName; }
-
-
-    public String getApplicantState() { return applicantState; }
-    public void setApplicantState(String applicantState) { this.applicantState = applicantState; }
-
-
-    public String getApplicantTitle() { return applicantTitle; }
-    public void setApplicantTitle(String applicantTitle) { this.applicantTitle = applicantTitle; }
-
-
-    public Long getApplicantZipCode() { return applicantZipCode; }
-    public void setApplicantZipCode(Long applicantZipCode) { this.applicantZipCode = applicantZipCode; }
-
-
-    public Integer getBaseYear() { return baseYear; }
-    public void setBaseYear(Integer baseYear) { this.baseYear = baseYear; }
-
-
-    public Long getBaseYearEligibleEqualizedValue() { return baseYearEligibleEqualizedValue; }
-    public void setBaseYearEligibleEqualizedValue(Long baseYearEligibleEqualizedValue) { this.baseYearEligibleEqualizedValue = baseYearEligibleEqualizedValue; }
-
-
-    public String getBaseYearIndicator() { return baseYearIndicator; }
-    public void setBaseYearIndicator(String baseYearIndicator) { this.baseYearIndicator = baseYearIndicator; }
-
-
-    public Integer getBatchNumber() { return batchNumber; }
-    public void setBatchNumber(Integer batchNumber) { this.batchNumber = batchNumber; }
-
-
-    public String getBirthDate() { return birthDate; }
-    public void setBirthDate(String birthDate) { this.birthDate = birthDate; }
-
-
-    public BigDecimal getCivilServiceBenefits() { return civilServiceBenefits; }
-    public void setCivilServiceBenefits(BigDecimal civilServiceBenefits) { this.civilServiceBenefits = civilServiceBenefits; }
-
-
-    public Integer getCooperativeSeniorShares() { return cooperativeSeniorShares; }
-    public void setCooperativeSeniorShares(Integer cooperativeSeniorShares) { this.cooperativeSeniorShares = cooperativeSeniorShares; }
-
-
-    public Integer getDenialDate() { return denialDate; }
-    public void setDenialDate(Integer denialDate) { this.denialDate = denialDate; }
-
-
-    public Integer getFirstApplicationDate() { return firstApplicationDate; }
-    public void setFirstApplicationDate(Integer firstApplicationDate) { this.firstApplicationDate = firstApplicationDate; }
-
-
-    public Integer getHomeownerBaseYear() { return homeownerBaseYear; }
-    public void setHomeownerBaseYear(Integer homeownerBaseYear) { this.homeownerBaseYear = homeownerBaseYear; }
-
-
-    public Long getHomeownerBaseYearAssessedValue() { return homeownerBaseYearAssessedValue; }
-    public void setHomeownerBaseYearAssessedValue(Long homeownerBaseYearAssessedValue) { this.homeownerBaseYearAssessedValue = homeownerBaseYearAssessedValue; }
-
-
-    public BigDecimal getHomeownerBaseYearEqualizationFactor() { return homeownerBaseYearEqualizationFactor; }
-    public void setHomeownerBaseYearEqualizationFactor(BigDecimal homeownerBaseYearEqualizationFactor) { this.homeownerBaseYearEqualizationFactor = homeownerBaseYearEqualizationFactor; }
-
-
-    public Long getHomeownerBaseYearEqualizedValue() { return homeownerBaseYearEqualizedValue; }
-    public void setHomeownerBaseYearEqualizedValue(Long homeownerBaseYearEqualizedValue) { this.homeownerBaseYearEqualizedValue = homeownerBaseYearEqualizedValue; }
-
-
-    public Integer getHomeownerEligibilityIndicator() { return homeownerEligibilityIndicator; }
-    public void setHomeownerEligibilityIndicator(Integer homeownerEligibilityIndicator) { this.homeownerEligibilityIndicator = homeownerEligibilityIndicator; }
-
-
-    public String getHomeownerStatus() { return homeownerStatus; }
-    public void setHomeownerStatus(String homeownerStatus) { this.homeownerStatus = homeownerStatus; }
-
-
-    public Integer getHomesteadBatchNumber() { return homesteadBatchNumber; }
-    public void setHomesteadBatchNumber(Integer homesteadBatchNumber) { this.homesteadBatchNumber = homesteadBatchNumber; }
-
-
-    public BigDecimal getHomesteadPercentShares() { return homesteadPercentShares; }
-    public void setHomesteadPercentShares(BigDecimal homesteadPercentShares) { this.homesteadPercentShares = homesteadPercentShares; }
-
-
-    public Integer getHomesteadShares() { return homesteadShares; }
-    public void setHomesteadShares(Integer homesteadShares) { this.homesteadShares = homesteadShares; }
-
-
-    public String getHomesteadStatus() { return homesteadStatus; }
-    public void setHomesteadStatus(String homesteadStatus) { this.homesteadStatus = homesteadStatus; }
-
-
-    public Integer getHomesteadYearApplied() { return homesteadYearApplied; }
-    public void setHomesteadYearApplied(Integer homesteadYearApplied) { this.homesteadYearApplied = homesteadYearApplied; }
-
-
-    public BigDecimal getInterestIncome() { return interestIncome; }
-    public void setInterestIncome(BigDecimal interestIncome) { this.interestIncome = interestIncome; }
-
-
-    public Integer getLastApplicationDate() { return lastApplicationDate; }
-    public void setLastApplicationDate(Integer lastApplicationDate) { this.lastApplicationDate = lastApplicationDate; }
-
-
-    public String getLifeCareFacilityIndicator() { return lifeCareFacilityIndicator; }
-    public void setLifeCareFacilityIndicator(String lifeCareFacilityIndicator) { this.lifeCareFacilityIndicator = lifeCareFacilityIndicator; }
-
-
-    public Integer getMaintenanceIndicator() { return maintenanceIndicator; }
-    public void setMaintenanceIndicator(Integer maintenanceIndicator) { this.maintenanceIndicator = maintenanceIndicator; }
-
-
-    public Integer getNameMaintenanceIndicator() { return nameMaintenanceIndicator; }
-    public void setNameMaintenanceIndicator(Integer nameMaintenanceIndicator) { this.nameMaintenanceIndicator = nameMaintenanceIndicator; }
-
-
-    public BigDecimal getNetCapitalGain() { return netCapitalGain; }
-    public void setNetCapitalGain(BigDecimal netCapitalGain) { this.netCapitalGain = netCapitalGain; }
-
-
-    public BigDecimal getNetRentalIncome() { return netRentalIncome; }
-    public void setNetRentalIncome(BigDecimal netRentalIncome) { this.netRentalIncome = netRentalIncome; }
-
-
-    public String getNoIncomeIndicator() { return noIncomeIndicator; }
-    public void setNoIncomeIndicator(String noIncomeIndicator) { this.noIncomeIndicator = noIncomeIndicator; }
-
-
-    public String getNotarizedIndicator() { return notarizedIndicator; }
-    public void setNotarizedIndicator(String notarizedIndicator) { this.notarizedIndicator = notarizedIndicator; }
-
-
-    public BigDecimal getOtherBenefits() { return otherBenefits; }
-    public void setOtherBenefits(BigDecimal otherBenefits) { this.otherBenefits = otherBenefits; }
-
-
-    public BigDecimal getOtherIncome() { return otherIncome; }
-    public void setOtherIncome(BigDecimal otherIncome) { this.otherIncome = otherIncome; }
-
-
-    public BigDecimal getPercentSeniorShares() { return percentSeniorShares; }
-    public void setPercentSeniorShares(BigDecimal percentSeniorShares) { this.percentSeniorShares = percentSeniorShares; }
-
-
-    public Long getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(Long phoneNumber) { this.phoneNumber = phoneNumber; }
-
-
-    public BigDecimal getPublicAid() { return publicAid; }
-    public void setPublicAid(BigDecimal publicAid) { this.publicAid = publicAid; }
-
-
-    public Integer getQualificationDate() { return qualificationDate; }
-    public void setQualificationDate(Integer qualificationDate) { this.qualificationDate = qualificationDate; }
-
-
-    public BigDecimal getRailroadBenefits() { return railroadBenefits; }
-    public void setRailroadBenefits(BigDecimal railroadBenefits) { this.railroadBenefits = railroadBenefits; }
-
-
-    public Integer getReturnedDate() { return returnedDate; }
-    public void setReturnedDate(Integer returnedDate) { this.returnedDate = returnedDate; }
-
-
-    public BigDecimal getSeniorFreezePercent() { return seniorFreezePercent; }
-    public void setSeniorFreezePercent(BigDecimal seniorFreezePercent) { this.seniorFreezePercent = seniorFreezePercent; }
-
-
-    public String getSeniorFreezeStatus() { return seniorFreezeStatus; }
-    public void setSeniorFreezeStatus(String seniorFreezeStatus) { this.seniorFreezeStatus = seniorFreezeStatus; }
-
-
-    public String getSignedIndicator() { return signedIndicator; }
-    public void setSignedIndicator(String signedIndicator) { this.signedIndicator = signedIndicator; }
-
-
-    public BigDecimal getSocialSecurityIncome() { return socialSecurityIncome; }
-    public void setSocialSecurityIncome(BigDecimal socialSecurityIncome) { this.socialSecurityIncome = socialSecurityIncome; }
-
-
-    public Long getSocialSecurityNumber() { return socialSecurityNumber; }
-    public void setSocialSecurityNumber(Long socialSecurityNumber) { this.socialSecurityNumber = socialSecurityNumber; }
-
-
-    public BigDecimal getTotalIncome() { return totalIncome; }
-    public void setTotalIncome(BigDecimal totalIncome) { this.totalIncome = totalIncome; }
-
-
-    public BigDecimal getVeteransBenefits() { return veteransBenefits; }
-    public void setVeteransBenefits(BigDecimal veteransBenefits) { this.veteransBenefits = veteransBenefits; }
-
-
-    public BigDecimal getWages() { return wages; }
-    public void setWages(BigDecimal wages) { this.wages = wages; }
-
-
-
-    // GENERATED-ACCESSORS:end
+/// One Senior Freeze applicant and the facts used to determine eligibility.
+///
+/// The income values use exact decimal dollars. The date fields retain their source layouts.
+/// Maintained input includes nonzero values that are not valid calendar dates. Converting those
+/// fields to `LocalDate` would reject states that the source accepts.
+///
+/// @param id Generated database identity. It is absent before the first successful persistence
+///   operation.
+/// @param version Optimistic-lock version. It is absent before persistence hydrates the record.
+/// @param age applicant age in whole years
+/// @param applicantAddress Applicant address retained from the applicant or mailing record.
+/// @param applicantCity Applicant city retained from the applicant or mailing record.
+/// @param applicantFirstName Applicant first name retained from the applicant or mailing record.
+/// @param applicantLastName Applicant last name retained from the applicant or mailing record.
+/// @param applicantMiddleInitial Applicant middle initial retained from the applicant or mailing
+///   record.
+/// @param applicantOldName Applicant old name retained from the applicant or mailing record.
+/// @param applicantState Applicant state retained from the applicant or mailing record.
+/// @param applicantTitle Applicant title retained from the applicant or mailing record.
+/// @param applicantZipCode canonical nine-digit postal identifier
+/// @param baseYear year selected for the frozen base value
+/// @param baseYearEligibleEqualizedValue eligible base-year equalized valuation in whole dollars
+/// @param baseYearIndicator maintained code that identifies base-year treatment
+/// @param batchNumber processing batch identifier
+/// @param birthDate birth-date key in the `MMDDCCYY` character layout; accepted noncalendar text
+///   remains unchanged
+/// @param civilServiceBenefits Civil-service benefit portion of household income in dollars with
+///   two fractional digits.
+/// @param cooperativeSeniorShares number of cooperative shares claimed by the applicant
+/// @param denialDate denial date in numeric `CCYYMMDD` layout; zero is absent and other source
+///   values remain unchanged
+/// @param firstApplicationDate first received date in numeric `CCYYMMDD` layout; zero is absent and
+///   other source values remain unchanged
+/// @param homeownerBaseYear year selected for the applicant's homeowner base
+/// @param homeownerBaseYearAssessedValue Applicant homeowner base-year assessed valuation in whole
+///   dollars.
+/// @param homeownerBaseYearEqualizationFactor Applicant homeowner base-year factor with four
+///   fractional digits.
+/// @param homeownerBaseYearEqualizedValue Applicant homeowner base-year equalized valuation in
+///   whole dollars.
+/// @param homeownerEligibilityIndicator maintained code for homeowner eligibility
+/// @param homeownerStatus maintained homeowner disposition code
+/// @param homesteadBatchNumber homestead processing batch identifier
+/// @param homesteadPercentShares homestead share percentage with three fractional digits
+/// @param homesteadShares number of homestead shares
+/// @param homesteadStatus maintained homestead disposition code
+/// @param homesteadYearApplied year associated with the homestead application
+/// @param interestIncome Interest portion of household income in dollars with two fractional
+///   digits.
+/// @param lastApplicationDate latest received date in numeric `CCYYMMDD` layout; zero is absent and
+///   other source values remain unchanged
+/// @param lifeCareFacilityIndicator maintained code for life-care-facility status
+/// @param maintenanceIndicator maintained record-maintenance code
+/// @param nameMaintenanceIndicator maintained name-maintenance code
+/// @param netCapitalGain Net-capital-gain portion of household income in dollars with two
+///   fractional digits.
+/// @param netRentalIncome Net-rental portion of household income in dollars with two fractional
+///   digits.
+/// @param noIncomeIndicator maintained code that declares no household income
+/// @param notarizedIndicator maintained code that records notarization
+/// @param otherBenefits Other-benefit portion of household income in dollars with two fractional
+///   digits.
+/// @param otherIncome Other portion of household income in dollars with two fractional digits.
+/// @param percentSeniorShares Applicant share as a decimal fraction with six fractional digits.
+/// @param phoneNumber canonical ten-digit telephone identifier
+/// @param publicAid Public-aid portion of household income in dollars with two fractional digits.
+/// @param qualificationDate qualification date in numeric `CCYYMMDD` layout; zero is absent and
+///   other source values remain unchanged
+/// @param railroadBenefits Railroad-benefit portion of household income in dollars with two
+///   fractional digits.
+/// @param returnedDate returned date in numeric `CCYYMMDD` layout; zero is absent and other source
+///   values remain unchanged
+/// @param seniorFreezePercent Senior Freeze percentage with one fractional digit.
+/// @param seniorFreezeStatus maintained application disposition code
+/// @param signedIndicator maintained code that records the applicant signature
+/// @param socialSecurityIncome Social Security portion of household income in dollars with two
+///   fractional digits.
+/// @param socialSecurityNumber canonical 11-digit source identifier
+/// @param totalIncome Applicant household income total in dollars with two fractional digits.
+/// @param veteransBenefits Veterans-benefit portion of household income in dollars with two
+///   fractional digits.
+/// @param wages Wage portion of household income in dollars with two fractional digits.
+public record SeniorFreezeApplicant(
+        @Nullable Long id,
+        @Nullable Long version,
+        Integer age,
+        String applicantAddress,
+        String applicantCity,
+        String applicantFirstName,
+        String applicantLastName,
+        String applicantMiddleInitial,
+        String applicantOldName,
+        String applicantState,
+        String applicantTitle,
+        String applicantZipCode,
+        Integer baseYear,
+        BigDecimal baseYearEligibleEqualizedValue,
+        String baseYearIndicator,
+        Integer batchNumber,
+        String birthDate,
+        BigDecimal civilServiceBenefits,
+        Integer cooperativeSeniorShares,
+        Integer denialDate,
+        Integer firstApplicationDate,
+        Integer homeownerBaseYear,
+        BigDecimal homeownerBaseYearAssessedValue,
+        BigDecimal homeownerBaseYearEqualizationFactor,
+        BigDecimal homeownerBaseYearEqualizedValue,
+        Integer homeownerEligibilityIndicator,
+        String homeownerStatus,
+        Integer homesteadBatchNumber,
+        BigDecimal homesteadPercentShares,
+        Integer homesteadShares,
+        String homesteadStatus,
+        Integer homesteadYearApplied,
+        BigDecimal interestIncome,
+        Integer lastApplicationDate,
+        String lifeCareFacilityIndicator,
+        Integer maintenanceIndicator,
+        Integer nameMaintenanceIndicator,
+        BigDecimal netCapitalGain,
+        BigDecimal netRentalIncome,
+        String noIncomeIndicator,
+        String notarizedIndicator,
+        BigDecimal otherBenefits,
+        BigDecimal otherIncome,
+        BigDecimal percentSeniorShares,
+        String phoneNumber,
+        BigDecimal publicAid,
+        Integer qualificationDate,
+        BigDecimal railroadBenefits,
+        Integer returnedDate,
+        BigDecimal seniorFreezePercent,
+        String seniorFreezeStatus,
+        String signedIndicator,
+        BigDecimal socialSecurityIncome,
+        String socialSecurityNumber,
+        BigDecimal totalIncome,
+        BigDecimal veteransBenefits,
+        BigDecimal wages) {
+    /// Normalizes identifiers and exact decimal amounts without interpreting historical raw date
+    /// fields.
+    ///
+    /// @throws IllegalArgumentException if an identifier is empty, contains nondigits, or exceeds
+    ///   its width
+    /// @throws ArithmeticException if a decimal exceeds its precision or requires rounding
+    public SeniorFreezeApplicant {
+        applicantZipCode =
+                PropertyTaxExemptionsNumericBoundary.unsignedIdentifier(
+                        applicantZipCode, 9, "applicantZipCode");
+        baseYearEligibleEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        baseYearEligibleEqualizedValue, 9, 0, "baseYearEligibleEqualizedValue");
+        civilServiceBenefits =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        civilServiceBenefits, 9, 2, "civilServiceBenefits");
+        homeownerBaseYearAssessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        homeownerBaseYearAssessedValue, 9, 0, "homeownerBaseYearAssessedValue");
+        homeownerBaseYearEqualizationFactor =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        homeownerBaseYearEqualizationFactor,
+                        5,
+                        4,
+                        "homeownerBaseYearEqualizationFactor");
+        homeownerBaseYearEqualizedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        homeownerBaseYearEqualizedValue, 9, 0, "homeownerBaseYearEqualizedValue");
+        homesteadPercentShares =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        homesteadPercentShares, 6, 3, "homesteadPercentShares");
+        interestIncome =
+                PropertyTaxExemptionsNumericBoundary.exact(interestIncome, 9, 2, "interestIncome");
+        netCapitalGain =
+                PropertyTaxExemptionsNumericBoundary.exact(netCapitalGain, 9, 2, "netCapitalGain");
+        netRentalIncome =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        netRentalIncome, 9, 2, "netRentalIncome");
+        otherBenefits =
+                PropertyTaxExemptionsNumericBoundary.exact(otherBenefits, 9, 2, "otherBenefits");
+        otherIncome = PropertyTaxExemptionsNumericBoundary.exact(otherIncome, 9, 2, "otherIncome");
+        percentSeniorShares =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        percentSeniorShares, 6, 6, "percentSeniorShares");
+        phoneNumber =
+                PropertyTaxExemptionsNumericBoundary.unsignedIdentifier(
+                        phoneNumber, 10, "phoneNumber");
+        publicAid = PropertyTaxExemptionsNumericBoundary.exact(publicAid, 9, 2, "publicAid");
+        railroadBenefits =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        railroadBenefits, 9, 2, "railroadBenefits");
+        seniorFreezePercent =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        seniorFreezePercent, 2, 1, "seniorFreezePercent");
+        socialSecurityIncome =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        socialSecurityIncome, 9, 2, "socialSecurityIncome");
+        socialSecurityNumber =
+                PropertyTaxExemptionsNumericBoundary.unsignedIdentifier(
+                        socialSecurityNumber, 11, "socialSecurityNumber");
+        totalIncome = PropertyTaxExemptionsNumericBoundary.exact(totalIncome, 9, 2, "totalIncome");
+        veteransBenefits =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        veteransBenefits, 9, 2, "veteransBenefits");
+        wages = PropertyTaxExemptionsNumericBoundary.exact(wages, 9, 2, "wages");
+    }
 }

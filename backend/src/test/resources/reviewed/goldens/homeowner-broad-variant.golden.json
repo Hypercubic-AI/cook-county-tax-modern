@@ -1,0 +1,105 @@
+{
+  "job": "HOME853",
+  "jcl": "HOME853",
+  "date": "20250915",
+  "time": "120000",
+  "maxRC": 0,
+  "steps": [
+    {
+      "name": "S001",
+      "program": "ASREA841",
+      "returnCode": 0,
+      "sysout": [
+        "PROGRAM ASREA841 DATE AND TIME OF RUN =  25/09/20   01200"
+      ]
+    },
+    {
+      "name": "S002",
+      "program": "ASREA847",
+      "returnCode": 0
+    },
+    {
+      "name": "S003",
+      "program": "ASREA853",
+      "returnCode": 0
+    },
+    {
+      "name": "S004",
+      "program": "ASREA859",
+      "returnCode": 0
+    }
+  ],
+  "catalogedOutputs": [
+    {
+      "dsn": "output/ASREA841-ERRPRINT.dat",
+      "generation": 1,
+      "recordCount": 9,
+      "records": [
+        "   000012022000020000        LOW01                                                                                                   ",
+        "   000012500000000000        MISS1                                                                                                   ",
+        "   000060000000000000        MISS2                                                                                                   ",
+        " TOTAL RENEWAL RECORDS READ              10                                                                                          ",
+        " TOTAL RENEWAL RECORDS UPDATED            7                                                                                          ",
+        " TOTAL RENEWAL RECORDS REJECTED           3                                                                                          ",
+        " TOTAL HOMEOWNER RECORDS READ            10                                                                                          ",
+        " TOTAL HOMEOWNER RECORDS WRITTEN         10                                                                                          ",
+        " TOTAL HOMEOWNER RECORDS UPDATED          7                                                                                          "
+      ]
+    },
+    {
+      "dsn": "output/ASREA841-PRINTOUT.dat",
+      "generation": 1,
+      "recordCount": 13,
+      "records": [
+        " 001  000010011000010000   10001   0202    1900   1.000000   00001       100,000   B0001                                             ",
+        " 009  000012022000020000   12001   0203    1901   1.050000   00001       125,000   B0002                                             ",
+        " 025  000013066000060000   13001   0201    1903   0.950000   00001       175,000   B0003                                             ",
+        " 036  000014077000070000   14001   0212    1904   1.150000   00001       325,000   B0004                                             ",
+        " 063  000020033000030000   20001   0295    1902   1.100000   00001       250,000   B0005                                             ",
+        " 193  000037044000040000   37001   0299    1905   0.500000   00012        50,000   B0007                                             ",
+        " 508  000076022200120000   76001   0297    1908   1.250000   00001       110,000   B0009                                             ",
+        " TOTAL RENEWAL RECORDS READ              10                                                                                          ",
+        " TOTAL RENEWAL RECORDS UPDATED            7                                                                                          ",
+        " TOTAL RENEWAL RECORDS REJECTED           3                                                                                          ",
+        " TOTAL HOMEOWNER RECORDS READ            10                                                                                          ",
+        " TOTAL HOMEOWNER RECORDS WRITTEN         10                                                                                          ",
+        " TOTAL HOMEOWNER RECORDS UPDATED          7                                                                                          "
+      ]
+    },
+    {
+      "dsn": "output/ASREA853-PRNTOUT.dat",
+      "generation": 1,
+      "recordCount": 13,
+      "records": [
+        "   001  10011000010000   10001       202       202     PARCEL IS NON-RESIDENTIAL                                                     ",
+        "   009  12022000020000   12001       203       203     PARCEL IS NON-RESIDENTIAL                                                     ",
+        "   025  13066000060000   13001       201       201     PARCEL IS NON-RESIDENTIAL                                                     ",
+        "   036  14077000070000   14001       212       212     PARCEL IS NON-RESIDENTIAL                                                     ",
+        "   063  20033000030000   20001       295       295     PARCEL IS NON-RESIDENTIAL                                                     ",
+        "   086  22055000050000   22001       241       241     PARCEL IS NON-RESIDENTIAL                                                     ",
+        "   193  37044000040000   37001       299       299     PARCEL IS NON-RESIDENTIAL                                                     ",
+        "   350  71011100110000   71001       278       278     PARCEL IS NON-RESIDENTIAL                                                     ",
+        "   508  76022200120000   76001       297       297     PARCEL IS NON-RESIDENTIAL                                                     ",
+        "   528  77033300130000   77001       234       234     PARCEL IS NON-RESIDENTIAL                                                     ",
+        "   TOTAL MASTER RECORDS READ                  10                                                                                     ",
+        "   TOTAL HOMEOWNERS RECORDS READ              10                                                                                     ",
+        "   TOTAL HOMEOWNERS RECORDS WRITTEN            0                                                                                     "
+      ]
+    },
+    {
+      "dsn": "output/ASREA859-HOMEOUT--ASHMOWFD01.dat",
+      "generation": 1,
+      "recordCount": 0
+    },
+    {
+      "dsn": "output/ASREA859-PRNTOUT.dat",
+      "generation": 1,
+      "recordCount": 3,
+      "records": [
+        "  TOTAL MASTER RECORDS READ              10                                                                                          ",
+        "  TOTAL HOMEOWNERS RECORDS READ           0                                                                                          ",
+        "  TOTAL HOMEOWNERS RECORDS WRITTEN        0                                                                                          "
+      ]
+    }
+  ]
+}

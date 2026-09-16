@@ -1,14 +1,5 @@
 package org.cookcounty.tax.application.service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
 import org.cookcounty.tax.application.service.PropertyTaxExemptionsKernel.EligibilityDecision;
 import org.cookcounty.tax.application.service.PropertyTaxExemptionsKernel.EligibilityWarning;
 import org.cookcounty.tax.application.service.PropertyTaxExemptionsKernel.HomeownerVariant;
@@ -16,192 +7,262 @@ import org.cookcounty.tax.domain.model.AssessmentDetail;
 import org.cookcounty.tax.domain.model.AssessmentParcel;
 import org.cookcounty.tax.domain.model.HomeownerExemption;
 import org.cookcounty.tax.domain.model.HomeownerMaster;
+import org.cookcounty.tax.domain.model.PropertyTaxRenewal;
 import org.cookcounty.tax.domain.port.out.AssessmentDetailRepository;
 import org.cookcounty.tax.domain.port.out.AssessmentParcelRepository;
 import org.cookcounty.tax.domain.port.out.HomeownerExemptionRepository;
 import org.cookcounty.tax.domain.port.out.HomeownerMasterRepository;
-import org.springframework.data.domain.Pageable;
+import org.cookcounty.tax.domain.port.out.PropertyTaxRenewalRepository;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Executes the reviewed ASREA841 -> ASREA847 -> ASREA852/853 -> ASREA859 path. */
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/// Applies renewal matching, homeowner eligibility, and annual exemption publication.
+///
+/// Renewal rows and homeowners retain repository order for merge behavior. One transaction owns
+/// homeowner replacements and the complete annual exemption-generation replacement. An unexpected
+/// failure rolls back those writes.
 @Component
 public class PropertyTaxExemptionsProcessor {
 
-    private static final List<RenewalInput> REVIEWED_RENEWALS = List.of(
-            new RenewalInput(10_011_000_010_000L, "B0001", true),
-            new RenewalInput(12_022_000_020_000L, "B0002", true),
-            new RenewalInput(13_066_000_060_000L, "B0003", true),
-            new RenewalInput(14_077_000_070_000L, "B0004", true),
-            new RenewalInput(20_033_000_030_000L, "B0005", true),
-            new RenewalInput(37_044_000_040_000L, "B0007", true),
-            new RenewalInput(76_022_200_120_000L, "B0009", true),
-            new RenewalInput(12_022_000_020_000L, "LOW01", false),
-            new RenewalInput(12_500_000_000_000L, "MISS1", false),
-            new RenewalInput(60_000_000_000_000L, "MISS2", false));
-    private static final BigDecimal ONE = new BigDecimal("1.000000");
-    private static final String ASREA841_DISPLAY =
-            "PROGRAM ASREA841 DATE AND TIME OF RUN =  25/09/20   01200";
+    /// Prefix for the runtime-compatible comparison header.
+    private static final String RENEWAL_MERGE_DISPLAY_PREFIX =
+            "PROGRAM ASREA841 DATE AND TIME OF RUN =  ";
+
     private static final BigDecimal ONE_HUNDRED = new BigDecimal("100.0");
 
     private final HomeownerMasterRepository homeownerRepository;
     private final HomeownerExemptionRepository exemptionRepository;
     private final AssessmentParcelRepository parcelRepository;
     private final AssessmentDetailRepository detailRepository;
+    private final PropertyTaxRenewalRepository renewalRepository;
     private final PropertyTaxExemptionsKernel kernel;
 
+    /// Creates the processor over maintained renewal, homeowner, and assessment repositories.
     public PropertyTaxExemptionsProcessor(
             HomeownerMasterRepository homeownerRepository,
             HomeownerExemptionRepository exemptionRepository,
             AssessmentParcelRepository parcelRepository,
             AssessmentDetailRepository detailRepository,
+            PropertyTaxRenewalRepository renewalRepository,
             PropertyTaxExemptionsKernel kernel) {
         this.homeownerRepository = homeownerRepository;
         this.exemptionRepository = exemptionRepository;
         this.parcelRepository = parcelRepository;
         this.detailRepository = detailRepository;
+        this.renewalRepository = renewalRepository;
         this.kernel = kernel;
     }
 
+    /// Executes one selected homeowner variant for the supplied business date and time.
+    ///
+    /// One transaction owns homeowner replacements and the annual exemption replacement.
+    ///
+    /// @param businessDate date that supplies the two-digit application year
+    /// @param businessTime source-format run time retained in batch evidence
+    /// @param variant homeowner eligibility policy for this run
+    /// @return immutable counts, publications, dispositions, and comparator evidence
     @Transactional
-    public synchronized ProcessResult process(
-            LocalDate businessDate,
-            String businessTime,
-            HomeownerVariant variant) {
+    public ProcessResult process(
+            LocalDate businessDate, String businessTime, HomeownerVariant variant) {
         List<Rejection> rejections = new ArrayList<>();
-        List<HomeownerMaster> homeowners = deduplicateHomeowners(
-                homeownerRepository.findAllInPropertyOrder(), rejections);
-
-        List<RenewalPrintRecord> renewalPrintRecords = applyReviewedRenewals(homeowners);
+        List<HomeownerMaster> homeowners =
+                deduplicateHomeowners(homeownerRepository.findAllInPropertyOrder(), rejections);
+        RenewalMerge renewalMerge = mergeRenewals(homeowners, rejections);
+        List<RenewalPrintRecord> renewalPrintRecords = renewalMerge.printRecords();
         int renewalUpdates = renewalPrintRecords.size();
-        List<RenewalErrorRecord> renewalErrorRecords =
-                addReviewedRenewalRejections(rejections);
-
+        List<RenewalErrorRecord> renewalErrorRecords = renewalMerge.errorRecords();
         List<Reconciliation> reconciliations = new ArrayList<>();
-        reconciliations.add(new Reconciliation(
-                "ASREA841 RENEWAL MERGE", "RECONCILED_WITH_REJECTIONS",
-                20, renewalUpdates, 10, 3,
-                List.of("asrea841-001", "asrea841-002", "asrea841-003", "asrea841-004"),
-                "The reviewed ten-card renewal input updated seven homeowners and reported three records."));
-        reconciliations.add(new Reconciliation(
-                "ASREA847 OWNER REFRESH", "RECONCILED",
-                homeowners.size(), 0, homeowners.size(), 0,
-                List.of("asrea847-001", "asrea847-002", "asrea847-003", "asrea847-004"),
-                "No Property Master owner detail is published by this app; existing contact fields were preserved."));
 
-        List<AssessmentParcel> parcels = orderedRealEstateParcels(
-                parcelRepository.findAllInInputOrder(), rejections);
-        Map<ParcelKey, List<AssessmentDetail>> details = groupDetails(
-                detailRepository.findAllInInputOrder());
-        Map<Long, AssessmentParcel> parcelByProperty = new LinkedHashMap<>();
-        parcels.forEach(parcel -> parcelByProperty.put(parcel.getParcelNumber(), parcel));
-        Map<Long, HomeownerMaster> homeownerByProperty = new LinkedHashMap<>();
-        homeowners.forEach(homeowner -> homeownerByProperty.putIfAbsent(
-                homeowner.getPropertyNumber(), homeowner));
+        reconciliations.add(
+                new Reconciliation(
+                        "RENEWAL MERGE",
+                        renewalErrorRecords.isEmpty() ? "RECONCILED" : "RECONCILED_WITH_REJECTIONS",
+                        homeowners.size() + renewalMerge.recordsRead(),
+                        renewalUpdates,
+                        homeowners.size(),
+                        renewalErrorRecords.size(),
+                        List.of("asrea841-001", "asrea841-002", "asrea841-003", "asrea841-004"),
+                        "The ordered merge read "
+                                + renewalMerge.recordsRead()
+                                + " renewal records, updated "
+                                + renewalUpdates
+                                + " homeowners, and rejected "
+                                + renewalErrorRecords.size()
+                                + " renewal records."));
+        reconciliations.add(
+                new Reconciliation(
+                        "OWNER CONTACT REFRESH",
+                        "RECONCILED",
+                        homeowners.size(),
+                        0,
+                        homeowners.size(),
+                        0,
+                        List.of("asrea847-001", "asrea847-002", "asrea847-003", "asrea847-004"),
+                        "No Property Master owner detail is published by this app; existing contact"
+                                + " fields were preserved."));
+
+        List<AssessmentParcel> parcels =
+                orderedRealEstateParcels(parcelRepository.findAllInInputOrder(), rejections);
+        Map<ParcelKey, List<AssessmentDetail>> details =
+                groupDetails(detailRepository.findAllInInputOrder());
+        Map<String, AssessmentParcel> parcelByProperty = new LinkedHashMap<>();
+        parcels.forEach(parcel -> parcelByProperty.put(parcel.parcelNumber(), parcel));
+        Map<String, HomeownerMaster> homeownerByProperty = new LinkedHashMap<>();
+        homeowners.forEach(
+                homeowner ->
+                        homeownerByProperty.putIfAbsent(homeowner.propertyNumber(), homeowner));
 
         List<HomeownerMaster> eligibleHomeowners = new ArrayList<>();
         Map<ParcelKey, EligibilityDecision> eligibilityByParcel = new LinkedHashMap<>();
         int eligibilityUpdates = 0;
         List<EligibilityPrintRecord> ineligibleRecords = new ArrayList<>();
-        String variantProgram = variant == HomeownerVariant.ENUMERATED ? "ASREA852" : "ASREA853";
-        String eligibilityRule = variant == HomeownerVariant.ENUMERATED
-                ? "asrea852-002" : "asrea853-002";
+        String eligibilityRule =
+                variant == HomeownerVariant.ENUMERATED ? "asrea852-002" : "asrea853-002";
         for (AssessmentParcel parcel : parcels) {
-            ParcelKey parcelKey = new ParcelKey(parcel.getVolumeNumber(), parcel.getParcelNumber());
+            ParcelKey parcelKey = new ParcelKey(parcel.volumeNumber(), parcel.parcelNumber());
             List<AssessmentDetail> parcelDetails = details.getOrDefault(parcelKey, List.of());
             EligibilityDecision decision = kernel.evaluate(parcel, parcelDetails, variant);
             eligibilityByParcel.put(parcelKey, decision);
             if (!decision.eligible()) {
-                rejections.add(new Rejection(
-                        variantProgram + " ASSESSMENT",
-                        recordKey(parcel),
-                        "BYPASSED",
-                        "Parcel is non-residential under the selected homeowner eligibility rules.",
-                        eligibilityRule));
-                ineligibleRecords.add(new EligibilityPrintRecord(
-                        parcel.getVolumeNumber(),
-                        parcel.getParcelNumber(),
-                        parcel.getTaxCode(),
-                        parcel.getOverallClass()));
+                rejections.add(
+                        new Rejection(
+                                "HOMEOWNER ELIGIBILITY ASSESSMENT",
+                                recordKey(parcel),
+                                "BYPASSED",
+                                "Parcel is non-residential under the selected homeowner eligibility"
+                                        + " rules.",
+                                eligibilityRule));
+                ineligibleRecords.add(
+                        new EligibilityPrintRecord(
+                                parcel.volumeNumber(),
+                                parcel.parcelNumber(),
+                                parcel.taxCode(),
+                                parcel.overallClass()));
                 continue;
             }
 
-            HomeownerMaster homeowner = homeownerByProperty.get(parcel.getParcelNumber());
-            if (homeowner == null) {
-                homeowner = newHomeowner(parcel);
-            }
-            refreshEligibility(homeowner, parcel, decision, businessDate);
+            HomeownerMaster homeowner = homeownerByProperty.get(parcel.parcelNumber());
+            homeowner =
+                    homeowner == null
+                            ? newHomeowner(parcel, decision, businessDate)
+                            : refreshEligibility(homeowner, parcel, decision, businessDate);
             homeowner = homeownerRepository.save(homeowner);
             eligibleHomeowners.add(homeowner);
             eligibilityUpdates++;
             for (EligibilityWarning warning : decision.warnings()) {
-                rejections.add(new Rejection(
-                        variantProgram + " ASSESSMENT",
-                        recordKey(parcel),
-                        "WARNING",
-                        warning.message(),
-                        warning.ruleId()));
+                rejections.add(
+                        new Rejection(
+                                "HOMEOWNER ELIGIBILITY ASSESSMENT",
+                                recordKey(parcel),
+                                "WARNING",
+                                warning.message(),
+                                warning.ruleId()));
             }
         }
 
-        reconciliations.add(new Reconciliation(
-                variantProgram + " HOMEOWNER ELIGIBILITY", "RECONCILED",
-                parcels.size() + homeowners.size(), eligibleHomeowners.size(),
-                eligibleHomeowners.size(), 0,
-                variantRuleIds(variant),
-                eligibleHomeowners.isEmpty()
-                        ? "The reviewed ten assessment roots had no qualifying details and produced no homeowner records."
-                        : "Synthetic rule examples produced homeowner records; this is not a reviewed parity claim."));
+        reconciliations.add(
+                new Reconciliation(
+                        "HOMEOWNER ELIGIBILITY GENERATION",
+                        "RECONCILED",
+                        parcels.size() + homeowners.size(),
+                        eligibleHomeowners.size(),
+                        eligibleHomeowners.size(),
+                        0,
+                        variantRuleIds(variant),
+                        "The eligibility pass examined "
+                                + parcels.size()
+                                + " assessment parcels and produced "
+                                + eligibleHomeowners.size()
+                                + " homeowner records."));
 
         List<HomeownerExemption> exemptions = new ArrayList<>(eligibleHomeowners.size());
         for (HomeownerMaster homeowner : eligibleHomeowners) {
-            AssessmentParcel parcel = parcelByProperty.get(homeowner.getPropertyNumber());
+            AssessmentParcel parcel = parcelByProperty.get(homeowner.propertyNumber());
             if (parcel == null) {
                 throw new IllegalStateException(
                         "Eligible homeowner has no current assessment parcel");
             }
-            EligibilityDecision decision = eligibilityByParcel.get(
-                    new ParcelKey(parcel.getVolumeNumber(), parcel.getParcelNumber()));
+            EligibilityDecision decision =
+                    Objects.requireNonNull(
+                            eligibilityByParcel.get(
+                                    new ParcelKey(parcel.volumeNumber(), parcel.parcelNumber())),
+                            "eligible parcel decision");
             exemptions.add(toExemption(homeowner, parcel, decision));
         }
         replaceExemptionGeneration(exemptions);
 
-        reconciliations.add(new Reconciliation(
-                "ASREA859 HOMEOWNER ROLL-FORWARD", "RECONCILED",
-                parcels.size() + eligibleHomeowners.size(), eligibleHomeowners.size(),
-                exemptions.size(), 0,
-                List.of("asrea859-001", "asrea859-002", "asrea859-003", "asrea859-004", "asrea859-005"),
-                exemptions.isEmpty()
-                        ? "ASREA859 HOMEOUT was published as an explicit empty generation."
-                        : "Synthetic rule examples were published without claiming reviewed positive-path parity."));
+        reconciliations.add(
+                new Reconciliation(
+                        "SENIOR-FREEZE FILE GENERATION",
+                        "RECONCILED",
+                        parcels.size() + eligibleHomeowners.size(),
+                        eligibleHomeowners.size(),
+                        exemptions.size(),
+                        0,
+                        List.of(
+                                "asrea859-001",
+                                "asrea859-002",
+                                "asrea859-003",
+                                "asrea859-004",
+                                "asrea859-005"),
+                        exemptions.isEmpty()
+                                ? "The annual exemption output was published as an explicit empty"
+                                        + " generation."
+                                : "The annual exemption generation was published."));
 
-        List<OutputRecord> outputs = reviewedOutputs(variantProgram, eligibleHomeowners.size(), exemptions.size());
-        List<RuleDisposition> ruleOutcomes = ruleOutcomes(variant, renewalUpdates, eligibilityUpdates, exemptions.size());
-        List<Message> messages = List.of(
-                new Message("INFO", "The reviewed "
-                        + (variant == HomeownerVariant.ENUMERATED ? "HOME852" : "HOME853")
-                        + " path completed with return code 0.",
-                        variant == HomeownerVariant.ENUMERATED ? "asrea852-001" : "asrea853-001"),
-                new Message("INFO",
-                        "Rejected ASHMA850 and unreviewed Senior Freeze paths remain source-only and were not executed.",
-                        "ashma850-001"));
+        BatchEvidence evidence =
+                new BatchEvidence(
+                        List.copyOf(renewalPrintRecords),
+                        List.copyOf(renewalErrorRecords),
+                        List.copyOf(ineligibleRecords),
+                        exemptions.stream().map(AnnualExemptionRecord::from).toList(),
+                        homeowners.size(),
+                        parcels.size(),
+                        eligibleHomeowners.size(),
+                        List.of(comparisonHeader(businessDate, businessTime)));
+        List<OutputRecord> outputs = publications(variant, evidence);
+        List<RuleDisposition> ruleOutcomes =
+                ruleOutcomes(variant, evidence, eligibilityUpdates, rejections);
+        List<Message> messages =
+                List.of(
+                        new Message(
+                                "INFO",
+                                "The selected homeowner eligibility generation path completed with"
+                                        + " return code 0.",
+                                variant == HomeownerVariant.ENUMERATED
+                                        ? "asrea852-001"
+                                        : "asrea853-001"),
+                        new Message(
+                                "INFO",
+                                "The rejected direct-update senior-freeze base-value calculation"
+                                    + " and unreviewed senior-freeze paths remain source-only and"
+                                    + " were not executed.",
+                                "ashma850-001"));
 
-        int rejectedCount = (int) rejections.stream()
-                .filter(rejection -> "REJECTED".equals(rejection.outcome()))
-                .count();
-        int recordsRead = 10 + (homeowners.size() * 3)
-                + (parcels.size() * 2) + eligibleHomeowners.size();
-        int recordsWritten = (homeowners.size() * 2)
-                + eligibleHomeowners.size() + exemptions.size();
-        BatchEvidence evidence = new BatchEvidence(
-                List.copyOf(renewalPrintRecords),
-                List.copyOf(renewalErrorRecords),
-                List.copyOf(ineligibleRecords),
-                exemptions.stream().map(HomeoutRecord::from).toList(),
-                homeowners.size(),
-                parcels.size(),
-                eligibleHomeowners.size(),
-                List.of(ASREA841_DISPLAY));
+        int rejectedCount =
+                (int)
+                        rejections.stream()
+                                .filter(rejection -> "REJECTED".equals(rejection.outcome()))
+                                .count();
+        int recordsRead =
+                renewalMerge.recordsRead()
+                        + (homeowners.size() * 3)
+                        + (parcels.size() * 2)
+                        + eligibleHomeowners.size();
+        int recordsWritten =
+                (homeowners.size() * 2) + eligibleHomeowners.size() + exemptions.size();
         return new ProcessResult(
                 0,
                 recordsRead,
@@ -216,222 +277,321 @@ public class PropertyTaxExemptionsProcessor {
                 evidence);
     }
 
-    private List<RenewalPrintRecord> applyReviewedRenewals(List<HomeownerMaster> homeowners) {
-        Map<Long, RenewalInput> matchedRenewals = new LinkedHashMap<>();
-        REVIEWED_RENEWALS.stream()
-                .filter(RenewalInput::matched)
-                .forEach(renewal -> matchedRenewals.put(renewal.propertyNumber(), renewal));
-        List<RenewalPrintRecord> updated = new ArrayList<>();
-        for (HomeownerMaster homeowner : homeowners) {
-            RenewalInput renewal = matchedRenewals.get(homeowner.getPropertyNumber());
-            if (renewal != null) {
-                homeowner.setResponseStatus(2);
-                homeownerRepository.save(homeowner);
-                updated.add(RenewalPrintRecord.from(homeowner, renewal.batchNumber()));
+    /// Merges source-ordered renewals with maintained homeowners.
+    ///
+    /// A renewal updates the first homeowner with the same property. A later renewal for an already
+    /// consumed property is below the merge position. A property that does not exist is unmatched.
+    private RenewalMerge mergeRenewals(
+            List<HomeownerMaster> homeowners, List<Rejection> rejections) {
+        Map<String, HomeownerMaster> homeownersByProperty = new LinkedHashMap<>();
+        homeowners.forEach(
+                homeowner ->
+                        homeownersByProperty.putIfAbsent(homeowner.propertyNumber(), homeowner));
+        var consumedProperties = new java.util.HashSet<String>();
+        List<RenewalPrintRecord> printRecords = new ArrayList<>();
+        List<RenewalErrorRecord> errorRecords = new ArrayList<>();
+        List<PropertyTaxRenewal> renewals = renewalRepository.findAllInSourceOrder();
+        for (PropertyTaxRenewal renewal : renewals) {
+            HomeownerMaster homeowner = homeownersByProperty.get(renewal.propertyNumber());
+            if (homeowner != null && consumedProperties.add(renewal.propertyNumber())) {
+                HomeownerMaster renewed = homeownerRepository.save(homeowner.withResponseStatus(2));
+                printRecords.add(RenewalPrintRecord.from(renewed, renewal.batchNumber()));
+                continue;
             }
-        }
-        return List.copyOf(updated);
-    }
 
-    private static List<RenewalErrorRecord> addReviewedRenewalRejections(
-            List<Rejection> rejections) {
-        List<RenewalErrorRecord> errors = REVIEWED_RENEWALS.stream()
-                .filter(renewal -> !renewal.matched())
-                .map(renewal -> new RenewalErrorRecord(
-                        renewal.propertyNumber(), renewal.batchNumber()))
-                .toList();
-        rejections.add(new Rejection(
-                "ASREA841 RENEWAL", "12022000020000/LOW01", "REJECTED",
-                "Renewal key is below the current merge position.", "asrea841-004"));
-        rejections.add(new Rejection(
-                "ASREA841 RENEWAL", "12500000000000/MISS1", "REJECTED",
-                "Renewal has no matching homeowner and cannot create one.", "asrea841-003"));
-        rejections.add(new Rejection(
-                "ASREA841 RENEWAL", "60000000000000/MISS2", "REJECTED",
-                "Renewal has no matching homeowner and cannot create one.", "asrea841-003"));
-        return errors;
+            errorRecords.add(
+                    new RenewalErrorRecord(renewal.propertyNumber(), renewal.batchNumber()));
+            boolean belowMergePosition = homeowner != null;
+            rejections.add(
+                    new Rejection(
+                            "RENEWAL INPUT",
+                            new BigInteger(renewal.propertyNumber()).toString()
+                                    + "/"
+                                    + renewal.batchNumber(),
+                            "REJECTED",
+                            belowMergePosition
+                                    ? "Renewal key is below the current merge position."
+                                    : "Renewal has no matching homeowner and cannot create one.",
+                            belowMergePosition ? "asrea841-004" : "asrea841-003"));
+        }
+        return new RenewalMerge(
+                List.copyOf(printRecords), List.copyOf(errorRecords), renewals.size());
     }
 
     private static List<HomeownerMaster> deduplicateHomeowners(
-            List<HomeownerMaster> source,
-            List<Rejection> rejections) {
-        Map<Long, HomeownerMaster> unique = new LinkedHashMap<>();
+            List<HomeownerMaster> source, List<Rejection> rejections) {
+        Map<String, HomeownerMaster> unique = new LinkedHashMap<>();
         for (HomeownerMaster homeowner : source) {
-            if (homeowner.getPropertyNumber() == null || homeowner.getPropertyNumber() <= 0) {
-                rejections.add(new Rejection(
-                        "HOMEOWNER MASTER", null, "REJECTED",
-                        "Homeowner property number must be positive.", "asrea841-001"));
+            if (homeowner.propertyNumber() == null
+                    || new BigInteger(homeowner.propertyNumber()).signum() <= 0) {
+                rejections.add(
+                        new Rejection(
+                                "HOMEOWNER MASTER",
+                                null,
+                                "REJECTED",
+                                "Homeowner property number must be positive.",
+                                "asrea841-001"));
                 continue;
             }
-            if (unique.putIfAbsent(homeowner.getPropertyNumber(), homeowner) != null) {
-                rejections.add(new Rejection(
-                        "HOMEOWNER MASTER", homeowner.getPropertyNumber().toString(), "REJECTED",
-                        "Duplicate homeowner property was rejected by the explicit first-record policy.",
-                        "asrea841-004"));
+            if (unique.putIfAbsent(homeowner.propertyNumber(), homeowner) != null) {
+                rejections.add(
+                        new Rejection(
+                                "HOMEOWNER MASTER",
+                                homeowner.propertyNumber(),
+                                "REJECTED",
+                                "Duplicate homeowner property was rejected by the explicit"
+                                        + " first-record policy.",
+                                "asrea841-004"));
             }
         }
         return List.copyOf(unique.values());
     }
 
     private static List<AssessmentParcel> orderedRealEstateParcels(
-            List<AssessmentParcel> source,
-            List<Rejection> rejections) {
+            List<AssessmentParcel> source, List<Rejection> rejections) {
         Map<ParcelKey, AssessmentParcel> unique = new LinkedHashMap<>();
         source.stream()
-                .sorted(Comparator.comparing(AssessmentParcel::getVolumeNumber,
-                                Comparator.nullsLast(Comparator.naturalOrder()))
-                        .thenComparing(AssessmentParcel::getParcelNumber,
-                                Comparator.nullsLast(Comparator.naturalOrder())))
-                .forEach(parcel -> {
-                    Integer volume = parcel.getVolumeNumber();
-                    if (volume == null || volume < 1 || volume > 601) {
-                        rejections.add(new Rejection(
-                                "ASSESSMENT MASTER", recordKey(parcel), "REJECTED",
-                                "Only real-estate volumes 1 through 601 are processed.",
-                                "asrea859-005"));
-                        return;
-                    }
-                    if (parcel.getParcelNumber() == null || parcel.getParcelNumber() <= 0) {
-                        rejections.add(new Rejection(
-                                "ASSESSMENT MASTER", recordKey(parcel), "REJECTED",
-                                "Assessment parcel number must be positive.",
-                                "asrea859-005"));
-                        return;
-                    }
-                    ParcelKey key = new ParcelKey(volume, parcel.getParcelNumber());
-                    if (unique.putIfAbsent(key, parcel) != null) {
-                        rejections.add(new Rejection(
-                                "ASSESSMENT MASTER", recordKey(parcel), "REJECTED",
-                                "Duplicate assessment parcel was rejected by the explicit first-record policy.",
-                                "asrea859-005"));
-                    }
-                });
+                .sorted(
+                        Comparator.comparing(
+                                        AssessmentParcel::volumeNumber,
+                                        Comparator.comparing(
+                                                PropertyTaxExemptionsProcessor::numericIdentifier))
+                                .thenComparing(
+                                        AssessmentParcel::parcelNumber,
+                                        Comparator.comparing(
+                                                PropertyTaxExemptionsProcessor::numericIdentifier)))
+                .forEach(
+                        parcel -> {
+                            String volume = parcel.volumeNumber();
+                            if (volume == null
+                                    || new BigInteger(volume).compareTo(BigInteger.ONE) < 0
+                                    || new BigInteger(volume).compareTo(BigInteger.valueOf(601))
+                                            > 0) {
+                                rejections.add(
+                                        new Rejection(
+                                                "ASSESSMENT MASTER",
+                                                recordKey(parcel),
+                                                "REJECTED",
+                                                "Only real-estate volumes 1 through 601 are"
+                                                        + " processed.",
+                                                "asrea859-005"));
+                                return;
+                            }
+                            if (parcel.parcelNumber() == null
+                                    || new BigInteger(parcel.parcelNumber()).signum() <= 0) {
+                                rejections.add(
+                                        new Rejection(
+                                                "ASSESSMENT MASTER",
+                                                recordKey(parcel),
+                                                "REJECTED",
+                                                "Assessment parcel number must be positive.",
+                                                "asrea859-005"));
+                                return;
+                            }
+                            ParcelKey key = new ParcelKey(volume, parcel.parcelNumber());
+                            if (unique.putIfAbsent(key, parcel) != null) {
+                                rejections.add(
+                                        new Rejection(
+                                                "ASSESSMENT MASTER",
+                                                recordKey(parcel),
+                                                "REJECTED",
+                                                "Duplicate assessment parcel was rejected by the"
+                                                        + " explicit first-record policy.",
+                                                "asrea859-005"));
+                            }
+                        });
         return List.copyOf(unique.values());
     }
 
-    private static Map<ParcelKey, List<AssessmentDetail>> groupDetails(List<AssessmentDetail> source) {
+    private static Map<ParcelKey, List<AssessmentDetail>> groupDetails(
+            List<AssessmentDetail> source) {
         Map<ParcelKey, List<AssessmentDetail>> result = new LinkedHashMap<>();
         for (AssessmentDetail detail : source) {
             result.computeIfAbsent(
-                            new ParcelKey(detail.getParcelVolumeNumber(), detail.getParcelNumber()),
+                            new ParcelKey(detail.parcelVolumeNumber(), detail.parcelNumber()),
                             unused -> new ArrayList<>())
                     .add(detail);
         }
-        result.replaceAll((unused, details) -> details.stream()
-                .sorted(Comparator.comparing(
-                        AssessmentDetail::getOccurrenceNumber,
-                        Comparator.nullsLast(Comparator.naturalOrder())))
-                .toList());
+        result.replaceAll(
+                (unused, details) ->
+                        details.stream()
+                                .sorted(Comparator.comparing(AssessmentDetail::occurrenceNumber))
+                                .toList());
         return result;
     }
 
-    private static HomeownerMaster newHomeowner(AssessmentParcel parcel) {
-        HomeownerMaster homeowner = new HomeownerMaster();
-        homeowner.setPropertyNumber(parcel.getParcelNumber());
-        homeowner.setVolumeNumber(parcel.getVolumeNumber());
-        homeowner.setTaxCode(parcel.getTaxCode());
-        homeowner.setTaxType(parseInteger(parcel.getTaxType()));
-        homeowner.setProration(ONE);
-        homeowner.setEqualizationFactor(BigDecimal.ONE);
-        homeowner.setResponseStatus(0);
-        homeowner.setSecondaryResponseStatus(0);
-        homeowner.setTertiaryStatus(0);
-        homeowner.setNpheStatus("AB");
-        return homeowner;
+    private static HomeownerMaster newHomeowner(
+            AssessmentParcel parcel, EligibilityDecision decision, LocalDate businessDate) {
+        return new HomeownerMaster(
+                null,
+                null,
+                businessDate.getYear() % 100,
+                decision.assessedValue(),
+                decision.assessmentClass(),
+                null,
+                null,
+                null,
+                BigDecimal.ONE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "AB",
+                decision.occupancyFactor(),
+                null,
+                parcel.parcelNumber(),
+                decision.proration(),
+                0,
+                0,
+                null,
+                parcel.taxCode(),
+                parseInteger(parcel.taxType()),
+                null,
+                0,
+                parcel.volumeNumber(),
+                null);
     }
 
-    private static void refreshEligibility(
+    /// Refreshes annual eligibility fields while preserving maintained base-year state.
+    ///
+    /// A new application year resets response states. It changes the base-year establishment code
+    /// to `AB` unless the existing source-supported `TR` code must remain.
+    ///
+    /// @return a replacement homeowner snapshot. This method does not persist it.
+    private static HomeownerMaster refreshEligibility(
             HomeownerMaster homeowner,
             AssessmentParcel parcel,
             EligibilityDecision decision,
             LocalDate businessDate) {
         int applicationYear = businessDate.getYear() % 100;
-        boolean newYear = !Integer.valueOf(applicationYear).equals(homeowner.getApplicationYear());
-        homeowner.setApplicationYear(applicationYear);
-        homeowner.setAssessmentClass(decision.assessmentClass());
-        homeowner.setAssessedValue(decision.assessedValue());
-        homeowner.setProration(decision.proration());
-        homeowner.setOccupancyFactor(decision.occupancyFactor());
-        homeowner.setVolumeNumber(parcel.getVolumeNumber());
-        homeowner.setTaxCode(parcel.getTaxCode());
-        if (newYear) {
-            homeowner.setResponseStatus(0);
-            homeowner.setSecondaryResponseStatus(0);
-            homeowner.setTertiaryStatus(0);
-            homeowner.setNpheStatus("TR".equals(homeowner.getNpheStatus()) ? "TR" : "AB");
-        }
+        boolean newYear = applicationYear != homeowner.applicationYear();
+        int responseStatus = newYear ? 0 : homeowner.responseStatus();
+        int secondaryStatus = newYear ? 0 : homeowner.secondaryResponseStatus();
+        int tertiaryStatus = newYear ? 0 : homeowner.tertiaryStatus();
+        String baseYearEstablishmentCode =
+                newYear && !"TR".equals(homeowner.baseYearEstablishmentCode())
+                        ? "AB"
+                        : homeowner.baseYearEstablishmentCode();
         if (ONE_HUNDRED.compareTo(decision.secondaryOccupancyFactor()) == 0
-                && Integer.valueOf(2).equals(homeowner.getResponseStatus())) {
-            homeowner.setResponseStatus(0);
+                && responseStatus == 2) {
+            responseStatus = 0;
         }
+        return homeowner.withEligibility(
+                applicationYear,
+                decision.assessedValue(),
+                decision.assessmentClass(),
+                decision.occupancyFactor(),
+                decision.proration(),
+                responseStatus,
+                secondaryStatus,
+                tertiaryStatus,
+                baseYearEstablishmentCode,
+                parcel.taxCode(),
+                parcel.volumeNumber());
     }
 
     private static HomeownerExemption toExemption(
-            HomeownerMaster homeowner,
-            AssessmentParcel parcel,
-            EligibilityDecision decision) {
-        HomeownerExemption exemption = new HomeownerExemption();
-        exemption.setApplicationYear(homeowner.getApplicationYear());
-        exemption.setAssessedValue(homeowner.getAssessedValue());
-        exemption.setAssessmentClass(homeowner.getAssessmentClass());
-        exemption.setCertificateOfErrorNumber(homeowner.getCertificateOfErrorNumber());
-        exemption.setCity(homeowner.getCity());
-        exemption.setClerksClass(parcel.getOverallClass());
-        exemption.setCooperativeQuantity(homeowner.getCooperativeQuantity());
-        exemption.setEligibilityIndicator(1);
-        exemption.setEqualizationFactor(homeowner.getEqualizationFactor());
-        exemption.setEqualizedValue(homeowner.getEqualizedValue() == null
-                ? homeowner.getAssessedValue() : homeowner.getEqualizedValue());
-        exemption.setExemptionType(homeowner.getExemptionType());
-        exemption.setKeyParcelNumber(decision.keyParcelNumber());
-        exemption.setMailingAddress(homeowner.getMailingAddress());
-        exemption.setOccupancyFactor(homeowner.getOccupancyFactor());
-        exemption.setOwnerName(homeowner.getOwnerName());
-        exemption.setPropertyNumber(homeowner.getPropertyNumber());
-        exemption.setProration(homeowner.getProration());
-        exemption.setRecordCode(0);
-        exemption.setResponseStatus(homeowner.getResponseStatus());
-        exemption.setSecondaryResponseStatus(homeowner.getSecondaryResponseStatus());
-        exemption.setSplitCode(parseInteger(decision.splitCode()));
-        exemption.setState(homeowner.getState());
-        exemption.setTaxCode(homeowner.getTaxCode());
-        exemption.setTaxType(homeowner.getTaxType());
-        exemption.setTertiaryStatus(homeowner.getTertiaryStatus());
-        exemption.setVolumeNumber(homeowner.getVolumeNumber());
-        exemption.setZipCode(homeowner.getZipCode());
-        return exemption;
+            HomeownerMaster homeowner, AssessmentParcel parcel, EligibilityDecision decision) {
+        BigDecimal equalizedValue =
+                homeowner.equalizedValue() == null
+                        ? homeowner.assessedValue()
+                        : homeowner.equalizedValue();
+        return new HomeownerExemption(
+                null,
+                null,
+                homeowner.applicationYear(),
+                homeowner.assessedValue(),
+                homeowner.assessmentClass(),
+                homeowner.certificateOfErrorNumber(),
+                homeowner.city(),
+                parcel.overallClass(),
+                homeowner.cooperativeQuantity(),
+                1,
+                homeowner.equalizationFactor(),
+                equalizedValue,
+                homeowner.exemptionType(),
+                decision.keyParcelNumber(),
+                homeowner.mailingAddress(),
+                homeowner.occupancyFactor(),
+                homeowner.ownerName(),
+                homeowner.propertyNumber(),
+                homeowner.proration(),
+                0,
+                homeowner.responseStatus(),
+                homeowner.secondaryResponseStatus(),
+                parseInteger(decision.splitCode()),
+                homeowner.state(),
+                homeowner.taxCode(),
+                homeowner.taxType(),
+                homeowner.tertiaryStatus(),
+                homeowner.volumeNumber(),
+                homeowner.zipCode());
     }
 
     private void replaceExemptionGeneration(List<HomeownerExemption> exemptions) {
-        exemptionRepository.findAll(Pageable.unpaged()).forEach(existing ->
-                exemptionRepository.deleteById(existing.getId()));
+        exemptionRepository
+                .findAllInPersistenceOrder()
+                .forEach(
+                        existing ->
+                                exemptionRepository.deleteById(
+                                        Objects.requireNonNull(
+                                                existing.id(), "persisted exemption id")));
         exemptions.forEach(exemptionRepository::save);
     }
 
-    private static List<OutputRecord> reviewedOutputs(
-            String variantProgram,
-            int eligibilityRecords,
-            int exemptionRecords) {
+    /// Describes publications from the same record counts used by the fixed-format projection.
+    ///
+    /// Renewal reports append six total lines. Eligibility and final-generation reports append
+    /// three total lines. Empty data generations remain distinct from these nonempty reports.
+    private static List<OutputRecord> publications(
+            HomeownerVariant variant, BatchEvidence evidence) {
+        String eligibilityGenerationProgram =
+                variant == HomeownerVariant.ENUMERATED ? "ASREA852" : "ASREA853";
+        int eligibilityRecords = evidence.eligibleRecords();
+        int exemptionRecords = evidence.annualExemptionRecords().size();
         return List.of(
-                new OutputRecord("ASREA841 HOMEOUT", "STAGING", 10, "PUBLISHED",
+                new OutputRecord(
+                        "ASREA841 HOMEOUT",
+                        "STAGING",
+                        evidence.homeownerRecords(),
+                        evidence.homeownerRecords() == 0 ? "EMPTY" : "PUBLISHED",
                         List.of("asrea841-002")),
-                new OutputRecord("ASREA841 PRINTOUT", "REPORT", 13, "PUBLISHED",
+                new OutputRecord(
+                        "ASREA841 PRINTOUT",
+                        "REPORT",
+                        evidence.renewalPrintRecords().size() + 6,
+                        "PUBLISHED",
                         List.of("asrea841-002")),
-                new OutputRecord("ASREA841 ERRPRINT", "REPORT", 9, "PUBLISHED",
+                new OutputRecord(
+                        "ASREA841 ERRPRINT",
+                        "REPORT",
+                        evidence.renewalErrorRecords().size() + 6,
+                        "PUBLISHED",
                         List.of("asrea841-001", "asrea841-003", "asrea841-004")),
-                new OutputRecord(variantProgram + " HOMEOUT", "STAGING", eligibilityRecords,
+                new OutputRecord(
+                        eligibilityGenerationProgram + " HOMEOUT",
+                        "STAGING",
+                        eligibilityRecords,
                         eligibilityRecords == 0 ? "EMPTY" : "PUBLISHED",
-                        List.of(variantProgram.equals("ASREA852") ? "asrea852-005" : "asrea853-004")),
-                new OutputRecord(variantProgram + " PRINTOUT", "REPORT",
-                        eligibilityRecords == 0 ? 13 : eligibilityRecords + 3,
-                        "PUBLISHED", variantRuleIds(
-                                variantProgram.equals("ASREA852")
-                                        ? HomeownerVariant.ENUMERATED : HomeownerVariant.BROAD)),
-                new OutputRecord("ASREA859 HOMEOUT", "DATASET", exemptionRecords,
+                        List.of(
+                                variant == HomeownerVariant.ENUMERATED
+                                        ? "asrea852-005"
+                                        : "asrea853-004")),
+                new OutputRecord(
+                        eligibilityGenerationProgram + " PRINTOUT",
+                        "REPORT",
+                        evidence.ineligibleRecords().size() + 3,
+                        "PUBLISHED",
+                        variantRuleIds(variant)),
+                new OutputRecord(
+                        "ASREA859 HOMEOUT",
+                        "DATASET",
+                        exemptionRecords,
                         exemptionRecords == 0 ? "EMPTY" : "PUBLISHED",
                         List.of("asrea859-001", "asrea859-004")),
-                new OutputRecord("ASREA859 PRINTOUT", "REPORT", exemptionRecords + 3,
-                        "PUBLISHED", List.of("asrea859-001")));
+                new OutputRecord(
+                        "ASREA859 PRINTOUT", "REPORT", 3, "PUBLISHED", List.of("asrea859-001")));
     }
 
     private static List<String> variantRuleIds(HomeownerVariant variant) {
@@ -439,23 +599,56 @@ public class PropertyTaxExemptionsProcessor {
         return numberedRuleIds(prefix, 6);
     }
 
+    /// Counts the records examined, updated, or rejected by each applicable processing rule.
     private static List<RuleDisposition> ruleOutcomes(
             HomeownerVariant variant,
-            int renewalUpdates,
+            BatchEvidence evidence,
             int eligibilityUpdates,
-            int exemptionRecords) {
+            List<Rejection> rejections) {
+        int exemptionRecords = evidence.annualExemptionRecords().size();
         List<RuleDisposition> outcomes = new ArrayList<>();
-        outcomes.add(new RuleDisposition("asrea841-001", "APPLIED", 10, null));
-        outcomes.add(new RuleDisposition("asrea841-002", "APPLIED", renewalUpdates, null));
-        outcomes.add(new RuleDisposition("asrea841-003", "APPLIED", 2, null));
-        outcomes.add(new RuleDisposition("asrea841-004", "APPLIED", 1, null));
-        outcomes.add(new RuleDisposition("asrea847-001", "NOT_APPLICABLE", 0,
-                "No Property Master dataset is published by this app."));
-        outcomes.add(new RuleDisposition("asrea847-002", "NOT_APPLICABLE", 0,
-                "No Property Master owner segments are published by this app."));
-        outcomes.add(new RuleDisposition("asrea847-003", "APPLIED", 10,
-                "Existing homeowner contact information was preserved."));
-        outcomes.add(new RuleDisposition("asrea847-004", "APPLIED", 10, null));
+        outcomes.add(
+                new RuleDisposition(
+                        "asrea841-001",
+                        "APPLIED",
+                        evidence.renewalPrintRecords().size()
+                                + evidence.renewalErrorRecords().size(),
+                        null));
+        outcomes.add(
+                new RuleDisposition(
+                        "asrea841-002", "APPLIED", evidence.renewalPrintRecords().size(), null));
+        outcomes.add(
+                new RuleDisposition(
+                        "asrea841-003",
+                        "APPLIED",
+                        rejectedByRule(rejections, "asrea841-003"),
+                        null));
+        outcomes.add(
+                new RuleDisposition(
+                        "asrea841-004",
+                        "APPLIED",
+                        rejectedByRule(rejections, "asrea841-004"),
+                        null));
+        outcomes.add(
+                new RuleDisposition(
+                        "asrea847-001",
+                        "NOT_APPLICABLE",
+                        0,
+                        "No Property Master dataset is published by this app."));
+        outcomes.add(
+                new RuleDisposition(
+                        "asrea847-002",
+                        "NOT_APPLICABLE",
+                        0,
+                        "No Property Master owner segments are published by this app."));
+        outcomes.add(
+                new RuleDisposition(
+                        "asrea847-003",
+                        "APPLIED",
+                        evidence.homeownerRecords(),
+                        "Existing homeowner contact information was preserved."));
+        outcomes.add(
+                new RuleDisposition("asrea847-004", "APPLIED", evidence.homeownerRecords(), null));
 
         addVariantOutcomes(outcomes, HomeownerVariant.ENUMERATED, variant, eligibilityUpdates);
         addVariantOutcomes(outcomes, HomeownerVariant.BROAD, variant, eligibilityUpdates);
@@ -477,6 +670,14 @@ public class PropertyTaxExemptionsProcessor {
         return outcomes;
     }
 
+    /// Counts actual rejected records without assigning scenario-specific rule totals.
+    private static long rejectedByRule(List<Rejection> rejections, String ruleId) {
+        return rejections.stream()
+                .filter(rejection -> "REJECTED".equals(rejection.outcome()))
+                .filter(rejection -> ruleId.equals(rejection.ruleId()))
+                .count();
+    }
+
     private static void addVariantOutcomes(
             List<RuleDisposition> outcomes,
             HomeownerVariant ruleVariant,
@@ -484,25 +685,26 @@ public class PropertyTaxExemptionsProcessor {
             int recordsAffected) {
         boolean selected = ruleVariant == selectedVariant;
         for (String id : variantRuleIds(ruleVariant)) {
-            outcomes.add(new RuleDisposition(
-                    id,
-                    selected ? "APPLIED" : "NOT_APPLICABLE",
-                    selected ? recordsAffected : 0,
-                    selected ? null : "The alternative homeowner variant was not selected."));
+            outcomes.add(
+                    new RuleDisposition(
+                            id,
+                            selected ? "APPLIED" : "NOT_APPLICABLE",
+                            selected ? recordsAffected : 0,
+                            selected
+                                    ? null
+                                    : "The alternative homeowner variant was not selected."));
         }
     }
 
     private static void addSourceOnly(
-            List<RuleDisposition> outcomes,
-            String prefix,
-            int count,
-            String path) {
+            List<RuleDisposition> outcomes, String prefix, int count, String path) {
         for (String id : numberedRuleIds(prefix, count)) {
-            outcomes.add(new RuleDisposition(
-                    id,
-                    "NOT_APPLICABLE",
-                    0,
-                    path + " is attached for provenance only and was not executed."));
+            outcomes.add(
+                    new RuleDisposition(
+                            id,
+                            "NOT_APPLICABLE",
+                            0,
+                            path + " is attached for provenance only and was not executed."));
         }
     }
 
@@ -514,7 +716,29 @@ public class PropertyTaxExemptionsProcessor {
         return List.copyOf(ids);
     }
 
-    private static Integer parseInteger(String value) {
+    /// Converts a canonical identifier only at a numeric comparison boundary.
+    private static BigInteger numericIdentifier(String value) {
+        return new BigInteger(value);
+    }
+
+    /// Formats the observed interpreter header for comparison output.
+    ///
+    /// The interpreter truncates `YYYYMMDD` to `YYYYMM`, then emits `YY/MM/CC`. This differs from
+    /// the COBOL source's `MM/DD/YY` edit. It also emits the `HHMM` value in a five-digit numeric
+    /// field.
+    private static String comparisonHeader(LocalDate businessDate, String businessTime) {
+        LocalTime time = LocalTime.parse(businessTime);
+        return RENEWAL_MERGE_DISPLAY_PREFIX
+                + String.format(
+                        "%02d/%02d/%02d   0%02d%02d",
+                        businessDate.getYear() % 100,
+                        businessDate.getMonthValue(),
+                        businessDate.getYear() / 100,
+                        time.getHour(),
+                        time.getMinute());
+    }
+
+    private static @Nullable Integer parseInteger(@Nullable String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
@@ -526,9 +750,22 @@ public class PropertyTaxExemptionsProcessor {
     }
 
     private static String recordKey(AssessmentParcel parcel) {
-        return parcel.getVolumeNumber() + "/" + parcel.getParcelNumber();
+        return parcel.volumeNumber() + "/" + parcel.parcelNumber();
     }
 
+    /// Immutable business and comparator result for one transactional processing run.
+    ///
+    /// @param returnCode zero on business completion
+    /// @param recordsRead maintained homeowner rows examined
+    /// @param recordsWritten annual exemption rows published
+    /// @param recordsUpdated homeowner renewal rows replaced
+    /// @param recordsRejected rows rejected by a documented business rule
+    /// @param outputs logical output publications
+    /// @param messages run-level messages
+    /// @param rejections rejected row details
+    /// @param reconciliations source-to-output count checks
+    /// @param ruleOutcomes per-rule dispositions
+    /// @param batchEvidence immutable fixed-layout projection input
     public record ProcessResult(
             int returnCode,
             int recordsRead,
@@ -542,27 +779,67 @@ public class PropertyTaxExemptionsProcessor {
             List<RuleDisposition> ruleOutcomes,
             BatchEvidence batchEvidence) {
 
+        /// Copies outcome lists and requires projection evidence for the completed business result.
         public ProcessResult {
+            outputs = List.copyOf(outputs);
+            messages = List.copyOf(messages);
+            rejections = List.copyOf(rejections);
+            reconciliations = List.copyOf(reconciliations);
+            ruleOutcomes = List.copyOf(ruleOutcomes);
             Objects.requireNonNull(batchEvidence, "batchEvidence");
         }
     }
 
+    /// Describes one logical output publication.
+    ///
+    /// @param name stable output name
+    /// @param kind output category
+    /// @param recordCount number of logical records
+    /// @param publicationStatus publication disposition
+    /// @param ruleIds rules represented by the output
     public record OutputRecord(
             String name,
             String kind,
             long recordCount,
             String publicationStatus,
-            List<String> ruleIds) {}
+            List<String> ruleIds) {
+        /// Copies the governing rule identities without retaining a caller-owned mutable list.
+        public OutputRecord {
+            ruleIds = List.copyOf(ruleIds);
+        }
+    }
 
-    public record Message(String severity, String message, String ruleId) {}
+    /// Reports a run diagnostic with its severity and optional governing rule.
+    ///
+    /// @param severity consumer-visible severity
+    /// @param message explanatory run message
+    /// @param ruleId governing rule when the message is rule-specific
+    public record Message(String severity, String message, @Nullable String ruleId) {}
 
+    /// Describes one rejected input without changing the immutable source snapshot.
+    ///
+    /// @param source input category
+    /// @param recordKey stable row key when one was available
+    /// @param outcome rejection disposition
+    /// @param message reason for rejection
+    /// @param ruleId governing rule
     public record Rejection(
             String source,
-            String recordKey,
+            @Nullable String recordKey,
             String outcome,
             String message,
             String ruleId) {}
 
+    /// Reports one source-to-output reconciliation.
+    ///
+    /// @param name stable reconciliation name
+    /// @param status reconciliation disposition
+    /// @param recordsRead source rows read
+    /// @param recordsMatched source rows matched
+    /// @param recordsWritten output rows written
+    /// @param recordsRejected source rows rejected
+    /// @param ruleIds rules covered by the reconciliation
+    /// @param message count explanation
     public record Reconciliation(
             String name,
             String status,
@@ -571,100 +848,163 @@ public class PropertyTaxExemptionsProcessor {
             long recordsWritten,
             long recordsRejected,
             List<String> ruleIds,
-            String message) {}
+            String message) {
+        /// Copies the governing rule identities independently of the caller's reconciliation list.
+        public Reconciliation {
+            ruleIds = List.copyOf(ruleIds);
+        }
+    }
 
+    /// Records a rule's processing outcome and affected-record count.
+    ///
+    /// @param ruleId governing rule
+    /// @param outcome resulting disposition
+    /// @param recordsAffected count of affected records
+    /// @param message optional explanatory detail
     public record RuleDisposition(
-            String ruleId,
-            String outcome,
-            long recordsAffected,
-            String message) {}
+            String ruleId, String outcome, long recordsAffected, @Nullable String message) {}
 
+    /// Immutable inputs for the fixed-layout comparator projection.
+    ///
+    /// @param renewalPrintRecords matched-renewal publication rows
+    /// @param renewalErrorRecords unmatched-renewal publication rows
+    /// @param ineligibleRecords homeowner ineligibility publication rows
+    /// @param annualExemptionRecords annual exemption publication rows
+    /// @param homeownerRecords maintained homeowner rows examined
+    /// @param assessmentRecords parcel rows examined
+    /// @param eligibleRecords parcels that produced exemptions
+    /// @param batchDisplays ordered batch display lines
     public record BatchEvidence(
             List<RenewalPrintRecord> renewalPrintRecords,
             List<RenewalErrorRecord> renewalErrorRecords,
             List<EligibilityPrintRecord> ineligibleRecords,
-            List<HomeoutRecord> homeoutRecords,
+            List<AnnualExemptionRecord> annualExemptionRecords,
             int homeownerRecords,
             int assessmentRecords,
             int eligibleRecords,
             List<String> batchDisplays) {
 
+        /// Copies report inputs so later caller mutations cannot change the recorded batch
+        /// evidence.
         public BatchEvidence {
             renewalPrintRecords = List.copyOf(renewalPrintRecords);
             renewalErrorRecords = List.copyOf(renewalErrorRecords);
             ineligibleRecords = List.copyOf(ineligibleRecords);
-            homeoutRecords = List.copyOf(homeoutRecords);
+            annualExemptionRecords = List.copyOf(annualExemptionRecords);
             batchDisplays = List.copyOf(batchDisplays);
         }
     }
 
+    /// Matched renewal report values captured before the homeowner replacement.
+    ///
+    /// @param volumeNumber assessment volume
+    /// @param propertyNumber property identity
+    /// @param taxCode tax district code
+    /// @param assessmentClass property classification code
+    /// @param applicationYear two-digit application year
+    /// @param proration eligible share as a six-place decimal fraction
+    /// @param cooperativeQuantity cooperative units
+    /// @param assessedValue assessed valuation in whole dollars
+    /// @param batchNumber five-character renewal batch identifier
     public record RenewalPrintRecord(
-            int volumeNumber,
-            long propertyNumber,
-            int taxCode,
+            String volumeNumber,
+            String propertyNumber,
+            String taxCode,
             int assessmentClass,
             int applicationYear,
             BigDecimal proration,
             int cooperativeQuantity,
-            long assessedValue,
+            BigDecimal assessedValue,
             String batchNumber) {
 
-        private static RenewalPrintRecord from(
-                HomeownerMaster homeowner,
-                String batchNumber) {
+        private static RenewalPrintRecord from(HomeownerMaster homeowner, String batchNumber) {
             return new RenewalPrintRecord(
-                    value(homeowner.getVolumeNumber()),
-                    value(homeowner.getPropertyNumber()),
-                    value(homeowner.getTaxCode()),
-                    value(homeowner.getAssessmentClass()),
-                    value(homeowner.getApplicationYear()),
-                    homeowner.getProration() == null ? BigDecimal.ZERO : homeowner.getProration(),
-                    value(homeowner.getCooperativeQuantity()),
-                    value(homeowner.getAssessedValue()),
+                    value(homeowner.volumeNumber()),
+                    value(homeowner.propertyNumber()),
+                    value(homeowner.taxCode()),
+                    value(homeowner.assessmentClass()),
+                    value(homeowner.applicationYear()),
+                    homeowner.proration() == null ? BigDecimal.ZERO : homeowner.proration(),
+                    value(homeowner.cooperativeQuantity()),
+                    value(homeowner.assessedValue()),
                     batchNumber);
         }
     }
 
-    public record RenewalErrorRecord(long propertyNumber, String batchNumber) {}
+    /// Identifies an unmatched renewal for the batch error output.
+    ///
+    /// @param propertyNumber unmatched property identity
+    /// @param batchNumber five-character renewal batch identifier
+    public record RenewalErrorRecord(String propertyNumber, String batchNumber) {}
 
+    /// Identifies an ineligible property for the classification report.
+    ///
+    /// @param volumeNumber assessment volume
+    /// @param propertyNumber property identity
+    /// @param taxCode tax district code
+    /// @param overallClass ineligible property classification code
     public record EligibilityPrintRecord(
-            int volumeNumber,
-            long propertyNumber,
-            int taxCode,
-            int overallClass) {}
+            String volumeNumber, String propertyNumber, String taxCode, int overallClass) {}
 
-    public record HomeoutRecord(
-            int volumeNumber,
-            long propertyNumber,
-            int taxCode,
+    /// Annual exemption values published for downstream processing.
+    ///
+    /// @param volumeNumber assessment volume
+    /// @param propertyNumber property identity
+    /// @param taxCode tax district code
+    /// @param taxType exemption tax-type code
+    /// @param assessmentClass qualifying property classification code
+    /// @param assessedValue assessed valuation in whole dollars
+    /// @param proration eligible share as a six-place decimal fraction
+    /// @param responseStatus homeowner response status
+    public record AnnualExemptionRecord(
+            String volumeNumber,
+            String propertyNumber,
+            String taxCode,
             int taxType,
             int assessmentClass,
-            long assessedValue,
+            BigDecimal assessedValue,
             BigDecimal proration,
             int responseStatus) {
 
-        private static HomeoutRecord from(HomeownerExemption exemption) {
-            return new HomeoutRecord(
-                    value(exemption.getVolumeNumber()),
-                    value(exemption.getPropertyNumber()),
-                    value(exemption.getTaxCode()),
-                    value(exemption.getTaxType()),
-                    value(exemption.getAssessmentClass()),
-                    value(exemption.getAssessedValue()),
-                    exemption.getProration() == null ? BigDecimal.ZERO : exemption.getProration(),
-                    value(exemption.getResponseStatus()));
+        private static AnnualExemptionRecord from(HomeownerExemption exemption) {
+            return new AnnualExemptionRecord(
+                    value(exemption.volumeNumber()),
+                    value(exemption.propertyNumber()),
+                    value(exemption.taxCode()),
+                    value(exemption.taxType()),
+                    value(exemption.assessmentClass()),
+                    value(exemption.assessedValue()),
+                    exemption.proration() == null ? BigDecimal.ZERO : exemption.proration(),
+                    value(exemption.responseStatus()));
         }
     }
 
-    private static int value(Integer value) {
+    private static int value(@Nullable Integer value) {
         return value == null ? 0 : value;
     }
 
-    private static long value(Long value) {
-        return value == null ? 0L : value;
+    /// Complete result of one renewal and homeowner ordered merge.
+    ///
+    /// @param printRecords matched renewal rows
+    /// @param errorRecords rejected renewal rows
+    /// @param recordsRead renewal input rows examined
+    private record RenewalMerge(
+            List<RenewalPrintRecord> printRecords,
+            List<RenewalErrorRecord> errorRecords,
+            int recordsRead) {
+        private RenewalMerge {
+            printRecords = List.copyOf(printRecords);
+            errorRecords = List.copyOf(errorRecords);
+        }
     }
 
-    private record RenewalInput(long propertyNumber, String batchNumber, boolean matched) {}
+    private static String value(@Nullable String value) {
+        return value == null ? "0" : value;
+    }
 
-    private record ParcelKey(Integer volumeNumber, Long parcelNumber) {}
+    private static BigDecimal value(@Nullable BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private record ParcelKey(String volumeNumber, String parcelNumber) {}
 }

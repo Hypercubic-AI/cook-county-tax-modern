@@ -3,6 +3,7 @@
 # Local dependencies, build output, and editor state.
 node_modules/
 target/
+.jqwik-database
 dist/
 .idea/
 .DS_Store

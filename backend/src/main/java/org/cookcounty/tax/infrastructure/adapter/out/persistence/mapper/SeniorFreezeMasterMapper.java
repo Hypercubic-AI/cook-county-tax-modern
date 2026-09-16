@@ -1,222 +1,129 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.mapper;
 
 import org.cookcounty.tax.domain.model.SeniorFreezeMaster;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.entity.SeniorFreezeMasterEntity;
 
-public class SeniorFreezeMasterMapper {
+/// Preserves every Senior Freeze master field, identity, and version across persistence.
+public final class SeniorFreezeMasterMapper {
+    private SeniorFreezeMasterMapper() {}
 
-    // GENERATED-MAPPING-TO-DOMAIN:start
+    /// Creates an immutable domain snapshot from one hydrated persistence entity.
     public static SeniorFreezeMaster toDomain(SeniorFreezeMasterEntity entity) {
-        SeniorFreezeMaster model = new SeniorFreezeMaster();
-        model.setId(entity.getId());
-
-        model.setBaseValueManualCalculationIndicator(entity.getBaseValueManualCalculationIndicator());
-
-        model.setBaseValueNoCalculationIndicator(entity.getBaseValueNoCalculationIndicator());
-
-        model.setBaseValueYear(entity.getBaseValueYear());
-
-        model.setBaseValueYearClass(entity.getBaseValueYearClass());
-
-        model.setBaseYearEligibleComputedFullAssessedValue(entity.getBaseYearEligibleComputedFullAssessedValue());
-
-        model.setBaseYearEqualizedValue(entity.getBaseYearEqualizedValue());
-
-        model.setBaseYearFullAssessedValue(entity.getBaseYearFullAssessedValue());
-
-        model.setBaseYearTotalEligibleComputedEqualizedValue(entity.getBaseYearTotalEligibleComputedEqualizedValue());
-
-        model.setBuildingShares(entity.getBuildingShares());
-
-        model.setBuildingUnits(entity.getBuildingUnits());
-
-        model.setCalculationType(entity.getCalculationType());
-
-        model.setClass288ExpirationAssessedValue(entity.getClass288ExpirationAssessedValue());
-
-        model.setClass288ExpirationEqualizedValue(entity.getClass288ExpirationEqualizedValue());
-
-        model.setClass288OverLimitAssessedValue(entity.getClass288OverLimitAssessedValue());
-
-        model.setClass288OverLimitEqualizedValue(entity.getClass288OverLimitEqualizedValue());
-
-        model.setCurrentYearClass(entity.getCurrentYearClass());
-
-        model.setCurrentYearEligibleComputedAssessedValue(entity.getCurrentYearEligibleComputedAssessedValue());
-
-        model.setCurrentYearEligibleComputedEqualizedValue(entity.getCurrentYearEligibleComputedEqualizedValue());
-
-        model.setCurrentYearFarmIndicator(entity.getCurrentYearFarmIndicator());
-
-        model.setCurrentYearFinalEqualizedValueDifference(entity.getCurrentYearFinalEqualizedValueDifference());
-
-        model.setCurrentYearFullAssessedValue(entity.getCurrentYearFullAssessedValue());
-
-        model.setCurrentYearFullEqualizedValue(entity.getCurrentYearFullEqualizedValue());
-
-        model.setCurrentYearNotEligibleAssessedValue(entity.getCurrentYearNotEligibleAssessedValue());
-
-        model.setCurrentYearNotEligibleEqualizedValue(entity.getCurrentYearNotEligibleEqualizedValue());
-
-        model.setHomeownerUnits(entity.getHomeownerUnits());
-
-        model.setHomesteadUnits(entity.getHomesteadUnits());
-
-        model.setKeyParcelNumber(entity.getKeyParcelNumber());
-
-        model.setMailingCity(entity.getMailingCity());
-
-        model.setMailingDirection(entity.getMailingDirection());
-
-        model.setMailingHouseNumber(entity.getMailingHouseNumber());
-
-        model.setMailingState(entity.getMailingState());
-
-        model.setMailingStreet(entity.getMailingStreet());
-
-        model.setMailingSuffix(entity.getMailingSuffix());
-
-        model.setMailingZipCode(entity.getMailingZipCode());
-
-        model.setMaintenanceIndicator(entity.getMaintenanceIndicator());
-
-        model.setMasterName(entity.getMasterName());
-
-        model.setOccupancyFactor(entity.getOccupancyFactor());
-
-        model.setOriginalBaseValueYear(entity.getOriginalBaseValueYear());
-
-        model.setOriginalBaseYearEligibleComputedFullAssessedValue(entity.getOriginalBaseYearEligibleComputedFullAssessedValue());
-
-        model.setOriginalBaseYearEqualizedValue(entity.getOriginalBaseYearEqualizedValue());
-
-        model.setOriginalBaseYearFullAssessedValue(entity.getOriginalBaseYearFullAssessedValue());
-
-        model.setOriginalBaseYearTotalEligibleComputedEqualizedValue(entity.getOriginalBaseYearTotalEligibleComputedEqualizedValue());
-
-        model.setOriginalCurrentYearFinalEqualizedValueDifference(entity.getOriginalCurrentYearFinalEqualizedValueDifference());
-
-        model.setOriginalManualCalculationIndicator(entity.getOriginalManualCalculationIndicator());
-
-        model.setPropertyProration(entity.getPropertyProration());
-
-        model.setRecordCode(entity.getRecordCode());
-
-        model.setSeniorFreezeShares(entity.getSeniorFreezeShares());
-
-        model.setSplitCode(entity.getSplitCode());
-
-
-
-        return model;
+        return new SeniorFreezeMaster(
+                entity.getId(),
+                entity.getVersion(),
+                entity.getBaseValueManualCalculationIndicator(),
+                entity.getBaseValueNoCalculationIndicator(),
+                entity.getBaseValueYear(),
+                entity.getBaseValueYearClass(),
+                entity.getBaseYearEligibleComputedFullAssessedValue(),
+                entity.getBaseYearEqualizedValue(),
+                entity.getBaseYearFullAssessedValue(),
+                entity.getBaseYearTotalEligibleComputedEqualizedValue(),
+                entity.getBuildingShares(),
+                entity.getBuildingUnits(),
+                entity.getCalculationType(),
+                entity.getClass288ExpirationAssessedValue(),
+                entity.getClass288ExpirationEqualizedValue(),
+                entity.getClass288OverLimitAssessedValue(),
+                entity.getClass288OverLimitEqualizedValue(),
+                entity.getCurrentYearClass(),
+                entity.getCurrentYearEligibleComputedAssessedValue(),
+                entity.getCurrentYearEligibleComputedEqualizedValue(),
+                entity.getCurrentYearFarmIndicator(),
+                entity.getCurrentYearFinalEqualizedValueDifference(),
+                entity.getCurrentYearFullAssessedValue(),
+                entity.getCurrentYearFullEqualizedValue(),
+                entity.getCurrentYearNotEligibleAssessedValue(),
+                entity.getCurrentYearNotEligibleEqualizedValue(),
+                entity.getHomeownerUnits(),
+                entity.getHomesteadUnits(),
+                entity.getKeyParcelNumber(),
+                entity.getMailingCity(),
+                entity.getMailingDirection(),
+                entity.getMailingHouseNumber(),
+                entity.getMailingState(),
+                entity.getMailingStreet(),
+                entity.getMailingSuffix(),
+                entity.getMailingZipCode(),
+                entity.getMaintenanceIndicator(),
+                entity.getMasterName(),
+                entity.getOccupancyFactor(),
+                entity.getOriginalBaseValueYear(),
+                entity.getOriginalBaseYearEligibleComputedFullAssessedValue(),
+                entity.getOriginalBaseYearEqualizedValue(),
+                entity.getOriginalBaseYearFullAssessedValue(),
+                entity.getOriginalBaseYearTotalEligibleComputedEqualizedValue(),
+                entity.getOriginalCurrentYearFinalEqualizedValueDifference(),
+                entity.getOriginalManualCalculationIndicator(),
+                entity.getPropertyProration(),
+                entity.getRecordCode(),
+                entity.getSeniorFreezeShares(),
+                entity.getSplitCode());
     }
-    // GENERATED-MAPPING-TO-DOMAIN:end
 
-    // GENERATED-MAPPING-TO-ENTITY:start
+    /// Creates a mutable persistence entity without dropping identity or version state.
     public static SeniorFreezeMasterEntity toEntity(SeniorFreezeMaster model) {
         SeniorFreezeMasterEntity entity = new SeniorFreezeMasterEntity();
-        entity.setId(model.getId());
-
-        entity.setBaseValueManualCalculationIndicator(model.getBaseValueManualCalculationIndicator());
-
-        entity.setBaseValueNoCalculationIndicator(model.getBaseValueNoCalculationIndicator());
-
-        entity.setBaseValueYear(model.getBaseValueYear());
-
-        entity.setBaseValueYearClass(model.getBaseValueYearClass());
-
-        entity.setBaseYearEligibleComputedFullAssessedValue(model.getBaseYearEligibleComputedFullAssessedValue());
-
-        entity.setBaseYearEqualizedValue(model.getBaseYearEqualizedValue());
-
-        entity.setBaseYearFullAssessedValue(model.getBaseYearFullAssessedValue());
-
-        entity.setBaseYearTotalEligibleComputedEqualizedValue(model.getBaseYearTotalEligibleComputedEqualizedValue());
-
-        entity.setBuildingShares(model.getBuildingShares());
-
-        entity.setBuildingUnits(model.getBuildingUnits());
-
-        entity.setCalculationType(model.getCalculationType());
-
-        entity.setClass288ExpirationAssessedValue(model.getClass288ExpirationAssessedValue());
-
-        entity.setClass288ExpirationEqualizedValue(model.getClass288ExpirationEqualizedValue());
-
-        entity.setClass288OverLimitAssessedValue(model.getClass288OverLimitAssessedValue());
-
-        entity.setClass288OverLimitEqualizedValue(model.getClass288OverLimitEqualizedValue());
-
-        entity.setCurrentYearClass(model.getCurrentYearClass());
-
-        entity.setCurrentYearEligibleComputedAssessedValue(model.getCurrentYearEligibleComputedAssessedValue());
-
-        entity.setCurrentYearEligibleComputedEqualizedValue(model.getCurrentYearEligibleComputedEqualizedValue());
-
-        entity.setCurrentYearFarmIndicator(model.getCurrentYearFarmIndicator());
-
-        entity.setCurrentYearFinalEqualizedValueDifference(model.getCurrentYearFinalEqualizedValueDifference());
-
-        entity.setCurrentYearFullAssessedValue(model.getCurrentYearFullAssessedValue());
-
-        entity.setCurrentYearFullEqualizedValue(model.getCurrentYearFullEqualizedValue());
-
-        entity.setCurrentYearNotEligibleAssessedValue(model.getCurrentYearNotEligibleAssessedValue());
-
-        entity.setCurrentYearNotEligibleEqualizedValue(model.getCurrentYearNotEligibleEqualizedValue());
-
-        entity.setHomeownerUnits(model.getHomeownerUnits());
-
-        entity.setHomesteadUnits(model.getHomesteadUnits());
-
-        entity.setKeyParcelNumber(model.getKeyParcelNumber());
-
-        entity.setMailingCity(model.getMailingCity());
-
-        entity.setMailingDirection(model.getMailingDirection());
-
-        entity.setMailingHouseNumber(model.getMailingHouseNumber());
-
-        entity.setMailingState(model.getMailingState());
-
-        entity.setMailingStreet(model.getMailingStreet());
-
-        entity.setMailingSuffix(model.getMailingSuffix());
-
-        entity.setMailingZipCode(model.getMailingZipCode());
-
-        entity.setMaintenanceIndicator(model.getMaintenanceIndicator());
-
-        entity.setMasterName(model.getMasterName());
-
-        entity.setOccupancyFactor(model.getOccupancyFactor());
-
-        entity.setOriginalBaseValueYear(model.getOriginalBaseValueYear());
-
-        entity.setOriginalBaseYearEligibleComputedFullAssessedValue(model.getOriginalBaseYearEligibleComputedFullAssessedValue());
-
-        entity.setOriginalBaseYearEqualizedValue(model.getOriginalBaseYearEqualizedValue());
-
-        entity.setOriginalBaseYearFullAssessedValue(model.getOriginalBaseYearFullAssessedValue());
-
-        entity.setOriginalBaseYearTotalEligibleComputedEqualizedValue(model.getOriginalBaseYearTotalEligibleComputedEqualizedValue());
-
-        entity.setOriginalCurrentYearFinalEqualizedValueDifference(model.getOriginalCurrentYearFinalEqualizedValueDifference());
-
-        entity.setOriginalManualCalculationIndicator(model.getOriginalManualCalculationIndicator());
-
-        entity.setPropertyProration(model.getPropertyProration());
-
-        entity.setRecordCode(model.getRecordCode());
-
-        entity.setSeniorFreezeShares(model.getSeniorFreezeShares());
-
-        entity.setSplitCode(model.getSplitCode());
-
-
-
+        entity.setId(model.id());
+        entity.setVersion(model.version());
+        entity.setBaseValueManualCalculationIndicator(model.baseValueManualCalculationIndicator());
+        entity.setBaseValueNoCalculationIndicator(model.baseValueNoCalculationIndicator());
+        entity.setBaseValueYear(model.baseValueYear());
+        entity.setBaseValueYearClass(model.baseValueYearClass());
+        entity.setBaseYearEligibleComputedFullAssessedValue(
+                model.baseYearEligibleComputedFullAssessedValue());
+        entity.setBaseYearEqualizedValue(model.baseYearEqualizedValue());
+        entity.setBaseYearFullAssessedValue(model.baseYearFullAssessedValue());
+        entity.setBaseYearTotalEligibleComputedEqualizedValue(
+                model.baseYearTotalEligibleComputedEqualizedValue());
+        entity.setBuildingShares(model.buildingShares());
+        entity.setBuildingUnits(model.buildingUnits());
+        entity.setCalculationType(model.calculationType());
+        entity.setClass288ExpirationAssessedValue(model.class288ExpirationAssessedValue());
+        entity.setClass288ExpirationEqualizedValue(model.class288ExpirationEqualizedValue());
+        entity.setClass288OverLimitAssessedValue(model.class288OverLimitAssessedValue());
+        entity.setClass288OverLimitEqualizedValue(model.class288OverLimitEqualizedValue());
+        entity.setCurrentYearClass(model.currentYearClass());
+        entity.setCurrentYearEligibleComputedAssessedValue(
+                model.currentYearEligibleComputedAssessedValue());
+        entity.setCurrentYearEligibleComputedEqualizedValue(
+                model.currentYearEligibleComputedEqualizedValue());
+        entity.setCurrentYearFarmIndicator(model.currentYearFarmIndicator());
+        entity.setCurrentYearFinalEqualizedValueDifference(
+                model.currentYearFinalEqualizedValueDifference());
+        entity.setCurrentYearFullAssessedValue(model.currentYearFullAssessedValue());
+        entity.setCurrentYearFullEqualizedValue(model.currentYearFullEqualizedValue());
+        entity.setCurrentYearNotEligibleAssessedValue(model.currentYearNotEligibleAssessedValue());
+        entity.setCurrentYearNotEligibleEqualizedValue(
+                model.currentYearNotEligibleEqualizedValue());
+        entity.setHomeownerUnits(model.homeownerUnits());
+        entity.setHomesteadUnits(model.homesteadUnits());
+        entity.setKeyParcelNumber(model.keyParcelNumber());
+        entity.setMailingCity(model.mailingCity());
+        entity.setMailingDirection(model.mailingDirection());
+        entity.setMailingHouseNumber(model.mailingHouseNumber());
+        entity.setMailingState(model.mailingState());
+        entity.setMailingStreet(model.mailingStreet());
+        entity.setMailingSuffix(model.mailingSuffix());
+        entity.setMailingZipCode(model.mailingZipCode());
+        entity.setMaintenanceIndicator(model.maintenanceIndicator());
+        entity.setMasterName(model.masterName());
+        entity.setOccupancyFactor(model.occupancyFactor());
+        entity.setOriginalBaseValueYear(model.originalBaseValueYear());
+        entity.setOriginalBaseYearEligibleComputedFullAssessedValue(
+                model.originalBaseYearEligibleComputedFullAssessedValue());
+        entity.setOriginalBaseYearEqualizedValue(model.originalBaseYearEqualizedValue());
+        entity.setOriginalBaseYearFullAssessedValue(model.originalBaseYearFullAssessedValue());
+        entity.setOriginalBaseYearTotalEligibleComputedEqualizedValue(
+                model.originalBaseYearTotalEligibleComputedEqualizedValue());
+        entity.setOriginalCurrentYearFinalEqualizedValueDifference(
+                model.originalCurrentYearFinalEqualizedValueDifference());
+        entity.setOriginalManualCalculationIndicator(model.originalManualCalculationIndicator());
+        entity.setPropertyProration(model.propertyProration());
+        entity.setRecordCode(model.recordCode());
+        entity.setSeniorFreezeShares(model.seniorFreezeShares());
+        entity.setSplitCode(model.splitCode());
         return entity;
     }
-    // GENERATED-MAPPING-TO-ENTITY:end
 }

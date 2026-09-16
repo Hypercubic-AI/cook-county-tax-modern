@@ -1,13 +1,7 @@
 package org.cookcounty.tax.application.service;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.Executor;
-
 import org.cookcounty.tax.application.batch.BatchRunCoordinator;
-import org.cookcounty.tax.application.batch.BatchRunInvalidRequestException;
+import org.cookcounty.tax.application.batch.BatchRunLifecycle;
 import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder;
 import org.cookcounty.tax.application.service.PropertyTaxExemptionsKernel.HomeownerVariant;
 import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.Message;
@@ -16,253 +10,296 @@ import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.Pro
 import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.Reconciliation;
 import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.Rejection;
 import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.RuleDisposition;
+import org.cookcounty.tax.domain.contract.BatchRunFailure;
+import org.cookcounty.tax.domain.contract.BatchRunStart;
+import org.cookcounty.tax.domain.contract.Result;
+import org.cookcounty.tax.domain.contract.dto.PropertyTaxExemptionsMessage;
+import org.cookcounty.tax.domain.contract.dto.PropertyTaxExemptionsOutput;
+import org.cookcounty.tax.domain.contract.dto.PropertyTaxExemptionsReconciliationOutcome;
+import org.cookcounty.tax.domain.contract.dto.PropertyTaxExemptionsRejectionOutcome;
+import org.cookcounty.tax.domain.contract.dto.PropertyTaxExemptionsRuleOutcome;
+import org.cookcounty.tax.domain.contract.dto.PropertyTaxExemptionsRunRequest;
+import org.cookcounty.tax.domain.contract.dto.PropertyTaxExemptionsRunResponse;
 import org.cookcounty.tax.domain.port.in.PropertyTaxExemptionsRunUseCase;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.PropertyTaxExemptionsMessage;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.PropertyTaxExemptionsOutput;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.PropertyTaxExemptionsReconciliationOutcome;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.PropertyTaxExemptionsRejectionOutcome;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.PropertyTaxExemptionsRuleOutcome;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.PropertyTaxExemptionsRunRequest;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.PropertyTaxExemptionsRunResponse;
+import org.cookcounty.tax.domain.port.out.BatchRunStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.concurrent.Executor;
+
+/// Owns durable run reservation, replay detection, asynchronous execution, and final snapshots.
 @Service
 public class PropertyTaxExemptionsRunService implements PropertyTaxExemptionsRunUseCase {
+
+    /// Keeps worker stack traces in server diagnostics, separate from safe public responses.
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(PropertyTaxExemptionsRunService.class);
 
     private final PropertyTaxExemptionsProcessor processor;
     private final PropertyTaxExemptionsFactorOutcomeProjector outcomeProjector;
     private final FactorBatchOutcomeRecorder outcomeRecorder;
     private final BatchRunCoordinator<PropertyTaxExemptionsRunResponse> runs;
 
+    /// Creates the service with durable storage and the bounded batch executor.
     public PropertyTaxExemptionsRunService(
             PropertyTaxExemptionsProcessor processor,
             PropertyTaxExemptionsFactorOutcomeProjector outcomeProjector,
             FactorBatchOutcomeRecorder outcomeRecorder,
-            @Qualifier("batchRunExecutor") Executor executor) {
+            BatchRunStore batchRunStore,
+            @Qualifier("batchRunExecutor") Executor executor,
+            BatchRunLifecycle batchRunLifecycle) {
         this.processor = processor;
         this.outcomeProjector = outcomeProjector;
         this.outcomeRecorder = outcomeRecorder;
-        this.runs = new BatchRunCoordinator<>(executor);
+        this.runs =
+                new BatchRunCoordinator<>(
+                        "property-tax-exemptions",
+                        PropertyTaxExemptionsRunResponse.class,
+                        batchRunStore,
+                        executor,
+                        batchRunLifecycle);
     }
 
+    /// Returns the durable snapshot for one run identity.
     @Override
-    public Optional<PropertyTaxExemptionsRunResponse> getPropertyTaxExemptionsRun(Long id) {
-        return id == null ? Optional.empty() : runs.find(id);
+    public Result<PropertyTaxExemptionsRunResponse, BatchRunFailure> getPropertyTaxExemptionsRun(
+            Long id) {
+        return runs.find(id);
     }
 
+    /// Reserves or replays a run, then admits new work to asynchronous execution.
     @Override
-    public PropertyTaxExemptionsRunResponse startPropertyTaxExemptionsRun(
-            PropertyTaxExemptionsRunRequest request) {
-        Controls controls = validatedControls(request);
-        return runs.start(
-                        controls.idempotencyKey(),
-                        controls.fingerprint(),
-                        id -> baseSnapshot(id, "QUEUED", controls),
-                        id -> execute(id, controls))
-                .response();
+    public Result<BatchRunStart<PropertyTaxExemptionsRunResponse>, BatchRunFailure>
+            startPropertyTaxExemptionsRun(PropertyTaxExemptionsRunRequest request) {
+        return validatedControls(request)
+                .flatMap(
+                        controls ->
+                                runs.start(
+                                        controls.idempotencyKey(),
+                                        controls.fingerprint(),
+                                        id -> baseSnapshot(id, "QUEUED", controls),
+                                        id -> admissionRejectedSnapshot(id, controls),
+                                        id -> failedSnapshot(id, controls),
+                                        id -> execute(id, controls)));
     }
 
     private void execute(long id, Controls controls) {
-        runs.replace(id, baseSnapshot(id, "RUNNING", controls));
+        if (!runs.running(id, baseSnapshot(id, "RUNNING", controls))) {
+            return;
+        }
         String scenarioId = outcomeProjector.scenarioId(controls.variant());
         try {
-            ProcessResult result = processor.process(
-                    controls.businessDate(), controls.businessTime(), controls.variant());
-            PropertyTaxExemptionsRunResponse completed =
-                    completedSnapshot(id, controls, result);
-            runs.replace(id, completed);
-            outcomeRecorder.completed(
-                    scenarioId, id, completed.getStatus(), outcomeProjector.project(
-                            controls.variant(), result));
+            ProcessResult result =
+                    processor.process(
+                            controls.businessDate(), controls.businessTime(), controls.variant());
+            PropertyTaxExemptionsRunResponse completed = completedSnapshot(id, controls, result);
+            if (runs.complete(id, completed)) {
+                outcomeRecorder.completed(
+                        scenarioId,
+                        id,
+                        completed.status(),
+                        outcomeProjector.project(controls.variant(), result));
+            }
         } catch (RuntimeException exception) {
-            PropertyTaxExemptionsRunResponse failed =
-                    failedSnapshot(id, controls, exception);
-            runs.replace(id, failed);
-            outcomeRecorder.completed(
-                    scenarioId, id, failed.getStatus(), outcomeProjector.failed(exception));
+            LOGGER.error("Property-tax exemption run {} failed", id, exception);
+            PropertyTaxExemptionsRunResponse failed = failedSnapshot(id, controls);
+            if (runs.fail(id, failed)) {
+                outcomeRecorder.completed(
+                        scenarioId, id, failed.status(), outcomeProjector.failed(exception));
+            }
         }
     }
 
-    private static Controls validatedControls(PropertyTaxExemptionsRunRequest request) {
-        if (request == null) {
-            throw new BatchRunInvalidRequestException("request is required");
+    private static Result<Controls, BatchRunFailure> validatedControls(
+            PropertyTaxExemptionsRunRequest request) {
+        var businessDate = request.businessDate();
+        if (businessDate == null) {
+            return invalid("businessDate is required");
         }
-        if (request.getBusinessDate() == null) {
-            throw new BatchRunInvalidRequestException("businessDate is required");
-        }
-        String businessTime = request.getBusinessTime();
+        var businessTime = request.businessTime();
         if (businessTime == null
                 || !businessTime.matches("^(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$")) {
-            throw new BatchRunInvalidRequestException("businessTime must use HH:mm:ss");
+            return invalid("businessTime must use HH:mm:ss");
         }
-        String idempotencyKey = request.getIdempotencyKey();
+        var idempotencyKey = request.idempotencyKey();
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            throw new BatchRunInvalidRequestException("idempotencyKey is required");
+            return invalid("idempotencyKey is required");
         }
         if (idempotencyKey.length() > 128) {
-            throw new BatchRunInvalidRequestException(
-                    "idempotencyKey must not exceed 128 characters");
+            return invalid("idempotencyKey must not exceed 128 characters");
         }
 
+        var requestedVariant = request.homeownerProcessingVariant();
+        if (requestedVariant == null) {
+            return invalid("homeownerProcessingVariant must be ENUMERATED or BROAD");
+        }
         HomeownerVariant variant;
         try {
-            variant = HomeownerVariant.valueOf(request.getHomeownerProcessingVariant());
-        } catch (NullPointerException | IllegalArgumentException exception) {
-            throw new BatchRunInvalidRequestException(
-                    "homeownerProcessingVariant must be ENUMERATED or BROAD");
+            variant = HomeownerVariant.valueOf(requestedVariant);
+        } catch (IllegalArgumentException exception) {
+            return invalid("homeownerProcessingVariant must be ENUMERATED or BROAD");
         }
-        return new Controls(
-                request.getBusinessDate(), businessTime, idempotencyKey, variant);
+        return new Result.Ok<>(new Controls(businessDate, businessTime, idempotencyKey, variant));
+    }
+
+    private static <T> Result<T, BatchRunFailure> invalid(String message) {
+        return new Result.Err<>(new BatchRunFailure.InvalidRequest(message));
     }
 
     private static PropertyTaxExemptionsRunResponse baseSnapshot(
-            long id,
-            String status,
-            Controls controls) {
-        PropertyTaxExemptionsRunResponse response = new PropertyTaxExemptionsRunResponse();
-        response.setId(id);
-        response.setStatus(status);
-        response.setBusinessDate(controls.businessDate());
-        response.setBusinessTime(controls.businessTime());
-        response.setHomeownerProcessingVariant(controls.variant().name());
-        return response;
+            long id, String status, Controls controls) {
+        return new PropertyTaxExemptionsRunResponse(
+                controls.businessDate(),
+                controls.businessTime(),
+                controls.variant().name(),
+                id,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                status);
     }
 
     private static PropertyTaxExemptionsRunResponse completedSnapshot(
-            long id,
-            Controls controls,
-            ProcessResult result) {
-        PropertyTaxExemptionsRunResponse response = baseSnapshot(id, "COMPLETED", controls);
-        response.setReturnCode(result.returnCode());
-        response.setRecordsRead((long) result.recordsRead());
-        response.setRecordsWritten((long) result.recordsWritten());
-        response.setRecordsUpdated((long) result.recordsUpdated());
-        response.setRecordsRejected((long) result.recordsRejected());
-        response.setOutputs(mapOutputs(result.outputs()));
-        response.setMessages(mapMessages(result.messages()));
-        response.setRejections(mapRejections(result.rejections()));
-        response.setReconciliations(mapReconciliations(result.reconciliations()));
-        response.setRuleOutcomes(mapRuleOutcomes(result.ruleOutcomes()));
-        return response;
+            long id, Controls controls, ProcessResult result) {
+        return new PropertyTaxExemptionsRunResponse(
+                controls.businessDate(),
+                controls.businessTime(),
+                controls.variant().name(),
+                id,
+                mapMessages(result.messages()),
+                mapOutputs(result.outputs()),
+                mapReconciliations(result.reconciliations()),
+                (long) result.recordsRead(),
+                (long) result.recordsRejected(),
+                (long) result.recordsUpdated(),
+                (long) result.recordsWritten(),
+                mapRejections(result.rejections()),
+                result.returnCode(),
+                mapRuleOutcomes(result.ruleOutcomes()),
+                "COMPLETED");
     }
 
-    private static PropertyTaxExemptionsRunResponse failedSnapshot(
-            long id,
-            Controls controls,
-            RuntimeException exception) {
-        PropertyTaxExemptionsRunResponse response = baseSnapshot(id, "FAILED", controls);
-        response.setReturnCode(16);
-        response.setRecordsRead(0L);
-        response.setRecordsWritten(0L);
-        response.setRecordsUpdated(0L);
-        response.setRecordsRejected(0L);
+    private static PropertyTaxExemptionsRunResponse failedSnapshot(long id, Controls controls) {
+        return terminalFailureSnapshot(id, controls, "The property-tax-exemptions worker failed.");
+    }
 
-        PropertyTaxExemptionsOutput output = new PropertyTaxExemptionsOutput();
-        output.setName("ASREA859 HOMEOUT");
-        output.setKind("DATASET");
-        output.setRecordCount(0L);
-        output.setPublicationStatus("WITHHELD");
-        output.setRuleIds(List.of("asrea859-001"));
-        response.setOutputs(List.of(output));
+    private static PropertyTaxExemptionsRunResponse admissionRejectedSnapshot(
+            long id, Controls controls) {
+        return terminalFailureSnapshot(
+                id,
+                controls,
+                "The service could not start the run because batch capacity was exhausted.");
+    }
 
-        PropertyTaxExemptionsMessage message = new PropertyTaxExemptionsMessage();
-        message.setSeverity("ERROR");
-        message.setMessage(exception.getMessage() == null
-                ? "The property-tax-exemptions worker failed."
-                : exception.getMessage());
-        response.setMessages(List.of(message));
-
-        PropertyTaxExemptionsReconciliationOutcome reconciliation =
-                new PropertyTaxExemptionsReconciliationOutcome();
-        reconciliation.setName("PROPERTY TAX EXEMPTIONS RUN");
-        reconciliation.setStatus("FAILED");
-        reconciliation.setRecordsRead(0L);
-        reconciliation.setRecordsMatched(0L);
-        reconciliation.setRecordsWritten(0L);
-        reconciliation.setRecordsRejected(0L);
-        reconciliation.setRuleIds(List.of("asrea859-001"));
-        reconciliation.setMessage("The logical output was withheld after an operational failure.");
-        response.setReconciliations(List.of(reconciliation));
-        response.setRejections(List.of());
-        response.setRuleOutcomes(List.of());
-        return response;
+    private static PropertyTaxExemptionsRunResponse terminalFailureSnapshot(
+            long id, Controls controls, String failureMessage) {
+        var output =
+                new PropertyTaxExemptionsOutput(
+                        "DATASET", "ASREA859 HOMEOUT", "WITHHELD", 0L, List.of("asrea859-001"));
+        var message = new PropertyTaxExemptionsMessage(failureMessage, null, "ERROR");
+        var reconciliation =
+                new PropertyTaxExemptionsReconciliationOutcome(
+                        "The logical output was withheld after an operational failure.",
+                        "PROPERTY TAX EXEMPTIONS RUN",
+                        0L,
+                        0L,
+                        0L,
+                        0L,
+                        List.of("asrea859-001"),
+                        "FAILED");
+        return new PropertyTaxExemptionsRunResponse(
+                controls.businessDate(),
+                controls.businessTime(),
+                controls.variant().name(),
+                id,
+                List.of(message),
+                List.of(output),
+                List.of(reconciliation),
+                0L,
+                0L,
+                0L,
+                0L,
+                List.of(),
+                16,
+                List.of(),
+                "FAILED");
     }
 
     private static List<PropertyTaxExemptionsOutput> mapOutputs(List<OutputRecord> source) {
-        List<PropertyTaxExemptionsOutput> result = new ArrayList<>(source.size());
-        for (OutputRecord record : source) {
-            PropertyTaxExemptionsOutput output = new PropertyTaxExemptionsOutput();
-            output.setName(record.name());
-            output.setKind(record.kind());
-            output.setRecordCount(record.recordCount());
-            output.setPublicationStatus(record.publicationStatus());
-            output.setRuleIds(record.ruleIds());
-            result.add(output);
-        }
-        return List.copyOf(result);
+        return source.stream()
+                .map(
+                        record ->
+                                new PropertyTaxExemptionsOutput(
+                                        record.kind(),
+                                        record.name(),
+                                        record.publicationStatus(),
+                                        record.recordCount(),
+                                        record.ruleIds()))
+                .toList();
     }
 
     private static List<PropertyTaxExemptionsMessage> mapMessages(List<Message> source) {
-        List<PropertyTaxExemptionsMessage> result = new ArrayList<>(source.size());
-        for (Message record : source) {
-            PropertyTaxExemptionsMessage message = new PropertyTaxExemptionsMessage();
-            message.setSeverity(record.severity());
-            message.setMessage(record.message());
-            message.setRuleId(record.ruleId());
-            result.add(message);
-        }
-        return List.copyOf(result);
+        return source.stream()
+                .map(
+                        record ->
+                                new PropertyTaxExemptionsMessage(
+                                        record.message(), record.ruleId(), record.severity()))
+                .toList();
     }
 
     private static List<PropertyTaxExemptionsRejectionOutcome> mapRejections(
             List<Rejection> source) {
-        List<PropertyTaxExemptionsRejectionOutcome> result = new ArrayList<>(source.size());
-        for (Rejection record : source) {
-            PropertyTaxExemptionsRejectionOutcome rejection =
-                    new PropertyTaxExemptionsRejectionOutcome();
-            rejection.setSource(record.source());
-            rejection.setRecordKey(record.recordKey());
-            rejection.setOutcome(record.outcome());
-            rejection.setMessage(record.message());
-            rejection.setRuleId(record.ruleId());
-            result.add(rejection);
-        }
-        return List.copyOf(result);
+        return source.stream()
+                .map(
+                        record ->
+                                new PropertyTaxExemptionsRejectionOutcome(
+                                        record.message(),
+                                        record.outcome(),
+                                        record.recordKey(),
+                                        record.ruleId(),
+                                        record.source()))
+                .toList();
     }
 
     private static List<PropertyTaxExemptionsReconciliationOutcome> mapReconciliations(
             List<Reconciliation> source) {
-        List<PropertyTaxExemptionsReconciliationOutcome> result =
-                new ArrayList<>(source.size());
-        for (Reconciliation record : source) {
-            PropertyTaxExemptionsReconciliationOutcome reconciliation =
-                    new PropertyTaxExemptionsReconciliationOutcome();
-            reconciliation.setName(record.name());
-            reconciliation.setStatus(record.status());
-            reconciliation.setRecordsRead(record.recordsRead());
-            reconciliation.setRecordsMatched(record.recordsMatched());
-            reconciliation.setRecordsWritten(record.recordsWritten());
-            reconciliation.setRecordsRejected(record.recordsRejected());
-            reconciliation.setRuleIds(record.ruleIds());
-            reconciliation.setMessage(record.message());
-            result.add(reconciliation);
-        }
-        return List.copyOf(result);
+        return source.stream()
+                .map(
+                        record ->
+                                new PropertyTaxExemptionsReconciliationOutcome(
+                                        record.message(),
+                                        record.name(),
+                                        record.recordsMatched(),
+                                        record.recordsRead(),
+                                        record.recordsRejected(),
+                                        record.recordsWritten(),
+                                        record.ruleIds(),
+                                        record.status()))
+                .toList();
     }
 
     private static List<PropertyTaxExemptionsRuleOutcome> mapRuleOutcomes(
             List<RuleDisposition> source) {
-        List<PropertyTaxExemptionsRuleOutcome> result = new ArrayList<>(source.size());
-        for (RuleDisposition record : source) {
-            PropertyTaxExemptionsRuleOutcome outcome = new PropertyTaxExemptionsRuleOutcome();
-            outcome.setRuleId(record.ruleId());
-            outcome.setOutcome(record.outcome());
-            outcome.setRecordsAffected(record.recordsAffected());
-            outcome.setMessage(record.message());
-            result.add(outcome);
-        }
-        return List.copyOf(result);
+        return source.stream()
+                .map(
+                        record ->
+                                new PropertyTaxExemptionsRuleOutcome(
+                                        record.message(),
+                                        record.outcome(),
+                                        record.recordsAffected(),
+                                        record.ruleId()))
+                .toList();
     }
 
     private record Controls(

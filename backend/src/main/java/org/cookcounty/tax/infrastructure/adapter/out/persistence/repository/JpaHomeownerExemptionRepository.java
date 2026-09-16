@@ -1,4 +1,3 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.repository;
 
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.entity.HomeownerExemptionEntity;
@@ -8,7 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 // GENERATED-IMPORTS:end
 
-public interface JpaHomeownerExemptionRepository extends JpaRepository<HomeownerExemptionEntity, Long> {
+/// Persists the annual exemption generation without applying homeowner eligibility rules.
+public interface JpaHomeownerExemptionRepository
+        extends JpaRepository<HomeownerExemptionEntity, Long> {
     // GENERATED-METHODS:start
 
     // GENERATED-METHODS:end

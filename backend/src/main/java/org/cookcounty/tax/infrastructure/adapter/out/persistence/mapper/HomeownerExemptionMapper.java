@@ -1,138 +1,78 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.mapper;
 
 import org.cookcounty.tax.domain.model.HomeownerExemption;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.entity.HomeownerExemptionEntity;
 
-public class HomeownerExemptionMapper {
+/// Preserves every homeowner-exemption field, generated identity, and version across persistence.
+public final class HomeownerExemptionMapper {
+    private HomeownerExemptionMapper() {}
 
-    // GENERATED-MAPPING-TO-DOMAIN:start
+    /// Creates an immutable domain snapshot from one hydrated persistence entity.
     public static HomeownerExemption toDomain(HomeownerExemptionEntity entity) {
-        HomeownerExemption model = new HomeownerExemption();
-        model.setId(entity.getId());
-
-        model.setApplicationYear(entity.getApplicationYear());
-
-        model.setAssessedValue(entity.getAssessedValue());
-
-        model.setAssessmentClass(entity.getAssessmentClass());
-
-        model.setCertificateOfErrorNumber(entity.getCertificateOfErrorNumber());
-
-        model.setCity(entity.getCity());
-
-        model.setClerksClass(entity.getClerksClass());
-
-        model.setCooperativeQuantity(entity.getCooperativeQuantity());
-
-        model.setEligibilityIndicator(entity.getEligibilityIndicator());
-
-        model.setEqualizationFactor(entity.getEqualizationFactor());
-
-        model.setEqualizedValue(entity.getEqualizedValue());
-
-        model.setExemptionType(entity.getExemptionType());
-
-        model.setKeyParcelNumber(entity.getKeyParcelNumber());
-
-        model.setMailingAddress(entity.getMailingAddress());
-
-        model.setOccupancyFactor(entity.getOccupancyFactor());
-
-        model.setOwnerName(entity.getOwnerName());
-
-        model.setPropertyNumber(entity.getPropertyNumber());
-
-        model.setProration(entity.getProration());
-
-        model.setRecordCode(entity.getRecordCode());
-
-        model.setResponseStatus(entity.getResponseStatus());
-
-        model.setSecondaryResponseStatus(entity.getSecondaryResponseStatus());
-
-        model.setSplitCode(entity.getSplitCode());
-
-        model.setState(entity.getState());
-
-        model.setTaxCode(entity.getTaxCode());
-
-        model.setTaxType(entity.getTaxType());
-
-        model.setTertiaryStatus(entity.getTertiaryStatus());
-
-        model.setVolumeNumber(entity.getVolumeNumber());
-
-        model.setZipCode(entity.getZipCode());
-
-
-
-        return model;
+        return new HomeownerExemption(
+                entity.getId(),
+                entity.getVersion(),
+                entity.getApplicationYear(),
+                entity.getAssessedValue(),
+                entity.getAssessmentClass(),
+                entity.getCertificateOfErrorNumber(),
+                entity.getCity(),
+                entity.getClerksClass(),
+                entity.getCooperativeQuantity(),
+                entity.getEligibilityIndicator(),
+                entity.getEqualizationFactor(),
+                entity.getEqualizedValue(),
+                entity.getExemptionType(),
+                entity.getKeyParcelNumber(),
+                entity.getMailingAddress(),
+                entity.getOccupancyFactor(),
+                entity.getOwnerName(),
+                entity.getPropertyNumber(),
+                entity.getProration(),
+                entity.getRecordCode(),
+                entity.getResponseStatus(),
+                entity.getSecondaryResponseStatus(),
+                entity.getSplitCode(),
+                entity.getState(),
+                entity.getTaxCode(),
+                entity.getTaxType(),
+                entity.getTertiaryStatus(),
+                entity.getVolumeNumber(),
+                entity.getZipCode());
     }
-    // GENERATED-MAPPING-TO-DOMAIN:end
 
-    // GENERATED-MAPPING-TO-ENTITY:start
+    /// Creates a mutable persistence entity without dropping identity or version state.
     public static HomeownerExemptionEntity toEntity(HomeownerExemption model) {
         HomeownerExemptionEntity entity = new HomeownerExemptionEntity();
-        entity.setId(model.getId());
-
-        entity.setApplicationYear(model.getApplicationYear());
-
-        entity.setAssessedValue(model.getAssessedValue());
-
-        entity.setAssessmentClass(model.getAssessmentClass());
-
-        entity.setCertificateOfErrorNumber(model.getCertificateOfErrorNumber());
-
-        entity.setCity(model.getCity());
-
-        entity.setClerksClass(model.getClerksClass());
-
-        entity.setCooperativeQuantity(model.getCooperativeQuantity());
-
-        entity.setEligibilityIndicator(model.getEligibilityIndicator());
-
-        entity.setEqualizationFactor(model.getEqualizationFactor());
-
-        entity.setEqualizedValue(model.getEqualizedValue());
-
-        entity.setExemptionType(model.getExemptionType());
-
-        entity.setKeyParcelNumber(model.getKeyParcelNumber());
-
-        entity.setMailingAddress(model.getMailingAddress());
-
-        entity.setOccupancyFactor(model.getOccupancyFactor());
-
-        entity.setOwnerName(model.getOwnerName());
-
-        entity.setPropertyNumber(model.getPropertyNumber());
-
-        entity.setProration(model.getProration());
-
-        entity.setRecordCode(model.getRecordCode());
-
-        entity.setResponseStatus(model.getResponseStatus());
-
-        entity.setSecondaryResponseStatus(model.getSecondaryResponseStatus());
-
-        entity.setSplitCode(model.getSplitCode());
-
-        entity.setState(model.getState());
-
-        entity.setTaxCode(model.getTaxCode());
-
-        entity.setTaxType(model.getTaxType());
-
-        entity.setTertiaryStatus(model.getTertiaryStatus());
-
-        entity.setVolumeNumber(model.getVolumeNumber());
-
-        entity.setZipCode(model.getZipCode());
-
-
-
+        entity.setId(model.id());
+        entity.setVersion(model.version());
+        entity.setApplicationYear(model.applicationYear());
+        entity.setAssessedValue(model.assessedValue());
+        entity.setAssessmentClass(model.assessmentClass());
+        entity.setCertificateOfErrorNumber(model.certificateOfErrorNumber());
+        entity.setCity(model.city());
+        entity.setClerksClass(model.clerksClass());
+        entity.setCooperativeQuantity(model.cooperativeQuantity());
+        entity.setEligibilityIndicator(model.eligibilityIndicator());
+        entity.setEqualizationFactor(model.equalizationFactor());
+        entity.setEqualizedValue(model.equalizedValue());
+        entity.setExemptionType(model.exemptionType());
+        entity.setKeyParcelNumber(model.keyParcelNumber());
+        entity.setMailingAddress(model.mailingAddress());
+        entity.setOccupancyFactor(model.occupancyFactor());
+        entity.setOwnerName(model.ownerName());
+        entity.setPropertyNumber(model.propertyNumber());
+        entity.setProration(model.proration());
+        entity.setRecordCode(model.recordCode());
+        entity.setResponseStatus(model.responseStatus());
+        entity.setSecondaryResponseStatus(model.secondaryResponseStatus());
+        entity.setSplitCode(model.splitCode());
+        entity.setState(model.state());
+        entity.setTaxCode(model.taxCode());
+        entity.setTaxType(model.taxType());
+        entity.setTertiaryStatus(model.tertiaryStatus());
+        entity.setVolumeNumber(model.volumeNumber());
+        entity.setZipCode(model.zipCode());
         return entity;
     }
-    // GENERATED-MAPPING-TO-ENTITY:end
 }

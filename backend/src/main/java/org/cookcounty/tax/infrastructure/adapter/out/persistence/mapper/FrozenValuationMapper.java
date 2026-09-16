@@ -1,150 +1,117 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.mapper;
 
 import org.cookcounty.tax.domain.model.FrozenValuation;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.entity.FrozenValuationEntity;
 
-public class FrozenValuationMapper {
+import java.util.Objects;
 
-    // GENERATED-MAPPING-TO-DOMAIN:start
+/// Canonical, complete mapping between the immutable domain snapshot and its persistence entity.
+public final class FrozenValuationMapper {
+
+    private FrozenValuationMapper() {}
+
+    /// Hydrates every domain component, including the persistence identifier and version.
     public static FrozenValuation toDomain(FrozenValuationEntity entity) {
-        FrozenValuation model = new FrozenValuation();
-        model.setId(entity.getId());
-
-        model.setChangeActionCurrentImprovementValue(entity.getChangeActionCurrentImprovementValue());
-
-        model.setChangeActionCurrentLandValue(entity.getChangeActionCurrentLandValue());
-
-        model.setChangeActionCurrentParcelCount(entity.getChangeActionCurrentParcelCount());
-
-        model.setChangeActionCurrentTotalValue(entity.getChangeActionCurrentTotalValue());
-
-        model.setChangeActionPriorImprovementValue(entity.getChangeActionPriorImprovementValue());
-
-        model.setChangeActionPriorLandValue(entity.getChangeActionPriorLandValue());
-
-        model.setChangeActionPriorParcelCount(entity.getChangeActionPriorParcelCount());
-
-        model.setChangeActionPriorTotalValue(entity.getChangeActionPriorTotalValue());
-
-        model.setCurrentImprovementValue(entity.getCurrentImprovementValue());
-
-        model.setCurrentLandValue(entity.getCurrentLandValue());
-
-        model.setCurrentParcelCount(entity.getCurrentParcelCount());
-
-        model.setCurrentTotalValue(entity.getCurrentTotalValue());
-
-        model.setDivisionNumber(entity.getDivisionNumber());
-
-        model.setNoChangeActionCurrentImprovementValue(entity.getNoChangeActionCurrentImprovementValue());
-
-        model.setNoChangeActionCurrentLandValue(entity.getNoChangeActionCurrentLandValue());
-
-        model.setNoChangeActionCurrentParcelCount(entity.getNoChangeActionCurrentParcelCount());
-
-        model.setNoChangeActionCurrentTotalValue(entity.getNoChangeActionCurrentTotalValue());
-
-        model.setNoChangeActionPriorImprovementValue(entity.getNoChangeActionPriorImprovementValue());
-
-        model.setNoChangeActionPriorLandValue(entity.getNoChangeActionPriorLandValue());
-
-        model.setNoChangeActionPriorParcelCount(entity.getNoChangeActionPriorParcelCount());
-
-        model.setNoChangeActionPriorTotalValue(entity.getNoChangeActionPriorTotalValue());
-
-        model.setPriorImprovementValue(entity.getPriorImprovementValue());
-
-        model.setPriorLandValue(entity.getPriorLandValue());
-
-        model.setPriorParcelCount(entity.getPriorParcelCount());
-
-        model.setPriorTotalValue(entity.getPriorTotalValue());
-
-        model.setProposedActualValue(entity.getProposedActualValue());
-
-        model.setProposedCurrent288Value(entity.getProposedCurrent288Value());
-
-        model.setProposedExpired288Value(entity.getProposedExpired288Value());
-
-        model.setProposedImprovementValue(entity.getProposedImprovementValue());
-
-        model.setProposedTotalValue(entity.getProposedTotalValue());
-
-
-
-        return model;
+        return new FrozenValuation(
+                entity.getId(),
+                entity.getVersion(),
+                Objects.requireNonNull(
+                        entity.getChangeActionCurrentImprovementValue(),
+                        "changeActionCurrentImprovementValue"),
+                Objects.requireNonNull(
+                        entity.getChangeActionCurrentLandValue(), "changeActionCurrentLandValue"),
+                Objects.requireNonNull(
+                        entity.getChangeActionCurrentParcelCount(),
+                        "changeActionCurrentParcelCount"),
+                Objects.requireNonNull(
+                        entity.getChangeActionCurrentTotalValue(), "changeActionCurrentTotalValue"),
+                Objects.requireNonNull(
+                        entity.getChangeActionPriorImprovementValue(),
+                        "changeActionPriorImprovementValue"),
+                Objects.requireNonNull(
+                        entity.getChangeActionPriorLandValue(), "changeActionPriorLandValue"),
+                Objects.requireNonNull(
+                        entity.getChangeActionPriorParcelCount(), "changeActionPriorParcelCount"),
+                Objects.requireNonNull(
+                        entity.getChangeActionPriorTotalValue(), "changeActionPriorTotalValue"),
+                Objects.requireNonNull(
+                        entity.getCurrentImprovementValue(), "currentImprovementValue"),
+                Objects.requireNonNull(entity.getCurrentLandValue(), "currentLandValue"),
+                Objects.requireNonNull(entity.getCurrentParcelCount(), "currentParcelCount"),
+                Objects.requireNonNull(entity.getCurrentTotalValue(), "currentTotalValue"),
+                Objects.requireNonNull(entity.getDivisionNumber(), "divisionNumber"),
+                Objects.requireNonNull(
+                        entity.getNoChangeActionCurrentImprovementValue(),
+                        "noChangeActionCurrentImprovementValue"),
+                Objects.requireNonNull(
+                        entity.getNoChangeActionCurrentLandValue(),
+                        "noChangeActionCurrentLandValue"),
+                Objects.requireNonNull(
+                        entity.getNoChangeActionCurrentParcelCount(),
+                        "noChangeActionCurrentParcelCount"),
+                Objects.requireNonNull(
+                        entity.getNoChangeActionCurrentTotalValue(),
+                        "noChangeActionCurrentTotalValue"),
+                Objects.requireNonNull(
+                        entity.getNoChangeActionPriorImprovementValue(),
+                        "noChangeActionPriorImprovementValue"),
+                Objects.requireNonNull(
+                        entity.getNoChangeActionPriorLandValue(), "noChangeActionPriorLandValue"),
+                Objects.requireNonNull(
+                        entity.getNoChangeActionPriorParcelCount(),
+                        "noChangeActionPriorParcelCount"),
+                Objects.requireNonNull(
+                        entity.getNoChangeActionPriorTotalValue(), "noChangeActionPriorTotalValue"),
+                Objects.requireNonNull(entity.getPriorImprovementValue(), "priorImprovementValue"),
+                Objects.requireNonNull(entity.getPriorLandValue(), "priorLandValue"),
+                Objects.requireNonNull(entity.getPriorParcelCount(), "priorParcelCount"),
+                Objects.requireNonNull(entity.getPriorTotalValue(), "priorTotalValue"),
+                Objects.requireNonNull(entity.getProposedActualValue(), "proposedActualValue"),
+                Objects.requireNonNull(
+                        entity.getProposedCurrent288Value(), "proposedCurrent288Value"),
+                Objects.requireNonNull(
+                        entity.getProposedExpired288Value(), "proposedExpired288Value"),
+                Objects.requireNonNull(
+                        entity.getProposedImprovementValue(), "proposedImprovementValue"),
+                Objects.requireNonNull(entity.getProposedTotalValue(), "proposedTotalValue"));
     }
-    // GENERATED-MAPPING-TO-DOMAIN:end
 
-    // GENERATED-MAPPING-TO-ENTITY:start
+    /// Copies every domain component to a mutable entity for persistence.
     public static FrozenValuationEntity toEntity(FrozenValuation model) {
         FrozenValuationEntity entity = new FrozenValuationEntity();
-        entity.setId(model.getId());
-
-        entity.setChangeActionCurrentImprovementValue(model.getChangeActionCurrentImprovementValue());
-
-        entity.setChangeActionCurrentLandValue(model.getChangeActionCurrentLandValue());
-
-        entity.setChangeActionCurrentParcelCount(model.getChangeActionCurrentParcelCount());
-
-        entity.setChangeActionCurrentTotalValue(model.getChangeActionCurrentTotalValue());
-
-        entity.setChangeActionPriorImprovementValue(model.getChangeActionPriorImprovementValue());
-
-        entity.setChangeActionPriorLandValue(model.getChangeActionPriorLandValue());
-
-        entity.setChangeActionPriorParcelCount(model.getChangeActionPriorParcelCount());
-
-        entity.setChangeActionPriorTotalValue(model.getChangeActionPriorTotalValue());
-
-        entity.setCurrentImprovementValue(model.getCurrentImprovementValue());
-
-        entity.setCurrentLandValue(model.getCurrentLandValue());
-
-        entity.setCurrentParcelCount(model.getCurrentParcelCount());
-
-        entity.setCurrentTotalValue(model.getCurrentTotalValue());
-
-        entity.setDivisionNumber(model.getDivisionNumber());
-
-        entity.setNoChangeActionCurrentImprovementValue(model.getNoChangeActionCurrentImprovementValue());
-
-        entity.setNoChangeActionCurrentLandValue(model.getNoChangeActionCurrentLandValue());
-
-        entity.setNoChangeActionCurrentParcelCount(model.getNoChangeActionCurrentParcelCount());
-
-        entity.setNoChangeActionCurrentTotalValue(model.getNoChangeActionCurrentTotalValue());
-
-        entity.setNoChangeActionPriorImprovementValue(model.getNoChangeActionPriorImprovementValue());
-
-        entity.setNoChangeActionPriorLandValue(model.getNoChangeActionPriorLandValue());
-
-        entity.setNoChangeActionPriorParcelCount(model.getNoChangeActionPriorParcelCount());
-
-        entity.setNoChangeActionPriorTotalValue(model.getNoChangeActionPriorTotalValue());
-
-        entity.setPriorImprovementValue(model.getPriorImprovementValue());
-
-        entity.setPriorLandValue(model.getPriorLandValue());
-
-        entity.setPriorParcelCount(model.getPriorParcelCount());
-
-        entity.setPriorTotalValue(model.getPriorTotalValue());
-
-        entity.setProposedActualValue(model.getProposedActualValue());
-
-        entity.setProposedCurrent288Value(model.getProposedCurrent288Value());
-
-        entity.setProposedExpired288Value(model.getProposedExpired288Value());
-
-        entity.setProposedImprovementValue(model.getProposedImprovementValue());
-
-        entity.setProposedTotalValue(model.getProposedTotalValue());
-
-
-
+        entity.setId(model.id());
+        entity.setVersion(model.version());
+        entity.setChangeActionCurrentImprovementValue(model.changeActionCurrentImprovementValue());
+        entity.setChangeActionCurrentLandValue(model.changeActionCurrentLandValue());
+        entity.setChangeActionCurrentParcelCount(model.changeActionCurrentParcelCount());
+        entity.setChangeActionCurrentTotalValue(model.changeActionCurrentTotalValue());
+        entity.setChangeActionPriorImprovementValue(model.changeActionPriorImprovementValue());
+        entity.setChangeActionPriorLandValue(model.changeActionPriorLandValue());
+        entity.setChangeActionPriorParcelCount(model.changeActionPriorParcelCount());
+        entity.setChangeActionPriorTotalValue(model.changeActionPriorTotalValue());
+        entity.setCurrentImprovementValue(model.currentImprovementValue());
+        entity.setCurrentLandValue(model.currentLandValue());
+        entity.setCurrentParcelCount(model.currentParcelCount());
+        entity.setCurrentTotalValue(model.currentTotalValue());
+        entity.setDivisionNumber(model.divisionNumber());
+        entity.setNoChangeActionCurrentImprovementValue(
+                model.noChangeActionCurrentImprovementValue());
+        entity.setNoChangeActionCurrentLandValue(model.noChangeActionCurrentLandValue());
+        entity.setNoChangeActionCurrentParcelCount(model.noChangeActionCurrentParcelCount());
+        entity.setNoChangeActionCurrentTotalValue(model.noChangeActionCurrentTotalValue());
+        entity.setNoChangeActionPriorImprovementValue(model.noChangeActionPriorImprovementValue());
+        entity.setNoChangeActionPriorLandValue(model.noChangeActionPriorLandValue());
+        entity.setNoChangeActionPriorParcelCount(model.noChangeActionPriorParcelCount());
+        entity.setNoChangeActionPriorTotalValue(model.noChangeActionPriorTotalValue());
+        entity.setPriorImprovementValue(model.priorImprovementValue());
+        entity.setPriorLandValue(model.priorLandValue());
+        entity.setPriorParcelCount(model.priorParcelCount());
+        entity.setPriorTotalValue(model.priorTotalValue());
+        entity.setProposedActualValue(model.proposedActualValue());
+        entity.setProposedCurrent288Value(model.proposedCurrent288Value());
+        entity.setProposedExpired288Value(model.proposedExpired288Value());
+        entity.setProposedImprovementValue(model.proposedImprovementValue());
+        entity.setProposedTotalValue(model.proposedTotalValue());
         return entity;
     }
-    // GENERATED-MAPPING-TO-ENTITY:end
 }

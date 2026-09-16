@@ -7,7 +7,7 @@ Usage: ./scripts/reset-seed.sh --confirm
 
 This permanently removes the local Compose Postgres volume and its data.
 Stop the backend before running this command. After it completes, restart the
-backend so Flyway recreates the schema and loads the deterministic seed rows.
+backend so Flyway recreates the schema. It does not load scenario records.
 USAGE
   exit 64
 fi
@@ -24,6 +24,6 @@ docker compose --project-directory "$modernized_dir" \
   --file "$modernized_dir/compose.yaml" up --detach db
 
 cat <<'NEXT'
-Postgres is clean. Restart the backend now. Flyway will recreate the schema and
-load the deterministic V2/V4/V6/V8-V13 fixture data during backend startup.
+Postgres is clean. Restart the backend to recreate the schema and maintained
+reference data. Load scenario records separately through the application's fixtures.
 NEXT

@@ -1,18 +1,13 @@
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.repository;
 
-import java.util.List;
-
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.entity.TaxRateDivisionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-// GENERATED-IMPORTS:start
-// GENERATED-IMPORTS:end
+import java.util.List;
 
+/// Reads maintained parcel-to-division rows through the persistence provider.
 public interface JpaTaxRateDivisionRepository
         extends JpaRepository<TaxRateDivisionEntity, Integer> {
-
-    // GENERATED-METHODS:start
-    // GENERATED-METHODS:end
-
+    /// Returns every row in ascending source order for deterministic batch processing.
     List<TaxRateDivisionEntity> findAllByOrderBySourceOrderAsc();
 }

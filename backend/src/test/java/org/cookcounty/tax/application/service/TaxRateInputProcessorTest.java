@@ -1,14 +1,11 @@
 package org.cookcounty.tax.application.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.Optional;
 
 import org.cookcounty.tax.application.service.TaxRateInputKernel.Operation;
 import org.cookcounty.tax.application.service.TaxRateInputKernel.Result;
@@ -20,77 +17,88 @@ import org.cookcounty.tax.domain.port.out.TaxRateInputReferenceDataRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
 class TaxRateInputProcessorTest {
 
     @Test
-    void reviewedClkattchCaseReproducesTenUnmatchedTaxCodesAndZeroAgencyOutput() {
+    void reviewedAgencyAttachmentCaseProducesTenUnmatchedCodesAndNoAgencyOutput() {
         TaxRateInputReferenceDataRepository referenceData =
                 mock(TaxRateInputReferenceDataRepository.class);
         FrozenAgencyAdjustmentRepository frozen = mock(FrozenAgencyAdjustmentRepository.class);
         when(referenceData.findEqualizedValuesInSourceOrder()).thenReturn(equalizedValues());
         when(referenceData.findDivisionsInSourceOrder()).thenReturn(divisions());
-        TaxRateInputProcessor processor = new TaxRateInputProcessor(referenceData, frozen);
+        TaxRateInputProcessor processor =
+                new TaxRateInputProcessor(referenceData, frozen, new TaxRateInputKernel());
 
         Result result = processor.process();
 
-        assertEquals(0, result.returnCode());
-        assertEquals(10, result.divisionStamping().equalizedValueRecordsRead());
-        assertEquals(10, result.divisionStamping().divisionRecordsRead());
-        assertEquals(10, result.divisionStamping().outputRecordsWritten());
-        assertEquals(10, result.agencyAttachment().assessmentRecordsRead());
-        assertEquals(10, result.agencyAttachment().assessmentRecordsUnmatched());
-        assertEquals(0, result.agencyAttachment().assessmentRecordsWritten());
-        assertEquals(0, result.agencyAssessments().size());
-        assertEquals(10, result.messages().stream()
-                .filter(message -> message.code().equals("UNMATCHED_TAX_CODE"))
-                .count());
+        assertThat(result.returnCode()).isEqualTo(0);
+        assertThat(result.divisionStamping().equalizedValueRecordsRead()).isEqualTo(10);
+        assertThat(result.divisionStamping().divisionRecordsRead()).isEqualTo(10);
+        assertThat(result.divisionStamping().outputRecordsWritten()).isEqualTo(10);
+        assertThat(result.agencyAttachment().assessmentRecordsRead()).isEqualTo(10);
+        assertThat(result.agencyAttachment().assessmentRecordsUnmatched()).isEqualTo(10);
+        assertThat(result.agencyAttachment().assessmentRecordsWritten()).isEqualTo(0);
+        assertThat(result.agencyAssessments().size()).isEqualTo(0);
+        assertThat(
+                        result.messages().stream()
+                                .filter(message -> message.code().equals("UNMATCHED_TAX_CODE"))
+                                .count())
+                .isEqualTo(10);
     }
 
     @Test
-    void clrtm755UsesCompositeTaxCodeAgencyIdentityWhenRewriting() {
+    void frozenAgencyPostingUsesCompositeTaxCodeAgencyIdentityWhenRewriting() {
         TaxRateInputReferenceDataRepository referenceData =
                 mock(TaxRateInputReferenceDataRepository.class);
         FrozenAgencyAdjustmentRepository frozen = mock(FrozenAgencyAdjustmentRepository.class);
-        FrozenAgencyAdjustment existing = new FrozenAgencyAdjustment();
-        existing.setTaxCode("10001");
-        existing.setAgencyNumber("000000001");
-        existing.setAnnexedEqualizedValue(7L);
+        FrozenAgencyAdjustment existing = existingAdjustment();
         when(frozen.findByTaxCodeAndAgencyNumber("10001", "000000001"))
                 .thenReturn(Optional.of(existing));
         when(frozen.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        TaxRateInputProcessor processor = new TaxRateInputProcessor(referenceData, frozen);
+        TaxRateInputProcessor processor =
+                new TaxRateInputProcessor(referenceData, frozen, new TaxRateInputKernel());
 
-        Operation operation = processor.post("10001", "000000001", 5, true);
+        Operation operation = processor.post("10001", "000000001", new BigDecimal("5"), true);
 
-        assertEquals(Operation.REWRITE, operation);
-        assertEquals(12, existing.getAnnexedEqualizedValue());
+        ArgumentCaptor<FrozenAgencyAdjustment> saved =
+                ArgumentCaptor.forClass(FrozenAgencyAdjustment.class);
+        verify(frozen).save(saved.capture());
+        assertThat(operation).isEqualTo(Operation.REWRITE);
+        assertThat(existing.annexedEqualizedValue()).isEqualTo(BigDecimal.valueOf(7));
+        assertThat(saved.getValue().annexedEqualizedValue()).isEqualTo(BigDecimal.valueOf(12));
+        assertThat(saved.getValue().version()).isEqualTo(4L);
         verify(frozen).findByTaxCodeAndAgencyNumber("10001", "000000001");
     }
 
     @Test
-    void clrtm755InitializesOnlyListedFieldsForInsertedCompositeKey() {
+    void frozenAgencyPostingInitializesOnlyListedFieldsForInsertedCompositeKey() {
         TaxRateInputReferenceDataRepository referenceData =
                 mock(TaxRateInputReferenceDataRepository.class);
         FrozenAgencyAdjustmentRepository frozen = mock(FrozenAgencyAdjustmentRepository.class);
         when(frozen.findByTaxCodeAndAgencyNumber("10001", "000000009"))
                 .thenReturn(Optional.empty());
         when(frozen.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        TaxRateInputProcessor processor = new TaxRateInputProcessor(referenceData, frozen);
+        TaxRateInputProcessor processor =
+                new TaxRateInputProcessor(referenceData, frozen, new TaxRateInputKernel());
 
-        Operation operation = processor.post("10001", "000000009", 25, false);
+        Operation operation = processor.post("10001", "000000009", new BigDecimal("25"), false);
 
         ArgumentCaptor<FrozenAgencyAdjustment> saved =
                 ArgumentCaptor.forClass(FrozenAgencyAdjustment.class);
         verify(frozen).save(saved.capture());
         FrozenAgencyAdjustment inserted = saved.getValue();
-        assertEquals(Operation.INSERT, operation);
-        assertEquals("10001", inserted.getTaxCode());
-        assertEquals("000000009", inserted.getAgencyNumber());
-        assertEquals(25, inserted.getDisconnectedEqualizedValue());
-        assertEquals(0, inserted.getAnnexedEqualizedValue());
-        assertEquals(0, inserted.getFrozenEqualizedValue());
-        assertEquals(0, inserted.getExpiredIncentiveEqualizedValue());
-        assertNull(inserted.getExpiredIncentiveTaxAmount());
+        assertThat(operation).isEqualTo(Operation.INSERT);
+        assertThat(inserted.taxCode()).isEqualTo("10001");
+        assertThat(inserted.agencyNumber()).isEqualTo("000000009");
+        assertThat(inserted.disconnectedEqualizedValue()).isEqualTo(new BigDecimal("25"));
+        assertThat(inserted.annexedEqualizedValue()).isEqualTo(BigDecimal.ZERO);
+        assertThat(inserted.frozenEqualizedValue()).isEqualTo(BigDecimal.ZERO);
+        assertThat(inserted.expiredIncentiveEqualizedValue()).isEqualTo(BigDecimal.ZERO);
+        assertThat(inserted.expiredIncentiveTaxAmount()).isNull();
     }
 
     private static List<TaxRateEqualizedValue> equalizedValues() {
@@ -109,17 +117,52 @@ class TaxRateInputProcessorTest {
 
     private static List<TaxRateDivision> divisions() {
         return equalizedValues().stream()
-                .map(value -> new TaxRateDivision(
-                        value.sourceOrder(),
-                        value.volumeNumber(),
-                        value.parcelNumber(),
-                        1_000_000L + value.sourceOrder()))
+                .map(
+                        value ->
+                                new TaxRateDivision(
+                                        value.sourceOrder(),
+                                        value.volumeNumber(),
+                                        value.parcelNumber(),
+                                        String.format("%014d", 1_000_000L + value.sourceOrder()),
+                                        null))
                 .toList();
     }
 
     private static TaxRateEqualizedValue equalized(
             int sourceOrder, int volume, long property, int taxCode) {
         return new TaxRateEqualizedValue(
-                sourceOrder, volume, property, taxCode, 100L, 100L, "0");
+                sourceOrder,
+                String.format("%03d", volume),
+                String.format("%015d", property),
+                String.format("%05d", taxCode),
+                new BigDecimal("100"),
+                new BigDecimal("100"),
+                "0",
+                null);
+    }
+
+    private static FrozenAgencyAdjustment existingAdjustment() {
+        return new FrozenAgencyAdjustment(
+                9L,
+                4L,
+                "000000001",
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(7),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                null,
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                java.math.BigDecimal.ZERO.setScale(2),
+                "10001",
+                java.math.BigDecimal.ZERO.setScale(3),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0));
     }
 }

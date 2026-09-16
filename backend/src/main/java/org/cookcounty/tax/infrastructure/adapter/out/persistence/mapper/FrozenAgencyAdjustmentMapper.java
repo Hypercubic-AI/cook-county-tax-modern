@@ -1,106 +1,72 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.mapper;
 
 import org.cookcounty.tax.domain.model.FrozenAgencyAdjustment;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.entity.FrozenAgencyAdjustmentEntity;
 
-public class FrozenAgencyAdjustmentMapper {
+import java.util.Objects;
 
-    // GENERATED-MAPPING-TO-DOMAIN:start
+/// Canonical, complete mapping between the immutable domain snapshot and its persistence entity.
+public final class FrozenAgencyAdjustmentMapper {
+
+    private FrozenAgencyAdjustmentMapper() {}
+
+    /// Hydrates every domain component, including the persistence identifier and version.
     public static FrozenAgencyAdjustment toDomain(FrozenAgencyAdjustmentEntity entity) {
-        FrozenAgencyAdjustment model = new FrozenAgencyAdjustment();
-        model.setId(entity.getId());
-
-        model.setAgencyNumber(entity.getAgencyNumber());
-
-        model.setAnnexedAssessedValue(entity.getAnnexedAssessedValue());
-
-        model.setAnnexedEqualizedValue(entity.getAnnexedEqualizedValue());
-
-        model.setCurrent288Value(entity.getCurrent288Value());
-
-        model.setDisconnectedAssessedValue(entity.getDisconnectedAssessedValue());
-
-        model.setDisconnectedEqualizedValue(entity.getDisconnectedEqualizedValue());
-
-        model.setExpired288Value(entity.getExpired288Value());
-
-        model.setExpiredIncentiveEqualizedValue(entity.getExpiredIncentiveEqualizedValue());
-
-        model.setExpiredIncentiveTaxAmount(entity.getExpiredIncentiveTaxAmount());
-
-        model.setExpiredIncentiveValue(entity.getExpiredIncentiveValue());
-
-        model.setFirstTimeValue(entity.getFirstTimeValue());
-
-        model.setFrozenEqualizedValue(entity.getFrozenEqualizedValue());
-
-        model.setFrozenTaxAmount(entity.getFrozenTaxAmount());
-
-        model.setTaxCode(entity.getTaxCode());
-
-        model.setTaxRate(entity.getTaxRate());
-
-        model.setTifCurrentEqualizedValue(entity.getTifCurrentEqualizedValue());
-
-        model.setTifDifferenceEqualizedValue(entity.getTifDifferenceEqualizedValue());
-
-        model.setTifPriorFrozenEqualizedValue(entity.getTifPriorFrozenEqualizedValue());
-
-        model.setTotalFrozenValue(entity.getTotalFrozenValue());
-
-
-
-        return model;
+        return new FrozenAgencyAdjustment(
+                entity.getId(),
+                entity.getVersion(),
+                Objects.requireNonNull(entity.getAgencyNumber(), "agencyNumber"),
+                Objects.requireNonNull(entity.getAnnexedAssessedValue(), "annexedAssessedValue"),
+                Objects.requireNonNull(entity.getAnnexedEqualizedValue(), "annexedEqualizedValue"),
+                Objects.requireNonNull(entity.getCurrent288Value(), "current288Value"),
+                Objects.requireNonNull(
+                        entity.getDisconnectedAssessedValue(), "disconnectedAssessedValue"),
+                Objects.requireNonNull(
+                        entity.getDisconnectedEqualizedValue(), "disconnectedEqualizedValue"),
+                Objects.requireNonNull(entity.getExpired288Value(), "expired288Value"),
+                Objects.requireNonNull(
+                        entity.getExpiredIncentiveEqualizedValue(),
+                        "expiredIncentiveEqualizedValue"),
+                entity.getExpiredIncentiveTaxAmount(),
+                Objects.requireNonNull(entity.getExpiredIncentiveValue(), "expiredIncentiveValue"),
+                Objects.requireNonNull(entity.getFirstTimeValue(), "firstTimeValue"),
+                Objects.requireNonNull(entity.getFrozenEqualizedValue(), "frozenEqualizedValue"),
+                Objects.requireNonNull(entity.getFrozenTaxAmount(), "frozenTaxAmount"),
+                Objects.requireNonNull(entity.getTaxCode(), "taxCode"),
+                Objects.requireNonNull(entity.getTaxRate(), "taxRate"),
+                Objects.requireNonNull(
+                        entity.getTifCurrentEqualizedValue(), "tifCurrentEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getTifDifferenceEqualizedValue(), "tifDifferenceEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getTifPriorFrozenEqualizedValue(), "tifPriorFrozenEqualizedValue"),
+                Objects.requireNonNull(entity.getTotalFrozenValue(), "totalFrozenValue"));
     }
-    // GENERATED-MAPPING-TO-DOMAIN:end
 
-    // GENERATED-MAPPING-TO-ENTITY:start
+    /// Copies every domain component to a mutable entity for persistence.
     public static FrozenAgencyAdjustmentEntity toEntity(FrozenAgencyAdjustment model) {
         FrozenAgencyAdjustmentEntity entity = new FrozenAgencyAdjustmentEntity();
-        entity.setId(model.getId());
-
-        entity.setAgencyNumber(model.getAgencyNumber());
-
-        entity.setAnnexedAssessedValue(model.getAnnexedAssessedValue());
-
-        entity.setAnnexedEqualizedValue(model.getAnnexedEqualizedValue());
-
-        entity.setCurrent288Value(model.getCurrent288Value());
-
-        entity.setDisconnectedAssessedValue(model.getDisconnectedAssessedValue());
-
-        entity.setDisconnectedEqualizedValue(model.getDisconnectedEqualizedValue());
-
-        entity.setExpired288Value(model.getExpired288Value());
-
-        entity.setExpiredIncentiveEqualizedValue(model.getExpiredIncentiveEqualizedValue());
-
-        entity.setExpiredIncentiveTaxAmount(model.getExpiredIncentiveTaxAmount());
-
-        entity.setExpiredIncentiveValue(model.getExpiredIncentiveValue());
-
-        entity.setFirstTimeValue(model.getFirstTimeValue());
-
-        entity.setFrozenEqualizedValue(model.getFrozenEqualizedValue());
-
-        entity.setFrozenTaxAmount(model.getFrozenTaxAmount());
-
-        entity.setTaxCode(model.getTaxCode());
-
-        entity.setTaxRate(model.getTaxRate());
-
-        entity.setTifCurrentEqualizedValue(model.getTifCurrentEqualizedValue());
-
-        entity.setTifDifferenceEqualizedValue(model.getTifDifferenceEqualizedValue());
-
-        entity.setTifPriorFrozenEqualizedValue(model.getTifPriorFrozenEqualizedValue());
-
-        entity.setTotalFrozenValue(model.getTotalFrozenValue());
-
-
-
+        entity.setId(model.id());
+        entity.setVersion(model.version());
+        entity.setAgencyNumber(model.agencyNumber());
+        entity.setAnnexedAssessedValue(model.annexedAssessedValue());
+        entity.setAnnexedEqualizedValue(model.annexedEqualizedValue());
+        entity.setCurrent288Value(model.current288Value());
+        entity.setDisconnectedAssessedValue(model.disconnectedAssessedValue());
+        entity.setDisconnectedEqualizedValue(model.disconnectedEqualizedValue());
+        entity.setExpired288Value(model.expired288Value());
+        entity.setExpiredIncentiveEqualizedValue(model.expiredIncentiveEqualizedValue());
+        entity.setExpiredIncentiveTaxAmount(model.expiredIncentiveTaxAmount());
+        entity.setExpiredIncentiveValue(model.expiredIncentiveValue());
+        entity.setFirstTimeValue(model.firstTimeValue());
+        entity.setFrozenEqualizedValue(model.frozenEqualizedValue());
+        entity.setFrozenTaxAmount(model.frozenTaxAmount());
+        entity.setTaxCode(model.taxCode());
+        entity.setTaxRate(model.taxRate());
+        entity.setTifCurrentEqualizedValue(model.tifCurrentEqualizedValue());
+        entity.setTifDifferenceEqualizedValue(model.tifDifferenceEqualizedValue());
+        entity.setTifPriorFrozenEqualizedValue(model.tifPriorFrozenEqualizedValue());
+        entity.setTotalFrozenValue(model.totalFrozenValue());
         return entity;
     }
-    // GENERATED-MAPPING-TO-ENTITY:end
 }

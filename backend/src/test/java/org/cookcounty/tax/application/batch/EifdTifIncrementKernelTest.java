@@ -1,20 +1,15 @@
 package org.cookcounty.tax.application.batch;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.google.common.truth.Truth.assertThat;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import static java.util.Objects.requireNonNull;
 
 import org.cookcounty.tax.application.batch.EifdTifIncrementKernel.AgencySummary;
 import org.cookcounty.tax.application.batch.EifdTifIncrementKernel.AllocatedFrozen;
-import org.cookcounty.tax.application.batch.EifdTifIncrementKernel.DivisionTotal;
 import org.cookcounty.tax.application.batch.EifdTifIncrementKernel.DivisionActionInput;
+import org.cookcounty.tax.application.batch.EifdTifIncrementKernel.DivisionTotal;
 import org.cookcounty.tax.application.batch.EifdTifIncrementKernel.FrozenAgencyDetail;
 import org.cookcounty.tax.application.batch.EifdTifIncrementKernel.ImprovementClassInput;
 import org.cookcounty.tax.application.batch.EifdTifIncrementKernel.PercentageAllocation;
@@ -25,7 +20,17 @@ import org.cookcounty.tax.application.batch.EifdTifIncrementKernel.TaxCodeMaster
 import org.cookcounty.tax.application.batch.EifdTifIncrementKernel.TaxCodeTotal;
 import org.cookcounty.tax.domain.model.AgencyEqualizedValuation;
 import org.cookcounty.tax.domain.model.FrozenValuation;
+import org.cookcounty.tax.domain.model.TaxCodeMasterReference;
+import org.cookcounty.tax.domain.model.TaxCodeMasterReference.AgencySlot;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /** Synthetic inputs in this class are rule examples, not captured-parity claims. */
 class EifdTifIncrementKernelTest {
@@ -33,42 +38,56 @@ class EifdTifIncrementKernelTest {
     private final EifdTifIncrementKernel kernel = new EifdTifIncrementKernel();
 
     @Test
-    void controlsValidateAllStartupRulesAndCenturyPivot() {
-        var controls = kernel.validateControls("260181202526", "26", "10000");
-
-        assertEquals(1, controls.fromAge());
-        assertEquals(81, controls.toAge());
-        assertEquals(2025, controls.from288Year());
-        assertEquals(2026, controls.to288Year());
-        assertEquals(new BigDecimal("1.0000"), controls.equalizationFactor());
-        assertEquals(1999, kernel.expandYear("99"));
-        assertEquals(2000, kernel.expandYear("00"));
-        assertEquals(2060, kernel.expandYear("60"));
-        assertEquals(1961, kernel.expandYear("61"));
+    void ownedDomainValuesExposeOnlyImmutableRecordState() {
+        assertThat(FrozenValuation.class.isRecord()).isTrue();
+        assertThat(AgencyEqualizedValuation.class.isRecord()).isTrue();
+        assertThat(
+                        List.of(FrozenValuation.class.getMethods()).stream()
+                                .map(java.lang.reflect.Method::getName)
+                                .anyMatch(name -> name.startsWith("set")))
+                .isFalse();
     }
 
     @Test
-    void controlsRejectBeforeProcessingWithTheAcceptedRule() {
-        assertEquals("asrea740-001",
-                assertThrows(RuleViolation.class,
-                        () -> kernel.validateControls("X60181202526", "26", "10000"))
-                        .ruleId());
-        assertEquals("asrea740-002",
-                assertThrows(RuleViolation.class,
-                        () -> kernel.validateControls("268101202526", "26", "10000"))
-                        .ruleId());
-        assertEquals("asrea742-005",
-                assertThrows(RuleViolation.class,
-                        () -> kernel.validateControls("260181202526", "2", "10000"))
-                        .ruleId());
-        assertEquals("asrea742-006",
-                assertThrows(RuleViolation.class,
-                        () -> kernel.validateControls("260181202526", "2X", "10000"))
-                        .ruleId());
-        assertEquals("asrea748-001",
-                assertThrows(RuleViolation.class,
-                        () -> kernel.validateControls("260181202526", "26", "00000"))
-                        .ruleId());
+    void controlsValidateAllStartupRulesAndCenturyPivot() {
+        var controls = kernel.validateControls("260181202526", "26", "10000");
+
+        assertThat(controls.fromAge()).isEqualTo(1);
+        assertThat(controls.toAge()).isEqualTo(81);
+        assertThat(controls.from288Year()).isEqualTo(2025);
+        assertThat(controls.to288Year()).isEqualTo(2026);
+        assertThat(controls.equalizationFactor()).isEqualTo(new BigDecimal("1.0000"));
+        assertThat(kernel.expandYear("99")).isEqualTo(1999);
+        assertThat(kernel.expandYear("00")).isEqualTo(2000);
+        assertThat(kernel.expandYear("60")).isEqualTo(2060);
+        assertThat(kernel.expandYear("61")).isEqualTo(1961);
+    }
+
+    @ParameterizedTest(name = "{0}: invalid controls select {4}")
+    @CsvSource({
+        "nondigit start, X60181202526, 26, 10000, asrea740-001",
+        "descending age, 268101202526, 26, 10000, asrea740-002",
+        "short year, 260181202526, 2, 10000, asrea742-005",
+        "nondigit year, 260181202526, 2X, 10000, asrea742-006",
+        "zero factor, 260181202526, 26, 00000, asrea748-001"
+    })
+    void controlsRejectBeforeProcessingWithTheAcceptedRule(
+            String caseName,
+            String reassessmentControl,
+            String processingYear,
+            String factor,
+            String expectedRule) {
+        RuleViolation exception =
+                assertThrows(
+                        RuleViolation.class,
+                        () -> kernel.validateControls(reassessmentControl, processingYear, factor));
+        assertThat(exception.ruleId()).isEqualTo(expectedRule);
+    }
+
+    @ParameterizedTest(name = "tax code {0} derives town {1}")
+    @CsvSource({"10001, 10", "39099, 39", "70001, 70", "77001, 77"})
+    void townNumberUsesTheFirstTwoTaxCodeDigits(String taxCode, String townNumber) {
+        assertThat(kernel.deriveTownNumber(taxCode)).isEqualTo(townNumber);
     }
 
     @Test
@@ -76,189 +95,295 @@ class EifdTifIncrementKernelTest {
         // Rule example: 101 * 100 / 80 = 126.25 -> 126; * 75% = 94.5 -> 94;
         // * 33% = 31.02 -> 31. A single final truncation would produce 31 as well,
         // while the second assertion distinguishes missing-factor pass-through.
-        assertEquals(31L, kernel.derivePriorImprovement(
-                101, new BigDecimal("80"), new BigDecimal("75"), new BigDecimal("33")));
-        assertEquals(50L, kernel.derivePriorImprovement(
-                101, BigDecimal.ZERO, new BigDecimal("50"), null));
+        assertThat(
+                        kernel.derivePriorImprovement(
+                                bd(101),
+                                new BigDecimal("80"),
+                                new BigDecimal("75"),
+                                new BigDecimal("33")))
+                .isEqualTo(bd(31));
+        assertThat(
+                        kernel.derivePriorImprovement(
+                                bd(101), BigDecimal.ZERO, new BigDecimal("50"), null))
+                .isEqualTo(bd(50));
     }
 
     @Test
     void classificationRequiresEveryCurrent288GateAndExcludesQuestionnaireCompanionsByInput() {
-        assertTrue(kernel.qualifiesCurrent288(3, 288, 2026, 26, true));
-        assertFalse(kernel.qualifiesCurrent288(3, 288, 2026, 26, false));
-        assertFalse(kernel.qualifiesCurrent288(2, 288, 2026, 26, true));
-        assertTrue(kernel.qualifiesFirstTime(2, 1, 200));
-        assertFalse(kernel.qualifiesFirstTime(5, 1, 288));
-        assertFalse(kernel.qualifiesFirstTime(6, 1, 200));
+        assertThat(kernel.qualifiesCurrent288(3, 288, 2026, 26, true)).isTrue();
+        assertThat(kernel.qualifiesCurrent288(3, 288, 2026, 26, false)).isFalse();
+        assertThat(kernel.qualifiesCurrent288(2, 288, 2026, 26, true)).isFalse();
+        assertThat(kernel.qualifiesFirstTime(2, 1, 200)).isTrue();
+        assertThat(kernel.qualifiesFirstTime(5, 1, 288)).isFalse();
+        assertThat(kernel.qualifiesFirstTime(6, 1, 200)).isFalse();
     }
 
     @Test
     void reconciliationReportsEitherPriorOrCurrentDifferenceWithoutBlockingPersistence() {
-        assertFalse(kernel.hasReconciliationDifference(
-                new ReconciliationValues(10, 5, 15, 2, 3, 4, 1, 10)));
-        assertTrue(kernel.hasReconciliationDifference(
-                new ReconciliationValues(10, 5, 16, 2, 3, 4, 1, 10)));
+        assertThat(
+                        kernel.hasReconciliationDifference(
+                                new ReconciliationValues(
+                                        bd(10), bd(5), bd(15), bd(2), bd(3), bd(4), bd(1), bd(10))))
+                .isFalse();
+        assertThat(
+                        kernel.hasReconciliationDifference(
+                                new ReconciliationValues(
+                                        bd(10), bd(5), bd(16), bd(2), bd(3), bd(4), bd(1), bd(10))))
+                .isTrue();
     }
 
     @Test
     void reassessmentClassificationSeparatesAllPriorAndCurrentCategories() {
         var controls = kernel.validateControls("260181202526", "26", "10000");
 
-        assertEquals(10L, kernel.classifyImprovement(
-                new ImprovementClassInput(true, 10, 1, 200, 2024, false), controls)
-                .currentFirstYear());
-        assertEquals(11L, kernel.classifyImprovement(
-                new ImprovementClassInput(true, 11, 2, 200, 2024, false), controls)
-                .currentNonFrozen());
-        assertEquals(12L, kernel.classifyImprovement(
-                new ImprovementClassInput(true, 12, 2, 288, 2026, true), controls)
-                .current288());
-        assertEquals(13L, kernel.classifyImprovement(
-                new ImprovementClassInput(false, 13, 1, 200, 2024, false), controls)
-                .priorFirstYear());
-        assertEquals(14L, kernel.classifyImprovement(
-                new ImprovementClassInput(false, 14, 2, 288, 2025, false), controls)
-                .prior288());
+        assertThat(
+                        kernel.classifyImprovement(
+                                        new ImprovementClassInput(
+                                                true, bd(10), 1, 200, 2024, false),
+                                        controls)
+                                .currentFirstYear())
+                .isEqualTo(bd(10));
+        assertThat(
+                        kernel.classifyImprovement(
+                                        new ImprovementClassInput(
+                                                true, bd(11), 2, 200, 2024, false),
+                                        controls)
+                                .currentNonFrozen())
+                .isEqualTo(bd(11));
+        assertThat(
+                        kernel.classifyImprovement(
+                                        new ImprovementClassInput(true, bd(12), 2, 288, 2026, true),
+                                        controls)
+                                .current288())
+                .isEqualTo(bd(12));
+        assertThat(
+                        kernel.classifyImprovement(
+                                        new ImprovementClassInput(
+                                                false, bd(13), 1, 200, 2024, false),
+                                        controls)
+                                .priorFirstYear())
+                .isEqualTo(bd(13));
+        assertThat(
+                        kernel.classifyImprovement(
+                                        new ImprovementClassInput(
+                                                false, bd(14), 2, 288, 2025, false),
+                                        controls)
+                                .prior288())
+                .isEqualTo(bd(14));
     }
 
     @Test
     void actionBucketsFollowTheReachableCobolScope() {
         FrozenValuation noQualifyingNewValue =
-                kernel.selectActionTotals(actionInput("12", "1200", 0, false, false));
-        assertEquals(0L, noQualifyingNewValue.getChangeActionCurrentTotalValue());
-        assertEquals(0L, noQualifyingNewValue.getNoChangeActionCurrentTotalValue());
+                kernel.selectActionTotals(actionInput("12", "1200", bd(0), false, false));
+        assertThat(noQualifyingNewValue.changeActionCurrentTotalValue())
+                .isEqualTo(BigDecimal.valueOf(0));
+        assertThat(noQualifyingNewValue.noChangeActionCurrentTotalValue())
+                .isEqualTo(BigDecimal.valueOf(0));
 
         FrozenValuation qualifyingNewValue =
-                kernel.selectActionTotals(actionInput("12", "1200", 5, false, false));
-        assertEquals(30L, qualifyingNewValue.getChangeActionCurrentTotalValue());
-        assertEquals(0L, qualifyingNewValue.getNoChangeActionCurrentTotalValue());
+                kernel.selectActionTotals(actionInput("12", "1200", bd(5), false, false));
+        assertThat(qualifyingNewValue.changeActionCurrentTotalValue())
+                .isEqualTo(BigDecimal.valueOf(30));
+        assertThat(qualifyingNewValue.noChangeActionCurrentTotalValue())
+                .isEqualTo(BigDecimal.valueOf(0));
 
-        assertEquals(0L, kernel.selectActionTotals(
-                actionInput("12", "1200", 0, false, false, 9))
-                .getChangeActionCurrentTotalValue());
-        assertEquals(0L, kernel.selectActionTotals(
-                actionInput("12", "1200", 0, true, false))
-                .getChangeActionCurrentTotalValue());
-        assertEquals(0L, kernel.selectActionTotals(
-                actionInput("12", "0000", 0, false, false))
-                .getChangeActionCurrentTotalValue());
+        assertThat(
+                        kernel.selectActionTotals(
+                                        actionInput("12", "1200", bd(0), false, false, bd(9)))
+                                .changeActionCurrentTotalValue())
+                .isEqualTo(BigDecimal.valueOf(0));
+        assertThat(
+                        kernel.selectActionTotals(actionInput("12", "1200", bd(0), true, false))
+                                .changeActionCurrentTotalValue())
+                .isEqualTo(BigDecimal.valueOf(0));
+        assertThat(
+                        kernel.selectActionTotals(actionInput("12", "0000", bd(0), false, false))
+                                .changeActionCurrentTotalValue())
+                .isEqualTo(BigDecimal.valueOf(0));
 
         FrozenValuation exemptTransition =
-                kernel.selectActionTotals(actionInput("12", "1200", 5, true, true, 9));
-        assertEquals(30L, exemptTransition.getProposedImprovementValue());
-        assertEquals(30L, exemptTransition.getProposedTotalValue());
-        assertEquals(0L, exemptTransition.getProposedCurrent288Value());
-        assertEquals(0L, exemptTransition.getChangeActionCurrentTotalValue());
-        assertEquals(0L, exemptTransition.getNoChangeActionCurrentTotalValue());
+                kernel.selectActionTotals(actionInput("12", "1200", bd(5), true, true, bd(9)));
+        assertThat(exemptTransition.proposedImprovementValue()).isEqualTo(BigDecimal.valueOf(30));
+        assertThat(exemptTransition.proposedTotalValue()).isEqualTo(BigDecimal.valueOf(30));
+        assertThat(exemptTransition.proposedCurrent288Value()).isEqualTo(BigDecimal.valueOf(0));
+        assertThat(exemptTransition.changeActionCurrentTotalValue())
+                .isEqualTo(BigDecimal.valueOf(0));
+        assertThat(exemptTransition.noChangeActionCurrentTotalValue())
+                .isEqualTo(BigDecimal.valueOf(0));
     }
 
     @Test
     void frozenValuesAccumulateAndAllZeroMissingDivisionIsSuppressed() {
-        FrozenValuation stored = frozen("0001", 10, 20, 30);
-        FrozenValuation delta = frozen("0001", 5, 7, 9);
-        delta.setChangeActionCurrentTotalValue(2L);
+        FrozenValuation stored = frozen("0001", bd(10), bd(20), bd(30));
+        FrozenValuation delta = frozen("0001", bd(5), bd(7), bd(9), bd(2L));
 
         FrozenValuation accumulated = kernel.accumulateFrozen(stored, delta);
 
-        assertEquals(15L, accumulated.getProposedImprovementValue());
-        assertEquals(27L, accumulated.getProposedExpired288Value());
-        assertEquals(39L, accumulated.getProposedCurrent288Value());
-        assertEquals(2L, accumulated.getChangeActionCurrentTotalValue());
-        assertTrue(kernel.shouldInsertFrozen(accumulated));
-        assertFalse(kernel.shouldInsertFrozen(new FrozenValuation()));
+        assertThat(accumulated.proposedImprovementValue()).isEqualTo(BigDecimal.valueOf(15));
+        assertThat(accumulated.proposedExpired288Value()).isEqualTo(BigDecimal.valueOf(27));
+        assertThat(accumulated.proposedCurrent288Value()).isEqualTo(BigDecimal.valueOf(39));
+        assertThat(accumulated.changeActionCurrentTotalValue()).isEqualTo(BigDecimal.valueOf(2));
+        assertThat(kernel.shouldInsertFrozen(accumulated)).isTrue();
+        assertThat(kernel.shouldInsertFrozen(frozen("0000", bd(0), bd(0), bd(0)))).isFalse();
     }
 
     @Test
     void rollupGroupsDuplicatesAndClosesInnerAndOuterGroups() {
-        var result = kernel.rollup(List.of(
-                new Selection("01", "100", 2, 3, 99),
-                new Selection("01", "100", 5, 7, 99),
-                new Selection("01", "200", 11, 13, 99),
-                new Selection("02", "300", 17, 19, 99)));
+        var result =
+                kernel.rollup(
+                        List.of(
+                                new Selection("01", "100", bd(2), bd(3), bd(99)),
+                                new Selection("01", "100", bd(5), bd(7), bd(99)),
+                                new Selection("01", "200", bd(11), bd(13), bd(99)),
+                                new Selection("02", "300", bd(17), bd(19), bd(99))));
 
-        assertFalse(result.failed());
-        assertEquals(3, result.taxCodeTotals().size());
-        assertEquals(new TaxCodeTotal("01", "100", 7, 10), result.taxCodeTotals().get(0));
-        assertEquals(2, result.divisionTotals().size());
-        assertEquals(2, result.divisionTotals().get(0).taxCodeCount());
-        assertEquals("200", result.divisionTotals().get(0).lastTaxCode());
+        assertThat(result.failed()).isFalse();
+        assertThat(result.taxCodeTotals().size()).isEqualTo(3);
+        assertThat(result.taxCodeTotals().get(0))
+                .isEqualTo(new TaxCodeTotal("01", "100", bd(7), bd(10)));
+        assertThat(result.divisionTotals().size()).isEqualTo(2);
+        assertThat(result.divisionTotals().get(0).taxCodeCount()).isEqualTo(2);
+        assertThat(result.divisionTotals().get(0).lastTaxCode()).isEqualTo("200");
     }
 
     @Test
     void orderingFailureExcludesOffenderButKeepsEarlierAndEligibleTrailingProducts() {
-        var result = kernel.rollup(List.of(
-                new Selection("01", "100", 1, 2, 0),
-                new Selection("02", "200", 3, 4, 0),
-                new Selection("01", "300", 1000, 1000, 0)));
+        var result =
+                kernel.rollup(
+                        List.of(
+                                new Selection("01", "100", bd(1), bd(2), bd(0)),
+                                new Selection("02", "200", bd(3), bd(4), bd(0)),
+                                new Selection("01", "300", bd(1000), bd(1000), bd(0))));
 
-        assertTrue(result.failed());
-        assertEquals(3, result.recordsRead());
-        assertEquals(2, result.taxCodeTotals().size());
-        assertEquals(2, result.divisionTotals().size());
-        assertEquals(3L, result.taxCodeTotals().get(1).current288());
+        assertThat(result.failed()).isTrue();
+        assertThat(result.recordsRead()).isEqualTo(3);
+        assertThat(result.taxCodeTotals().size()).isEqualTo(2);
+        assertThat(result.divisionTotals().size()).isEqualTo(2);
+        assertThat(result.taxCodeTotals().get(1).current288()).isEqualTo(bd(3));
     }
 
     @Test
     void trailingRollupsUseOnlyThePositiveFirstTimeGate() {
-        var suppressed = kernel.rollup(List.of(new Selection("01", "100", 9, 0, 0)));
-        var emitted = kernel.rollup(List.of(new Selection("01", "100", 0, 1, 0)));
+        var suppressed = kernel.rollup(List.of(new Selection("01", "100", bd(9), bd(0), bd(0))));
+        var emitted = kernel.rollup(List.of(new Selection("01", "100", bd(0), bd(1), bd(0))));
 
-        assertTrue(suppressed.taxCodeTotals().isEmpty());
-        assertTrue(suppressed.divisionTotals().isEmpty());
-        assertEquals(1, emitted.taxCodeTotals().size());
-        assertEquals(1, emitted.divisionTotals().size());
+        assertThat(suppressed.taxCodeTotals().isEmpty()).isTrue();
+        assertThat(suppressed.divisionTotals().isEmpty()).isTrue();
+        assertThat(emitted.taxCodeTotals().size()).isEqualTo(1);
+        assertThat(emitted.divisionTotals().size()).isEqualTo(1);
     }
 
     @Test
     void percentageMergeTruncatesSharesAndReportsOnlyLowerTaxTotals() {
-        var result = kernel.percentages(
-                List.of(
-                        new TaxCodeTotal("01", "100", 2, 1),
-                        new TaxCodeTotal("02", "200", 1, 2),
-                        new TaxCodeTotal("04", "400", 1, 1)),
-                List.of(
-                        new DivisionTotal("02", "200", 1, 3, 3),
-                        new DivisionTotal("03", "300", 1, 1, 1),
-                        new DivisionTotal("04", "400", 1, 0, -1)));
+        var result =
+                kernel.percentages(
+                        List.of(
+                                new TaxCodeTotal("01", "100", bd(2), bd(1)),
+                                new TaxCodeTotal("02", "200", bd(1), bd(2)),
+                                new TaxCodeTotal("04", "400", bd(1), bd(1))),
+                        List.of(
+                                new DivisionTotal("02", "200", 1, bd(3), bd(3)),
+                                new DivisionTotal("03", "300", 1, bd(1), bd(1)),
+                                new DivisionTotal("04", "400", 1, bd(0), bd(-1))));
 
-        assertEquals(List.of(new TaxCodeTotal("01", "100", 2, 1)),
-                result.unmatchedTaxCodeTotals());
-        assertEquals(new BigDecimal("0.3333333"),
-                result.percentages().get(0).current288Share());
-        assertEquals(new BigDecimal("0.6666666"),
-                result.percentages().get(0).firstTimeShare());
-        assertEquals(new BigDecimal("0.0000000"),
-                result.percentages().get(1).current288Share());
+        assertThat(result.unmatchedTaxCodeTotals())
+                .isEqualTo(List.of(new TaxCodeTotal("01", "100", bd(2), bd(1))));
+        assertThat(result.percentages().get(0).current288Share())
+                .isEqualTo(new BigDecimal("0.3333333"));
+        assertThat(result.percentages().get(0).firstTimeShare())
+                .isEqualTo(new BigDecimal("0.6666666"));
+        assertThat(result.percentages().get(1).current288Share())
+                .isEqualTo(new BigDecimal("0.0000000"));
     }
 
     @Test
     void strictPercentageInputsRejectDuplicatesBeforeLaterOutput() {
-        assertEquals("asrea744-001", assertThrows(RuleViolation.class, () -> kernel.percentages(
-                List.of(new TaxCodeTotal("01", "100", 1, 1),
-                        new TaxCodeTotal("01", "100", 2, 2)),
-                List.of(new DivisionTotal("01", "100", 1, 1, 1))))
-                .ruleId());
+        assertThat(
+                        assertThrows(
+                                        RuleViolation.class,
+                                        () ->
+                                                kernel.percentages(
+                                                        List.of(
+                                                                new TaxCodeTotal(
+                                                                        "01", "100", bd(1), bd(1)),
+                                                                new TaxCodeTotal(
+                                                                        "01", "100", bd(2), bd(2))),
+                                                        List.of(
+                                                                new DivisionTotal(
+                                                                        "01", "100", 1, bd(1),
+                                                                        bd(1)))))
+                                .ruleId())
+                .isEqualTo("asrea744-001");
     }
 
     @Test
     void allocationUsesFullSingleValuesPercentageMultiplicationAndCountSplit() {
-        FrozenValuation valuation = frozen("01", 101, 11, 51);
+        FrozenValuation valuation = frozen("01", bd(101), bd(11), bd(51));
         Map<String, FrozenValuation> values = Map.of("01", valuation);
-        var single = kernel.allocate(List.of(new PercentageAllocation(
-                "01", "100", 1, BigDecimal.ZERO, BigDecimal.ZERO, 0, 0, 0, 0)), values);
-        var multiple = kernel.allocate(List.of(new PercentageAllocation(
-                "01", "100", 2, new BigDecimal("0.5000000"),
-                new BigDecimal("0.3333333"), 0, 0, 0, 0)), values);
-        var missing = kernel.allocate(List.of(new PercentageAllocation(
-                "02", "200", 1, BigDecimal.ONE, BigDecimal.ONE, 0, 0, 0, 0)), values);
+        var single =
+                kernel.allocate(
+                        List.of(
+                                new PercentageAllocation(
+                                        "01",
+                                        "100",
+                                        1,
+                                        BigDecimal.ZERO,
+                                        BigDecimal.ZERO,
+                                        bd(0),
+                                        bd(0),
+                                        bd(0),
+                                        bd(0))),
+                        values);
+        var multiple =
+                kernel.allocate(
+                        List.of(
+                                new PercentageAllocation(
+                                        "01",
+                                        "100",
+                                        2,
+                                        new BigDecimal("0.5000000"),
+                                        new BigDecimal("0.3333333"),
+                                        bd(0),
+                                        bd(0),
+                                        bd(0),
+                                        bd(0))),
+                        values);
+        var missing =
+                kernel.allocate(
+                        List.of(
+                                new PercentageAllocation(
+                                        "02",
+                                        "200",
+                                        1,
+                                        BigDecimal.ONE,
+                                        BigDecimal.ONE,
+                                        bd(0),
+                                        bd(0),
+                                        bd(0),
+                                        bd(0))),
+                        values);
 
-        assertEquals(101L, single.allocations().get(0).firstTime());
-        assertEquals(51L, single.allocations().get(0).current288());
-        assertEquals(33L, multiple.allocations().get(0).firstTime());
-        assertEquals(25L, multiple.allocations().get(0).current288());
-        assertEquals(5L, multiple.allocations().get(0).expired288());
-        assertEquals(1, missing.unmatchedCount());
-        assertTrue(missing.allocations().isEmpty());
+        assertThat(single.allocations().get(0).firstTime()).isEqualTo(bd(101));
+        assertThat(single.allocations().get(0).current288()).isEqualTo(bd(51));
+        assertThat(multiple.allocations().get(0).firstTime()).isEqualTo(bd(33));
+        assertThat(multiple.allocations().get(0).current288()).isEqualTo(bd(25));
+        assertThat(multiple.allocations().get(0).expired288()).isEqualTo(bd(5));
+        assertThat(missing.unmatchedCount()).isEqualTo(1);
+        assertThat(missing.allocations().isEmpty()).isTrue();
+    }
+
+    @Test
+    void taxCodeReferenceRetainsSignedSparseSourcePositions() {
+        TaxCodeMasterReference reference =
+                new TaxCodeMasterReference(
+                        "10001",
+                        new BigDecimal("6.735"),
+                        List.of(new AgencySlot(1, "000000001"), new AgencySlot(40, "-00000001")));
+
+        assertThat(reference.agencySlots().stream().map(AgencySlot::position).toList())
+                .isEqualTo(List.of(1, 40));
+        assertThat(reference.agencySlots().get(1).agencyNumber()).isEqualTo("-00000001");
     }
 
     @Test
@@ -271,143 +396,228 @@ class EifdTifIncrementKernelTest {
         while (positions.size() < 40) {
             positions.add(0L);
         }
-        var allocation = new AllocatedFrozen("01", "100", 1,
-                BigDecimal.ZERO, BigDecimal.ZERO, 10, 5, 10, 0);
-        var result = kernel.expandFrozenAgencies(
-                List.of(allocation),
-                Map.of("100", new TaxCodeMaster(
-                        "100", new BigDecimal("1.235"), 10, positions)),
-                new BigDecimal("1.0200"));
+        var allocation =
+                new AllocatedFrozen(
+                        "01",
+                        "100",
+                        1,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO,
+                        bd(10),
+                        bd(5),
+                        bd(10),
+                        bd(0));
+        var result =
+                kernel.expandFrozenAgencies(
+                        List.of(allocation),
+                        Map.of(
+                                "100",
+                                new TaxCodeMaster("100", new BigDecimal("1.235"), 10, positions)),
+                        new BigDecimal("1.0200"));
 
-        assertFalse(result.failed());
-        assertEquals(2, result.details().size());
-        assertEquals(26L, result.details().get(0).frozenEqualized());
-        assertEquals(new BigDecimal("0.31"), result.details().get(0).frozenTax());
+        assertThat(result.failed()).isFalse();
+        assertThat(result.details().size()).isEqualTo(2);
+        assertThat(result.details().get(0).frozenEqualized()).isEqualTo(bd(26));
+        assertThat(result.details().get(0).frozenTax()).isEqualTo(new BigDecimal("0.31"));
     }
 
     @Test
     void missingTaxMasterKeepsEarlierSequentialRecordsAndStopsLaterCodes() {
         List<Long> positions = fortyPositions(1L);
-        var result = kernel.expandFrozenAgencies(
-                List.of(
-                        allocated("01", "100", 10),
-                        allocated("02", "200", 20),
-                        allocated("03", "300", 30)),
-                Map.of("100", new TaxCodeMaster("100", BigDecimal.ZERO, 10, positions),
-                        "300", new TaxCodeMaster("300", BigDecimal.ZERO, 12, positions)),
-                BigDecimal.ONE);
+        var result =
+                kernel.expandFrozenAgencies(
+                        List.of(
+                                allocated("01", "100", bd(10)),
+                                allocated("02", "200", bd(20)),
+                                allocated("03", "300", bd(30))),
+                        Map.of(
+                                "100",
+                                new TaxCodeMaster("100", BigDecimal.ZERO, 10, positions),
+                                "300",
+                                new TaxCodeMaster("300", BigDecimal.ZERO, 12, positions)),
+                        BigDecimal.ONE);
 
-        assertTrue(result.failed());
-        assertEquals("200", result.missingTaxCode());
-        assertEquals(1, result.details().size());
-        assertEquals(2, result.recordsRead());
+        assertThat(result.failed()).isTrue();
+        assertThat(result.missingTaxCode()).isEqualTo("200");
+        assertThat(result.details().size()).isEqualTo(1);
+        assertThat(result.recordsRead()).isEqualTo(2);
     }
 
     @Test
     void agencySummaryTotalsNineFieldsAndRequiresOrderedReferencedGroups() {
-        FrozenAgencyDetail first = detail(1, 10, 10);
-        FrozenAgencyDetail duplicate = detail(1, 10, 5);
-        FrozenAgencyDetail second = detail(2, 12, 7);
-        var result = kernel.summarizeAgencies(
-                List.of(first, duplicate, second), Map.of(1L, "One", 2L, "Two"));
+        FrozenAgencyDetail first = detail(1, 10, bd(10));
+        FrozenAgencyDetail duplicate = detail(1, 10, bd(5));
+        FrozenAgencyDetail second = detail(2, 12, bd(7));
+        var result =
+                kernel.summarizeAgencies(
+                        List.of(first, duplicate, second), Map.of(1L, "One", 2L, "Two"));
 
-        assertFalse(result.failed());
-        assertEquals(2, result.summaries().size());
-        assertEquals(15L, result.summaries().get(0).newPropertyEqualized());
-        assertEquals(4L, result.summaries().get(0).annexedEqualized());
-        assertEquals(8L, result.summaries().get(0).disconnectedEqualized());
-        assertEquals(10L, result.summaries().get(0).recoveredTifEqualized());
-        assertEquals(14L, result.summaries().get(0).expiredIncentiveEqualized());
-        assertEquals("One", result.summaries().get(0).description());
+        assertThat(result.failed()).isFalse();
+        assertThat(result.summaries().size()).isEqualTo(2);
+        assertThat(result.summaries().get(0).newPropertyEqualized()).isEqualTo(bd(15));
+        assertThat(result.summaries().get(0).annexedEqualized()).isEqualTo(bd(4));
+        assertThat(result.summaries().get(0).disconnectedEqualized()).isEqualTo(bd(8));
+        assertThat(result.summaries().get(0).recoveredTifEqualized()).isEqualTo(bd(10));
+        assertThat(result.summaries().get(0).expiredIncentiveEqualized()).isEqualTo(bd(14));
+        assertThat(result.summaries().get(0).description()).isEqualTo("One");
 
-        assertTrue(kernel.summarizeAgencies(
-                List.of(second, first), Map.of(1L, "One", 2L, "Two")).failed());
-        assertTrue(kernel.summarizeAgencies(
-                List.of(first), Map.of()).failed());
+        assertThat(
+                        kernel.summarizeAgencies(
+                                        List.of(second, first), Map.of(1L, "One", 2L, "Two"))
+                                .failed())
+                .isTrue();
+        assertThat(kernel.summarizeAgencies(List.of(first), Map.of()).failed()).isTrue();
     }
 
     @Test
-    void townReportGroupsEqualKeysAppliesBothOffsetsAndRejectsADecrease() {
-        var report = kernel.reportTowns(
-                List.of(detail(1, 10, 10), detail(1, 10, 5), detail(2, 71, 7)),
-                Map.of(1, "BARRINGTON", 32, "JEFFERSON"));
+    void townReportUsesPublishedTownNumbersAndRejectsADecrease() {
+        var report =
+                kernel.reportTowns(
+                        List.of(detail(1, 10, bd(10)), detail(1, 10, bd(5)), detail(20, 77, bd(7))),
+                        Map.of(10, "BARRINGTON", 77, "WEST"));
 
-        assertFalse(report.failed());
-        assertEquals(2, report.townTotals().size());
-        assertEquals("BARRINGTON", report.townTotals().get(0).townName());
-        assertEquals("JEFFERSON", report.townTotals().get(1).townName());
-        assertEquals(15L, report.townTotals().get(0).newPropertyEqualized());
-        assertEquals(2, report.agencyTotals().size());
-        assertEquals(15L, report.agencyTotals().get(0).newPropertyEqualized());
-        assertEquals(4L, report.agencyTotals().get(0).annexedEqualized());
-        assertTrue(kernel.reportTowns(
-                List.of(detail(2, 12, 1), detail(1, 10, 1)), Map.of()).failed());
+        assertThat(report.failed()).isFalse();
+        assertThat(report.townTotals().size()).isEqualTo(2);
+        assertThat(report.townTotals().get(0).townName()).isEqualTo("BARRINGTON");
+        assertThat(report.townTotals().get(1).townName()).isEqualTo("WEST");
+        assertThat(report.townTotals().get(0).newPropertyEqualized()).isEqualTo(bd(15));
+        assertThat(report.agencyTotals().size()).isEqualTo(2);
+        assertThat(report.agencyTotals().get(0).newPropertyEqualized()).isEqualTo(bd(15));
+        assertThat(report.agencyTotals().get(0).annexedEqualized()).isEqualTo(bd(4));
+        assertThat(
+                        kernel.reportTowns(
+                                        List.of(detail(2, 12, bd(1)), detail(1, 10, bd(1))),
+                                        Map.of())
+                                .failed())
+                .isTrue();
     }
 
     @Test
     void postingUpdatesOnlyFourFieldsSkipsMissingAndKeepsEarlierDurableWorkOnFailure() {
-        AgencyEqualizedValuation one = agency("000000001", 999L);
-        AgencyEqualizedValuation three = agency("000000003", 777L);
+        AgencyEqualizedValuation one = agency("000000001", bd(999L));
+        AgencyEqualizedValuation three = agency("000000003", bd(777L));
         Map<String, AgencyEqualizedValuation> existing = new HashMap<>();
-        existing.put(one.getAgencyNumber(), one);
-        existing.put(three.getAgencyNumber(), three);
-        AgencySummary first = summary(1, 10, 2, 3, 4, 5);
-        AgencySummary missing = summary(2, 20, 6, 7, 8, 9);
-        AgencySummary third = summary(3, 30, 10, 11, 12, 13);
+        existing.put(one.agencyNumber(), one);
+        existing.put(three.agencyNumber(), three);
+        AgencySummary first = summary(1, bd(10), bd(2), bd(3), bd(4), bd(5));
+        AgencySummary missing = summary(2, bd(20), bd(6), bd(7), bd(8), bd(9));
+        AgencySummary third = summary(3, bd(30), bd(10), bd(11), bd(12), bd(13));
 
         var posted = kernel.postAgencySummaries(List.of(first, missing, third), existing);
 
-        assertFalse(posted.failed());
-        assertEquals(List.of(2L), posted.unmatchedAgencies());
-        assertEquals(2, posted.updated().size());
-        AgencyEqualizedValuation replacement = posted.updated().get("000000001");
-        assertEquals(15L, replacement.getNewPropertyEqualizedValue());
-        assertEquals(2L, replacement.getAnnexedPropertyEqualizedValue());
-        assertEquals(3L, replacement.getDisconnectedPropertyEqualizedValue());
-        assertEquals(4L, replacement.getDisconnectedTifDifference());
-        assertEquals(999L, replacement.getCookCountyRealEstateValue());
+        assertThat(posted.failed()).isFalse();
+        assertThat(posted.unmatchedAgencies()).isEqualTo(List.of(2L));
+        assertThat(posted.updated().size()).isEqualTo(2);
+        AgencyEqualizedValuation replacement =
+                requireNonNull(posted.updated().get("000000001"), "updated agency");
+        assertThat(replacement.newPropertyEqualizedValue()).isEqualTo(BigDecimal.valueOf(15));
+        assertThat(replacement.annexedPropertyEqualizedValue()).isEqualTo(BigDecimal.valueOf(2));
+        assertThat(replacement.disconnectedPropertyEqualizedValue())
+                .isEqualTo(BigDecimal.valueOf(3));
+        assertThat(replacement.disconnectedTifDifference()).isEqualTo(BigDecimal.valueOf(4));
+        assertThat(replacement.cookCountyRealEstateValue()).isEqualTo(BigDecimal.valueOf(999));
 
-        var partial = kernel.postAgencySummaries(
-                List.of(first, third, summary(3, 100, 0, 0, 0, 0)), existing);
-        assertTrue(partial.failed());
-        assertEquals(2, partial.updated().size());
+        var partial =
+                kernel.postAgencySummaries(
+                        List.of(first, third, summary(3, bd(100), bd(0), bd(0), bd(0), bd(0))),
+                        existing);
+        assertThat(partial.failed()).isTrue();
+        assertThat(partial.updated().size()).isEqualTo(2);
     }
 
     private DivisionActionInput actionInput(
             String division,
             String township,
-            long qualifyingNew,
+            BigDecimal qualifyingNew,
             boolean permitChanged,
             boolean exemptTransition) {
         return actionInput(
-                division, township, qualifyingNew, permitChanged, exemptTransition, 0);
+                division, township, qualifyingNew, permitChanged, exemptTransition, bd(0));
     }
 
     private DivisionActionInput actionInput(
             String division,
             String township,
-            long qualifyingNew,
+            BigDecimal qualifyingNew,
             boolean permitChanged,
             boolean exemptTransition,
-            long proposedCurrent288) {
-        return new DivisionActionInput(division, township,
-                10, 20, 30, 1,
-                10, 20, 30, 1,
-                7, 8, proposedCurrent288, qualifyingNew, permitChanged, exemptTransition);
+            BigDecimal proposedCurrent288) {
+        return new DivisionActionInput(
+                String.format("%014d", Long.parseLong(division)),
+                township,
+                bd(10),
+                bd(20),
+                bd(30),
+                1,
+                bd(10),
+                bd(20),
+                bd(30),
+                1,
+                bd(7),
+                bd(8),
+                proposedCurrent288,
+                qualifyingNew,
+                permitChanged,
+                exemptTransition);
     }
 
-    private FrozenValuation frozen(String division, long firstTime, long expired, long current) {
-        FrozenValuation value = new FrozenValuation();
-        value.setDivisionNumber(division);
-        value.setProposedImprovementValue(firstTime);
-        value.setProposedExpired288Value(expired);
-        value.setProposedCurrent288Value(current);
-        return value;
+    private FrozenValuation frozen(
+            String division, BigDecimal firstTime, BigDecimal expired, BigDecimal current) {
+        return frozen(division, firstTime, expired, current, bd(0));
     }
 
-    private AllocatedFrozen allocated(String division, String taxCode, long firstTime) {
-        return new AllocatedFrozen(division, taxCode, 1, BigDecimal.ZERO, BigDecimal.ZERO,
-                0, 0, firstTime, 0);
+    private FrozenValuation frozen(
+            String division,
+            BigDecimal firstTime,
+            BigDecimal expired,
+            BigDecimal current,
+            BigDecimal actionCurrentTotal) {
+        return new FrozenValuation(
+                null,
+                null,
+                bd(0),
+                bd(0),
+                0L,
+                actionCurrentTotal,
+                bd(0),
+                bd(0),
+                0L,
+                bd(0),
+                bd(0),
+                bd(0),
+                0L,
+                bd(0),
+                String.format("%014d", Long.parseLong(division)),
+                bd(0),
+                bd(0),
+                0L,
+                bd(0),
+                bd(0),
+                bd(0),
+                0L,
+                bd(0),
+                bd(0),
+                bd(0),
+                0L,
+                bd(0),
+                bd(0),
+                current,
+                expired,
+                firstTime,
+                bd(0));
+    }
+
+    private AllocatedFrozen allocated(String division, String taxCode, BigDecimal firstTime) {
+        return new AllocatedFrozen(
+                division,
+                taxCode,
+                1,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                bd(0),
+                bd(0),
+                firstTime,
+                bd(0));
     }
 
     private List<Long> fortyPositions(long agency) {
@@ -419,22 +629,99 @@ class EifdTifIncrementKernelTest {
         return result;
     }
 
-    private FrozenAgencyDetail detail(long agency, int town, long value) {
-        return new FrozenAgencyDetail("100", agency, town, BigDecimal.ZERO,
-                0, 0, value, 0, value, value, BigDecimal.ZERO,
-                1, 2, 3, 4, 5, 6, 7);
+    private FrozenAgencyDetail detail(long agency, int town, BigDecimal value) {
+        return new FrozenAgencyDetail(
+                "100",
+                agency,
+                town,
+                BigDecimal.ZERO,
+                bd(0),
+                bd(0),
+                value,
+                bd(0),
+                value,
+                value,
+                BigDecimal.ZERO,
+                bd(1),
+                bd(2),
+                bd(3),
+                bd(4),
+                bd(5),
+                bd(6),
+                bd(7));
     }
 
-    private AgencyEqualizedValuation agency(String number, long unrelatedValue) {
-        AgencyEqualizedValuation value = new AgencyEqualizedValuation();
-        value.setAgencyNumber(number);
-        value.setCookCountyRealEstateValue(unrelatedValue);
-        return value;
+    private AgencyEqualizedValuation agency(String number, BigDecimal unrelatedValue) {
+        return new AgencyEqualizedValuation(
+                null,
+                null,
+                String.format("%09d", Long.parseLong(number)),
+                bd(0),
+                new BigDecimal("0.00"),
+                "000000000",
+                "000000000",
+                "000000000",
+                "000000000",
+                bd(0),
+                bd(0),
+                unrelatedValue,
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                new BigDecimal("0.000000"),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                bd(0),
+                "000000000",
+                "000000000",
+                "000000000",
+                "000000000",
+                "000000000",
+                2024,
+                new BigDecimal("0.00"),
+                2023,
+                new BigDecimal("0.00"),
+                2022,
+                new BigDecimal("0.00"),
+                false,
+                2024,
+                bd(0));
     }
 
-    private AgencySummary summary(long agency, long newValue, long annexed,
-            long disconnected, long tifDifference, long expired) {
-        return new AgencySummary(agency, "Agency", 0, newValue, 0, annexed,
-                0, disconnected, tifDifference, 0, expired);
+    private AgencySummary summary(
+            long agency,
+            BigDecimal newValue,
+            BigDecimal annexed,
+            BigDecimal disconnected,
+            BigDecimal tifDifference,
+            BigDecimal expired) {
+        return new AgencySummary(
+                agency,
+                "Agency",
+                bd(0),
+                newValue,
+                bd(0),
+                annexed,
+                bd(0),
+                disconnected,
+                tifDifference,
+                bd(0),
+                expired);
+    }
+
+    private static BigDecimal bd(long value) {
+        return BigDecimal.valueOf(value);
     }
 }

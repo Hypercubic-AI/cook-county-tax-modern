@@ -1,24 +1,15 @@
 package org.cookcounty.tax.application.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder.Cataloged;
 import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder.Outcome;
 import org.cookcounty.tax.application.service.AssessedValuePreparationProcessor.OutputRecord;
@@ -31,112 +22,183 @@ import org.cookcounty.tax.domain.port.out.AssessmentParcelRepository;
 import org.cookcounty.tax.domain.port.out.AssessmentParcelSourceRecordRepository;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+
 class AssessedValuePreparationFactorOutcomeProjectorTest {
 
     @Test
     void reviewedPathMatchesExactSharedLiveWireOutcome() throws Exception {
         List<AssessmentParcel> parcels = reviewedParcels();
+        List<AssessmentParcel> persistedParcels = new ArrayList<>(parcels);
         AssessmentParcelRepository parcelRepository = mock(AssessmentParcelRepository.class);
         AssessmentDetailRepository detailRepository = mock(AssessmentDetailRepository.class);
         AssessmentParcelSourceRecordRepository sourceRepository =
                 mock(AssessmentParcelSourceRecordRepository.class);
-        when(parcelRepository.findAllInInputOrder()).thenReturn(parcels);
-        when(parcelRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(parcelRepository.findAllInInputOrder())
+                .thenAnswer(ignored -> List.copyOf(persistedParcels));
+        when(parcelRepository.save(any()))
+                .thenAnswer(
+                        invocation -> {
+                            AssessmentParcel saved = invocation.getArgument(0);
+                            for (int index = 0; index < persistedParcels.size(); index++) {
+                                if (persistedParcels
+                                        .get(index)
+                                        .parcelNumber()
+                                        .equals(saved.parcelNumber())) {
+                                    persistedParcels.set(index, saved);
+                                    return saved;
+                                }
+                            }
+                            persistedParcels.add(saved);
+                            return saved;
+                        });
         when(detailRepository.findAllInInputOrder()).thenReturn(List.of());
 
         List<AssessmentParcelSourceRecord> sourceRecords = sourceRecords(parcels);
         when(sourceRepository.findAllInSourceOrder()).thenReturn(sourceRecords);
-        AssessedValuePreparationProcessor processor = new AssessedValuePreparationProcessor(
-                parcelRepository,
-                detailRepository,
-                new AssessedValueOverallClassKernel(),
-                new AssessedValueBucketingKernel(),
-                new AssessedValueType5Kernel(new AssessmentDetailValuator()));
-        var result = processor.process(
-                LocalDate.of(2025, 9, 15), "12:00:00", "26");
-        Outcome outcome = new AssessedValuePreparationFactorOutcomeProjector(
-                parcelRepository, detailRepository, sourceRepository).project(result);
-        JsonNode golden = new ObjectMapper().readTree(Files.readString(goldenPath()));
+        AssessedValuePreparationProcessor processor =
+                new AssessedValuePreparationProcessor(
+                        parcelRepository,
+                        detailRepository,
+                        new AssessedValueOverallClassKernel(),
+                        new AssessedValueBucketingKernel(),
+                        new AssessedValueType5Kernel(new AssessmentDetailValuator()));
+        var result = processor.process(LocalDate.of(2025, 9, 15), "12:00:00", "26");
+        Outcome outcome =
+                new AssessedValuePreparationFactorOutcomeProjector(
+                                parcelRepository, detailRepository, sourceRepository)
+                        .project(result);
+        JsonNode golden =
+                new ObjectMapper()
+                        .readTree(
+                                ReviewedFixture.string(
+                                        "goldens/valuation-preparation.golden.json"));
 
-        assertEquals(golden.path("maxRC").intValue(), outcome.returnCode());
-        assertFalse(outcome.budgetExceeded());
-        assertFalse(outcome.rolledBack());
-        assertNull(outcome.abend());
-        assertTrue(outcome.datasetDiffs().isEmpty());
-        assertEquals(Map.of(), outcome.outputs());
+        assertThat(outcome.returnCode()).isEqualTo(golden.path("maxRC").intValue());
+        assertThat(outcome.budgetExceeded()).isFalse();
+        assertThat(outcome.rolledBack()).isFalse();
+        assertThat(outcome.abend()).isNull();
+        assertThat(outcome.datasetDiffs().isEmpty()).isTrue();
+        assertThat(outcome.outputs()).isEqualTo(Map.of());
 
         JsonNode goldenSteps = golden.path("steps");
         List<String> expectedDisplays = new ArrayList<>();
-        assertEquals(goldenSteps.size(), outcome.steps().size());
+        assertThat(outcome.steps().size()).isEqualTo(goldenSteps.size());
         for (int index = 0; index < goldenSteps.size(); index++) {
             JsonNode expected = goldenSteps.get(index);
             var actual = outcome.steps().get(index);
-            assertEquals(expected.path("name").textValue(), actual.name());
-            assertEquals(expected.path("program").textValue(), actual.program());
-            assertEquals(expected.path("returnCode").intValue(), actual.returnCode());
-            assertFalse(actual.skipped());
-            assertNull(actual.completionCode());
-            assertEquals(List.of(), actual.messages());
-            assertEquals(List.of(), actual.datasetOps());
+            assertThat(actual.name()).isEqualTo(expected.path("name").textValue());
+            assertThat(actual.program()).isEqualTo(expected.path("program").textValue());
+            assertThat(actual.returnCode()).isEqualTo(expected.path("returnCode").intValue());
+            assertThat(actual.skipped()).isFalse();
+            assertThat(actual.completionCode()).isNull();
+            assertThat(actual.messages()).isEqualTo(List.of());
+            assertThat(actual.datasetOps()).isEqualTo(List.of());
             expectedDisplays.addAll(strings(expected.path("sysout")));
         }
-        assertEquals(expectedDisplays, outcome.batchDisplays());
+        assertThat(outcome.batchDisplays()).isEqualTo(expectedDisplays);
 
         JsonNode goldenCataloged = golden.path("catalogedOutputs");
-        assertEquals(goldenCataloged.size(), outcome.cataloged().size());
+        assertThat(outcome.cataloged().size()).isEqualTo(goldenCataloged.size());
         assertTextCatalogMatches(goldenCataloged.get(0), outcome.cataloged().get(0));
         assertTextCatalogMatches(goldenCataloged.get(1), outcome.cataloged().get(1));
-        assertEquals("25/09/20",
-                outcome.cataloged().get(0).recordData().get(0).substring(3, 11));
-        assertEquals("20250920",
-                outcome.cataloged().get(1).recordData().get(1).substring(3, 11));
+        assertThat(outcome.cataloged().get(0).recordData().get(0).substring(3, 11))
+                .isEqualTo("25/09/20");
+        assertThat(outcome.cataloged().get(1).recordData().get(1).substring(3, 11))
+                .isEqualTo("20250920");
 
         Cataloged master = outcome.cataloged().get(2);
-        assertEquals(goldenCataloged.get(2).path("dsn").textValue(), master.dsn());
-        assertEquals(goldenCataloged.get(2).path("generation").intValue(), master.generation());
-        assertEquals(goldenCataloged.get(2).path("recordCount").intValue(), master.records());
-        assertEquals(master.records(), master.recordDataBase64().size());
-        assertEquals(master.records(), master.recordData().size());
-        assertEquals(strings(goldenCataloged.get(2).path("records")), master.recordData());
+        assertThat(master.dsn()).isEqualTo(goldenCataloged.get(2).path("dsn").textValue());
+        assertThat(master.generation())
+                .isEqualTo(goldenCataloged.get(2).path("generation").intValue());
+        assertThat(master.records())
+                .isEqualTo(goldenCataloged.get(2).path("recordCount").intValue());
+        assertThat(master.recordDataBase64().size()).isEqualTo(master.records());
+        assertThat(master.recordData().size()).isEqualTo(master.records());
+        assertThat(master.recordData()).isEqualTo(strings(goldenCataloged.get(2).path("records")));
         for (int index = 0; index < master.records(); index++) {
             byte[] bytes = Base64.getDecoder().decode(master.recordDataBase64().get(index));
-            assertEquals(18_706, bytes.length);
-            assertEquals(master.recordData().get(index), new String(bytes, StandardCharsets.UTF_8));
-            assertMasterFields(bytes, parcels.get(index));
+            assertThat(bytes.length).isEqualTo(18_706);
+            assertThat(new String(bytes, StandardCharsets.UTF_8))
+                    .isEqualTo(master.recordData().get(index));
+            assertMasterFields(bytes, persistedParcels.get(index));
             assertSourceEnvelopePreserved(
                     bytes,
                     Base64.getDecoder().decode(sourceRecords.get(index).sourceRecordBase64()));
         }
 
         Cataloged emptyType5Report = outcome.cataloged().get(3);
-        assertEquals(goldenCataloged.get(3).path("dsn").textValue(), emptyType5Report.dsn());
-        assertEquals(0, emptyType5Report.records());
-        assertEquals(List.of(), emptyType5Report.recordData());
-        assertEquals(List.of(), emptyType5Report.recordDataBase64());
+        assertThat(emptyType5Report.dsn())
+                .isEqualTo(goldenCataloged.get(3).path("dsn").textValue());
+        assertThat(emptyType5Report.records()).isEqualTo(0);
+        assertThat(emptyType5Report.recordData()).isEqualTo(List.of());
+        assertThat(emptyType5Report.recordDataBase64()).isEqualTo(List.of());
     }
 
     @Test
     void failedAndSkippedStagesRetainWireEvidence() {
-        StageOutcome completed = new StageOutcome(
-                "OVERALL_CLASS", "COMPLETED", 0,
-                2, 2, 2, 0, true, false, 2,
-                Map.of("reported", 2L), List.of("overall report"));
-        StageOutcome failed = new StageOutcome(
-                "VALUATION_BUCKETING", "FAILED", 0,
-                2, 1, 1, 1, true, true, 1,
-                Map.of("farm", 0L, "homeowner", 0L, "nonHomeowner", 0L),
-                List.of("breakdown report"));
-        ProcessResult result = new ProcessResult(
-                true, 0, 4, 3, 3, 1, true,
-                List.of(
-                        OutputRecord.text(
-                                "OVERALL_CLASS_REPORT", "text/plain", completed.reportRecords()),
-                        OutputRecord.text(
-                                "VALUATION_BREAKDOWN_REPORT", "text/plain",
-                                failed.reportRecords()),
-                        new OutputRecord("ASSESSMENT_MASTER", "application/octet-stream", 0)),
-                List.of(),
-                List.of(completed, failed, StageOutcome.notStarted("TYPE5_CONVERSION")));
+        StageOutcome completed =
+                new StageOutcome(
+                        "OVERALL_CLASS",
+                        "COMPLETED",
+                        0,
+                        2,
+                        2,
+                        2,
+                        0,
+                        true,
+                        false,
+                        2,
+                        Map.of("reported", 2L),
+                        List.of("overall report"));
+        StageOutcome failed =
+                new StageOutcome(
+                        "VALUATION_BUCKETING",
+                        "FAILED",
+                        0,
+                        2,
+                        1,
+                        1,
+                        1,
+                        true,
+                        true,
+                        1,
+                        Map.of(
+                                "farm",
+                                BigDecimal.ZERO,
+                                "homeowner",
+                                BigDecimal.ZERO,
+                                "nonHomeowner",
+                                BigDecimal.ZERO),
+                        List.of("breakdown report"));
+        ProcessResult result =
+                new ProcessResult(
+                        true,
+                        0,
+                        4,
+                        3,
+                        3,
+                        1,
+                        true,
+                        List.of(
+                                OutputRecord.text(
+                                        "OVERALL_CLASS_REPORT",
+                                        "text/plain",
+                                        completed.reportRecords()),
+                                OutputRecord.text(
+                                        "VALUATION_BREAKDOWN_REPORT",
+                                        "text/plain",
+                                        failed.reportRecords()),
+                                new OutputRecord(
+                                        "ASSESSMENT_MASTER", "application/octet-stream", 0)),
+                        List.of(),
+                        List.of(completed, failed, StageOutcome.notStarted("TYPE5_CONVERSION")));
         AssessedValuePreparationFactorOutcomeProjector projector =
                 new AssessedValuePreparationFactorOutcomeProjector(
                         mock(AssessmentParcelRepository.class),
@@ -145,77 +207,106 @@ class AssessedValuePreparationFactorOutcomeProjectorTest {
 
         Outcome outcome = projector.project(result);
 
-        assertNull(outcome.steps().get(0).completionCode());
-        assertEquals(List.of(), outcome.steps().get(0).messages());
-        assertEquals(List.of(), outcome.steps().get(0).datasetOps());
-        assertEquals("CC 0000", outcome.steps().get(1).completionCode());
-        assertFalse(outcome.steps().get(1).messages().isEmpty());
-        assertFalse(outcome.steps().get(1).datasetOps().isEmpty());
-        assertTrue(outcome.steps().get(2).skipped());
-        assertFalse(outcome.steps().get(2).messages().isEmpty());
-        assertFalse(outcome.steps().get(2).datasetOps().isEmpty());
-        assertFalse(outcome.outputs().isEmpty());
-        assertFalse(outcome.batchDisplays().isEmpty());
+        assertThat(outcome.steps().get(0).completionCode()).isNull();
+        assertThat(outcome.steps().get(0).messages()).isEqualTo(List.of());
+        assertThat(outcome.steps().get(0).datasetOps()).isEqualTo(List.of());
+        assertThat(outcome.steps().get(1).completionCode()).isEqualTo("CC 0000");
+        assertThat(outcome.steps().get(1).messages().isEmpty()).isFalse();
+        assertThat(outcome.steps().get(1).datasetOps().isEmpty()).isFalse();
+        assertThat(outcome.steps().get(2).skipped()).isTrue();
+        assertThat(outcome.steps().get(2).messages().isEmpty()).isFalse();
+        assertThat(outcome.steps().get(2).datasetOps().isEmpty()).isFalse();
+        assertThat(outcome.outputs().isEmpty()).isFalse();
+        assertThat(outcome.batchDisplays().isEmpty()).isFalse();
 
-        Outcome workerFailure = projector.workerFailure(
-                new IllegalStateException("database unavailable"));
-        assertEquals(16, workerFailure.returnCode());
-        assertEquals(
-                List.of("database unavailable"), workerFailure.steps().get(0).messages());
-        assertEquals(
-                List.of("database unavailable"), workerFailure.batchDisplays());
-        assertEquals("WORKER_FAILURE", workerFailure.abend().code());
+        Outcome workerFailure =
+                projector.workerFailure(new IllegalStateException("database unavailable"));
+        assertThat(workerFailure.returnCode()).isEqualTo(16);
+        assertThat(workerFailure.steps().get(0).messages())
+                .isEqualTo(List.of("database unavailable"));
+        assertThat(workerFailure.batchDisplays()).isEqualTo(List.of("database unavailable"));
+        var abend = workerFailure.abend();
+        assertThat(abend).isNotNull();
+        if (abend == null) {
+            throw new AssertionError("Worker failure did not include abnormal-end metadata");
+        }
+        assertThat(abend.code()).isEqualTo("WORKER_FAILURE");
+    }
+
+    @Test
+    void workerFailureWithoutAnExceptionMessagePublishesSafeEvidence() {
+        AssessedValuePreparationFactorOutcomeProjector projector =
+                new AssessedValuePreparationFactorOutcomeProjector(
+                        mock(AssessmentParcelRepository.class),
+                        mock(AssessmentDetailRepository.class),
+                        mock(AssessmentParcelSourceRecordRepository.class));
+
+        Outcome outcome = projector.workerFailure(new IllegalStateException());
+
+        assertThat(outcome.steps().getFirst().messages())
+                .containsExactly("The assessed-value preparation worker failed.");
+        assertThat(outcome.batchDisplays())
+                .containsExactly("The assessed-value preparation worker failed.");
     }
 
     private static void assertTextCatalogMatches(JsonNode expected, Cataloged actual) {
         List<String> expectedRecords = strings(expected.path("records"));
-        assertEquals(expected.path("dsn").textValue(), actual.dsn());
-        assertEquals(expected.path("generation").intValue(), actual.generation());
-        assertEquals(expected.path("recordCount").intValue(), actual.records());
-        assertEquals(expectedRecords, actual.recordData());
+        assertThat(actual.dsn()).isEqualTo(expected.path("dsn").textValue());
+        assertThat(actual.generation()).isEqualTo(expected.path("generation").intValue());
+        assertThat(actual.records()).isEqualTo(expected.path("recordCount").intValue());
+        assertThat(actual.recordData()).isEqualTo(expectedRecords);
         for (int index = 0; index < expectedRecords.size(); index++) {
-            assertEquals(
-                    expectedRecords.get(index),
-                    new String(
-                            Base64.getDecoder().decode(actual.recordDataBase64().get(index)),
-                            StandardCharsets.UTF_8));
+            assertThat(
+                            new String(
+                                    Base64.getDecoder()
+                                            .decode(actual.recordDataBase64().get(index)),
+                                    StandardCharsets.UTF_8))
+                    .isEqualTo(expectedRecords.get(index));
         }
     }
 
     private static void assertMasterFields(byte[] bytes, AssessmentParcel parcel) {
-        assertEquals(character(parcel.getAssessmentStatus()), character(bytes[0]));
-        assertEquals(parcel.getVolumeNumber().longValue(), packed(bytes, 1, 2));
-        assertEquals(parcel.getParcelNumber().longValue(), packed(bytes, 3, 8));
-        assertEquals(character(parcel.getTaxType()), character(bytes[11]));
-        assertEquals(parcel.getTaxCode().longValue(), packed(bytes, 13, 3));
-        assertEquals(character(parcel.getParcelStatus()), character(bytes[16]));
-        assertEquals(parcel.getOverallClass().longValue(), packed(bytes, 17, 2));
-        assertEquals(character(parcel.getClerkMajorClass()), character(bytes[37]));
-        assertEquals(value(parcel.getPriorLandValue()), packed(bytes, 56, 5));
-        assertEquals(value(parcel.getPriorImprovementValue()), packed(bytes, 61, 5));
-        assertEquals(value(parcel.getPriorTotalValue()), packed(bytes, 66, 5));
-        assertEquals(value(parcel.getCurrentLandValue()), packed(bytes, 71, 5));
-        assertEquals(value(parcel.getCurrentImprovementValue()), packed(bytes, 76, 5));
-        assertEquals(value(parcel.getCurrentTotalValue()), packed(bytes, 81, 5));
-        assertEquals(value(parcel.getProposedLandValue()), packed(bytes, 86, 5));
-        assertEquals(value(parcel.getProposedImprovementValue()), packed(bytes, 91, 5));
-        assertEquals(value(parcel.getProposedTotalValue()), packed(bytes, 96, 5));
-        assertEquals(value(parcel.getFarmValue()), packed(bytes, 101, 5));
-        assertEquals(value(parcel.getCombinedHomeownerNonHomeownerValue()), packed(bytes, 106, 5));
-        assertEquals(value(parcel.getArchivedPreConversionProposedTotal()), packed(bytes, 111, 5));
+        assertThat(character(bytes[0])).isEqualTo(character(parcel.assessmentStatus()));
+        assertThat(packed(bytes, 1, 2)).isEqualTo(Long.parseLong(parcel.volumeNumber()));
+        assertThat(packed(bytes, 3, 8)).isEqualTo(Long.parseLong(parcel.parcelNumber()));
+        assertThat(character(bytes[11])).isEqualTo(character(parcel.taxType()));
+        assertThat(packed(bytes, 13, 3)).isEqualTo(Long.parseLong(parcel.taxCode()));
+        assertThat(character(bytes[16])).isEqualTo(character(parcel.parcelStatus()));
+        assertThat(packed(bytes, 17, 2)).isEqualTo(parcel.overallClass().longValue());
+        assertThat(character(bytes[37])).isEqualTo(character(parcel.clerkMajorClass()));
+        assertThat(packed(bytes, 56, 5)).isEqualTo(value(parcel.priorLandValue()));
+        assertThat(packed(bytes, 61, 5)).isEqualTo(value(parcel.priorImprovementValue()));
+        assertThat(packed(bytes, 66, 5)).isEqualTo(value(parcel.priorTotalValue()));
+        assertThat(packed(bytes, 71, 5)).isEqualTo(value(parcel.currentLandValue()));
+        assertThat(packed(bytes, 76, 5)).isEqualTo(value(parcel.currentImprovementValue()));
+        assertThat(packed(bytes, 81, 5)).isEqualTo(value(parcel.currentTotalValue()));
+        assertThat(packed(bytes, 86, 5)).isEqualTo(value(parcel.proposedLandValue()));
+        assertThat(packed(bytes, 91, 5)).isEqualTo(value(parcel.proposedImprovementValue()));
+        assertThat(packed(bytes, 96, 5)).isEqualTo(value(parcel.proposedTotalValue()));
+        assertThat(packed(bytes, 101, 5)).isEqualTo(value(parcel.farmValue()));
+        assertThat(packed(bytes, 106, 5))
+                .isEqualTo(value(parcel.combinedHomeownerNonHomeownerValue()));
+        assertThat(packed(bytes, 111, 5))
+                .isEqualTo(value(parcel.archivedPreConversionProposedTotal()));
     }
 
     private static void assertSourceEnvelopePreserved(byte[] actual, byte[] source) {
         for (int offset = 19; offset <= 36; offset++) {
-            assertEquals(source[offset], actual[offset], "source byte " + offset);
+            assertWithMessage("source byte " + offset)
+                    .that(actual[offset])
+                    .isEqualTo(source[offset]);
         }
         for (int offset = 38; offset <= 55; offset++) {
-            assertEquals(source[offset], actual[offset], "source byte " + offset);
+            assertWithMessage("source byte " + offset)
+                    .that(actual[offset])
+                    .isEqualTo(source[offset]);
         }
-        assertEquals(source[116], actual[116], "source byte 116");
-        assertEquals(source[117], actual[117], "source byte 117");
+        assertWithMessage("source byte 116").that(actual[116]).isEqualTo(source[116]);
+        assertWithMessage("source byte 117").that(actual[117]).isEqualTo(source[117]);
         for (int offset = 122; offset < actual.length; offset++) {
-            assertEquals((byte) ' ', actual[offset], "zero-detail padding byte " + offset);
+            assertWithMessage("zero-detail padding byte " + offset)
+                    .that(actual[offset])
+                    .isEqualTo((byte) ' ');
         }
     }
 
@@ -233,8 +324,8 @@ class AssessedValuePreparationFactorOutcomeProjectorTest {
         return value;
     }
 
-    private static long value(Long value) {
-        return value == null ? 0L : value;
+    private static long value(BigDecimal value) {
+        return value == null ? 0L : value.longValueExact();
     }
 
     private static String character(String value) {
@@ -264,69 +355,73 @@ class AssessedValuePreparationFactorOutcomeProjectorTest {
         String[] parcelStatuses = {"0", "0", "0", "1", "0", "0", "0", "2", "0", "0"};
         String[] clerkClasses = {"N", "Y", "N", "Y", "A", "A", "E", "E", "F", "F"};
         int[] overallClasses = {202, 203, 201, 212, 295, 241, 299, 278, 297, 234};
-        long[] values = {100000, 125000, 175000, 325000, 250000, 750000, 50000, 80000, 110000, 90000};
+        long[] values = {
+            100000, 125000, 175000, 325000, 250000, 750000, 50000, 80000, 110000, 90000
+        };
         List<AssessmentParcel> rows = new ArrayList<>();
         for (int index = 0; index < properties.length; index++) {
-            AssessmentParcel parcel = new AssessmentParcel();
-            parcel.setId((long) index + 1);
-            parcel.setAssessmentStatus("1");
-            parcel.setVolumeNumber(volumes[index]);
-            parcel.setParcelNumber(properties[index]);
-            parcel.setTaxType(taxTypes[index]);
-            parcel.setTaxCode(taxCodes[index]);
-            parcel.setParcelStatus(parcelStatuses[index]);
-            parcel.setClerkMajorClass(clerkClasses[index]);
-            parcel.setOverallClass(overallClasses[index]);
-            parcel.setSalesSegmentCount(0);
-            parcel.setDetailQuestionnaireCount(0);
-            parcel.setPriorLandValue(values[index]);
-            parcel.setPriorImprovementValue(values[index]);
-            parcel.setPriorTotalValue(values[index]);
-            parcel.setCurrentLandValue(values[index]);
-            parcel.setCurrentImprovementValue(values[index]);
-            parcel.setCurrentTotalValue(values[index]);
-            parcel.setProposedLandValue(values[index]);
-            parcel.setProposedImprovementValue(values[index]);
-            parcel.setProposedTotalValue(values[index]);
-            parcel.setFarmValue(values[index]);
-            parcel.setCombinedHomeownerNonHomeownerValue(values[index]);
-            parcel.setArchivedPreConversionProposedTotal(values[index]);
-            rows.add(parcel);
+            long value = values[index];
+            rows.add(
+                    new AssessmentParcel(
+                            (long) index + 1,
+                            0L,
+                            BigDecimal.valueOf(value),
+                            "1",
+                            clerkClasses[index],
+                            BigDecimal.valueOf(value),
+                            BigDecimal.valueOf(value),
+                            BigDecimal.valueOf(value),
+                            BigDecimal.valueOf(value),
+                            0,
+                            BigDecimal.valueOf(value),
+                            overallClasses[index],
+                            String.format("%015d", properties[index]),
+                            parcelStatuses[index],
+                            BigDecimal.valueOf(value),
+                            BigDecimal.valueOf(value),
+                            BigDecimal.valueOf(value),
+                            BigDecimal.valueOf(value),
+                            BigDecimal.valueOf(value),
+                            BigDecimal.valueOf(value),
+                            0,
+                            String.format("%05d", taxCodes[index]),
+                            taxTypes[index],
+                            String.format("%03d", volumes[index]),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null));
         }
         return List.copyOf(rows);
     }
 
-    private static List<AssessmentParcelSourceRecord> sourceRecords(
-            List<AssessmentParcel> parcels) throws Exception {
-        byte[] source = Files.readAllBytes(fixturePath());
+    private static List<AssessmentParcelSourceRecord> sourceRecords(List<AssessmentParcel> parcels)
+            throws Exception {
+        byte[] source =
+                ReviewedFixture.bytes("data/cobol-fixtures/mastin--asreasfd01.bin");
         List<AssessmentParcelSourceRecord> records = new ArrayList<>();
         int offset = 0;
         int index = 0;
         while (offset < source.length) {
-            int length = (Byte.toUnsignedInt(source[offset]) << 8)
-                    | Byte.toUnsignedInt(source[offset + 1]);
+            int length =
+                    (Byte.toUnsignedInt(source[offset]) << 8)
+                            | Byte.toUnsignedInt(source[offset + 1]);
             byte[] record = java.util.Arrays.copyOfRange(source, offset + 4, offset + length);
-            records.add(new AssessmentParcelSourceRecord(
-                    parcels.get(index).getParcelNumber(),
-                    index + 1,
-                    Base64.getEncoder().encodeToString(record)));
+            records.add(
+                    new AssessmentParcelSourceRecord(
+                            parcels.get(index).parcelNumber(),
+                            index + 1,
+                            Base64.getEncoder().encodeToString(record)));
             offset += length;
             index++;
         }
         return List.copyOf(records);
     }
 
-    private static Path fixturePath() {
-        Path directory = Path.of("").toAbsolutePath();
-        while (directory != null) {
-            Path candidate = directory.resolve("data/cobol-fixtures/mastin--asreasfd01.bin");
-            if (Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-            directory = directory.getParent();
-        }
-        throw new IllegalStateException("Reviewed assessed master fixture was not found");
-    }
 
     private static List<String> strings(JsonNode array) {
         List<String> values = new ArrayList<>();
@@ -334,15 +429,4 @@ class AssessedValuePreparationFactorOutcomeProjectorTest {
         return List.copyOf(values);
     }
 
-    private static Path goldenPath() {
-        Path directory = Path.of("").toAbsolutePath();
-        while (directory != null) {
-            Path candidate = directory.resolve("goldens/valuation-preparation.golden.json");
-            if (Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-            directory = directory.getParent();
-        }
-        throw new IllegalStateException("Reviewed valuation-preparation golden was not found");
-    }
 }

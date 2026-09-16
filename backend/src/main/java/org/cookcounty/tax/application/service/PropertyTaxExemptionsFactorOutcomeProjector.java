@@ -1,5 +1,18 @@
 package org.cookcounty.tax.application.service;
 
+import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder.Cataloged;
+import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder.Outcome;
+import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder.Step;
+import org.cookcounty.tax.application.service.PropertyTaxExemptionsKernel.HomeownerVariant;
+import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.AnnualExemptionRecord;
+import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.BatchEvidence;
+import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.EligibilityPrintRecord;
+import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.ProcessResult;
+import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.RenewalErrorRecord;
+import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.RenewalPrintRecord;
+import org.springframework.stereotype.Component;
+
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -8,19 +21,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder.Cataloged;
-import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder.Outcome;
-import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder.Step;
-import org.cookcounty.tax.application.service.PropertyTaxExemptionsKernel.HomeownerVariant;
-import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.BatchEvidence;
-import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.EligibilityPrintRecord;
-import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.HomeoutRecord;
-import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.ProcessResult;
-import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.RenewalErrorRecord;
-import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.RenewalPrintRecord;
-import org.springframework.stereotype.Component;
-
-/** Projects the executed homeowner renewal path into Factor's batch-observable contract. */
+/// Projects executed renewal and homeowner decisions into the comparator batch contract.
+///
+/// Published records preserve the fixed-width layout and ordering required for comparison.
 @Component
 public class PropertyTaxExemptionsFactorOutcomeProjector {
 
@@ -29,34 +32,46 @@ public class PropertyTaxExemptionsFactorOutcomeProjector {
 
     private static final int REPORT_WIDTH = 133;
 
+    /// Returns the stable comparator scenario selected by the homeowner classification policy.
+    ///
+    /// @param variant homeowner eligibility policy for the run
+    /// @return stable scenario key used to select accepted comparator evidence
     public String scenarioId(HomeownerVariant variant) {
-        return variant == HomeownerVariant.ENUMERATED
-                ? ENUMERATED_SCENARIO : BROAD_SCENARIO;
+        return variant == HomeownerVariant.ENUMERATED ? ENUMERATED_SCENARIO : BROAD_SCENARIO;
     }
 
+    /// Builds immutable step, display, and fixed-width output evidence for a completed run.
+    ///
+    /// @param variant homeowner eligibility policy that selects the exact output name
+    /// @param result completed processor result with ordered batch evidence
+    /// @return comparator outcome with source-format literals preserved byte for byte
     public Outcome project(HomeownerVariant variant, ProcessResult result) {
         BatchEvidence evidence = result.batchEvidence();
-        String variantProgram = variant == HomeownerVariant.ENUMERATED
-                ? "ASREA852" : "ASREA853";
+        String eligibilityGenerationProgram =
+                variant == HomeownerVariant.ENUMERATED ? "ASREA852" : "ASREA853";
 
         List<String> renewalErrors = renewalErrorReport(evidence);
         List<String> renewalPrint = renewalPrintReport(evidence);
         List<String> eligibilityPrint = eligibilityReport(evidence);
-        List<String> homeout = homeoutRecords(evidence);
+        List<String> annualExemptionOutput = annualExemptionRecords(evidence);
         List<String> rollForwardPrint = rollForwardReport(evidence);
 
-        List<Cataloged> cataloged = List.of(
-                cataloged("output/ASREA841-ERRPRINT.dat", renewalErrors),
-                cataloged("output/ASREA841-PRINTOUT.dat", renewalPrint),
-                cataloged("output/" + variantProgram + "-PRNTOUT.dat", eligibilityPrint),
-                cataloged("output/ASREA859-HOMEOUT--ASHMOWFD01.dat", homeout),
-                cataloged("output/ASREA859-PRNTOUT.dat", rollForwardPrint));
+        List<Cataloged> cataloged =
+                List.of(
+                        cataloged("output/ASREA841-ERRPRINT.dat", renewalErrors),
+                        cataloged("output/ASREA841-PRINTOUT.dat", renewalPrint),
+                        cataloged(
+                                "output/" + eligibilityGenerationProgram + "-PRNTOUT.dat",
+                                eligibilityPrint),
+                        cataloged("output/ASREA859-HOMEOUT--ASHMOWFD01.dat", annualExemptionOutput),
+                        cataloged("output/ASREA859-PRNTOUT.dat", rollForwardPrint));
 
-        List<Step> steps = List.of(
-                step("S001", "ASREA841"),
-                step("S002", "ASREA847"),
-                step("S003", variantProgram),
-                step("S004", "ASREA859"));
+        List<Step> steps =
+                List.of(
+                        step("S001", "ASREA841"),
+                        step("S002", "ASREA847"),
+                        step("S003", eligibilityGenerationProgram),
+                        step("S004", "ASREA859"));
 
         return new Outcome(
                 result.returnCode(),
@@ -70,10 +85,15 @@ public class PropertyTaxExemptionsFactorOutcomeProjector {
                 false);
     }
 
+    /// Builds an abnormal-end outcome for an uncaught worker failure.
+    ///
+    /// The failure is withheld from business output and carried in comparator metadata.
     public Outcome failed(RuntimeException exception) {
-        String message = exception.getMessage() == null
-                ? "The property-tax-exemptions worker failed."
-                : exception.getMessage();
+        var exceptionMessage = exception.getMessage();
+        String message =
+                exceptionMessage == null
+                        ? "The property-tax-exemptions worker failed."
+                        : exceptionMessage;
         return new Outcome(
                 16,
                 List.of(),
@@ -93,18 +113,25 @@ public class PropertyTaxExemptionsFactorOutcomeProjector {
 
     private static Cataloged cataloged(String dsn, List<String> records) {
         List<String> immutableRecords = List.copyOf(records);
-        List<String> encoded = immutableRecords.stream()
-                .map(record -> Base64.getEncoder().encodeToString(
-                        record.getBytes(StandardCharsets.UTF_8)))
-                .toList();
+        List<String> encoded =
+                immutableRecords.stream()
+                        .map(
+                                record ->
+                                        Base64.getEncoder()
+                                                .encodeToString(
+                                                        record.getBytes(StandardCharsets.UTF_8)))
+                        .toList();
         return new Cataloged(dsn, 1, immutableRecords.size(), immutableRecords, encoded);
     }
 
     private static List<String> renewalErrorReport(BatchEvidence evidence) {
         List<String> result = new ArrayList<>();
         for (RenewalErrorRecord record : evidence.renewalErrorRecords()) {
-            result.add(fixed(String.format(
-                    "   %018d        %-5s", record.propertyNumber(), record.batchNumber())));
+            result.add(
+                    fixed(
+                            String.format(
+                                    "   %018d        %-5s",
+                                    numeric(record.propertyNumber()), record.batchNumber())));
         }
         addRenewalTotals(result, evidence);
         return List.copyOf(result);
@@ -113,18 +140,23 @@ public class PropertyTaxExemptionsFactorOutcomeProjector {
     private static List<String> renewalPrintReport(BatchEvidence evidence) {
         List<String> result = new ArrayList<>();
         for (RenewalPrintRecord record : evidence.renewalPrintRecords()) {
-            result.add(fixed(String.format(
-                    Locale.US,
-                    " %03d  %018d   %05d   %04d    %04d   %8s   %05d   %,11d   %-5s",
-                    record.volumeNumber(),
-                    record.propertyNumber(),
-                    record.taxCode(),
-                    record.assessmentClass(),
-                    1900 + record.applicationYear(),
-                    record.proration().setScale(6, RoundingMode.UNNECESSARY).toPlainString(),
-                    record.cooperativeQuantity(),
-                    record.assessedValue(),
-                    record.batchNumber())));
+            result.add(
+                    fixed(
+                            String.format(
+                                    Locale.US,
+                                    " %03d  %018d   %05d   %04d    %04d   %8s   %05d   %,11d  "
+                                            + " %-5s",
+                                    numeric(record.volumeNumber()),
+                                    numeric(record.propertyNumber()),
+                                    numeric(record.taxCode()),
+                                    record.assessmentClass(),
+                                    1900 + record.applicationYear(),
+                                    record.proration()
+                                            .setScale(6, RoundingMode.UNNECESSARY)
+                                            .toPlainString(),
+                                    record.cooperativeQuantity(),
+                                    record.assessedValue().toBigIntegerExact(),
+                                    record.batchNumber())));
         }
         addRenewalTotals(result, evidence);
         return List.copyOf(result);
@@ -144,44 +176,52 @@ public class PropertyTaxExemptionsFactorOutcomeProjector {
     private static List<String> eligibilityReport(BatchEvidence evidence) {
         List<String> result = new ArrayList<>();
         for (EligibilityPrintRecord record : evidence.ineligibleRecords()) {
-            result.add(fixed(String.format(
-                    "   %03d  %014d   %05d       %03d       %03d     PARCEL IS NON-RESIDENTIAL",
-                    record.volumeNumber(),
-                    record.propertyNumber(),
-                    record.taxCode(),
-                    record.overallClass(),
-                    record.overallClass())));
+            result.add(
+                    fixed(
+                            String.format(
+                                    "   %03d  %014d   %05d       %03d       %03d     PARCEL IS"
+                                            + " NON-RESIDENTIAL",
+                                    numeric(record.volumeNumber()),
+                                    numeric(record.propertyNumber()),
+                                    numeric(record.taxCode()),
+                                    record.overallClass(),
+                                    record.overallClass())));
         }
         result.add(countLine("   TOTAL MASTER RECORDS READ", evidence.assessmentRecords(), 48));
         result.add(countLine("   TOTAL HOMEOWNERS RECORDS READ", evidence.homeownerRecords(), 48));
-        result.add(countLine("   TOTAL HOMEOWNERS RECORDS WRITTEN", evidence.eligibleRecords(), 48));
+        result.add(
+                countLine("   TOTAL HOMEOWNERS RECORDS WRITTEN", evidence.eligibleRecords(), 48));
         return List.copyOf(result);
     }
 
-    private static List<String> homeoutRecords(BatchEvidence evidence) {
-        return evidence.homeoutRecords().stream()
-                .map(PropertyTaxExemptionsFactorOutcomeProjector::homeoutRecord)
+    private static List<String> annualExemptionRecords(BatchEvidence evidence) {
+        return evidence.annualExemptionRecords().stream()
+                .map(PropertyTaxExemptionsFactorOutcomeProjector::annualExemptionRecord)
                 .toList();
     }
 
-    private static String homeoutRecord(HomeoutRecord record) {
-        return fixed(String.format(
-                " %03d  %014d   %05d   %01d   %03d   %011d   %8s   %01d",
-                record.volumeNumber(),
-                record.propertyNumber(),
-                record.taxCode(),
-                record.taxType(),
-                record.assessmentClass(),
-                record.assessedValue(),
-                record.proration().setScale(6, RoundingMode.HALF_UP).toPlainString(),
-                record.responseStatus()));
+    private static String annualExemptionRecord(AnnualExemptionRecord record) {
+        return fixed(
+                String.format(
+                        " %03d  %014d   %05d   %01d   %03d   %011d   %8s   %01d",
+                        numeric(record.volumeNumber()),
+                        numeric(record.propertyNumber()),
+                        numeric(record.taxCode()),
+                        record.taxType(),
+                        record.assessmentClass(),
+                        record.assessedValue().toBigIntegerExact(),
+                        record.proration().setScale(6, RoundingMode.HALF_UP).toPlainString(),
+                        record.responseStatus()));
     }
 
     private static List<String> rollForwardReport(BatchEvidence evidence) {
         return List.of(
                 countLine("  TOTAL MASTER RECORDS READ", evidence.assessmentRecords(), 43),
                 countLine("  TOTAL HOMEOWNERS RECORDS READ", evidence.eligibleRecords(), 43),
-                countLine("  TOTAL HOMEOWNERS RECORDS WRITTEN", evidence.homeoutRecords().size(), 43));
+                countLine(
+                        "  TOTAL HOMEOWNERS RECORDS WRITTEN",
+                        evidence.annualExemptionRecords().size(),
+                        43));
     }
 
     private static String countLine(String label, int count, int fieldEnd) {
@@ -191,6 +231,11 @@ public class PropertyTaxExemptionsFactorOutcomeProjector {
             throw new IllegalArgumentException("Count does not fit report field: " + label);
         }
         return fixed(label + " ".repeat(spaces) + value);
+    }
+
+    /// Converts one canonical numeric identifier only at the fixed-format output boundary.
+    private static BigInteger numeric(String identifier) {
+        return new BigInteger(identifier);
     }
 
     private static String fixed(String value) {

@@ -1,62 +1,62 @@
 package org.cookcounty.tax.application.service;
 
+import org.cookcounty.tax.domain.model.AssessmentDetail;
+import org.cookcounty.tax.domain.model.AssessmentParcel;
+import org.jspecify.annotations.Nullable;
+import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.cookcounty.tax.domain.model.AssessmentDetail;
-import org.cookcounty.tax.domain.model.AssessmentParcel;
-import org.springframework.stereotype.Component;
-
-/** Applies the accepted ASREA852/ASREA853 detail-level eligibility policies. */
+/// Calculates homeowner eligibility and proration from one parcel and its ordered details.
 @Component
 public class PropertyTaxExemptionsKernel {
 
-    private static final Set<Integer> ENUMERATED_CLASSES = Set.of(
-            202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213,
-            218, 219, 220, 221, 234, 236, 278, 294, 295);
+    private static final Set<Integer> ENUMERATED_CLASSES =
+            Set.of(
+                    202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 218, 219, 220, 221,
+                    234, 236, 278, 294, 295);
     private static final BigDecimal ONE = new BigDecimal("1.000000");
     private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
 
     private final AssessmentDetailValuator valuator;
 
+    /// Creates the decision kernel with the canonical assessment-detail valuator.
     public PropertyTaxExemptionsKernel(AssessmentDetailValuator valuator) {
         this.valuator = valuator;
     }
 
+    /// Returns the eligibility decision without persistence side effects.
     public EligibilityDecision evaluate(
-            AssessmentParcel parcel,
-            List<AssessmentDetail> details,
-            HomeownerVariant variant) {
-        if (variant == null) {
-            throw new IllegalArgumentException("homeowner variant is required");
-        }
+            AssessmentParcel parcel, List<AssessmentDetail> details, HomeownerVariant variant) {
 
         List<BigDecimal> qualifyingPercentages = new ArrayList<>();
-        Set<Long> keyParcels = new HashSet<>();
+        Set<String> keyParcels = new HashSet<>();
         Set<String> splitCodes = new HashSet<>();
         BigDecimal maximumOccupancy = BigDecimal.ZERO;
         boolean eligible = false;
         boolean fullSecondaryOccupancy = false;
         boolean class299 = false;
-        int selectedClass = valueOrZero(parcel.getOverallClass());
-        long selectedValue = valueOrZero(parcel.getCurrentTotalValue());
+        int selectedClass = valueOrZero(parcel.overallClass());
+        BigDecimal selectedValue = valueOrZero(parcel.currentTotalValue());
 
         for (AssessmentDetail detail : details) {
-            int detailType = parseDetailType(detail.getDetailType());
+            int detailType = parseDetailType(detail.detailType());
             if (detailType < 2 || detailType > 5) {
                 continue;
             }
             if (detailType == 4 || detailType == 5) {
-                valuator.value(detail);
+                detail = valuator.value(detail);
             }
 
-            int assessmentClass = valueOrZero(detail.getAssessmentClass());
-            long valuation = valueOrZero(detail.getValuation());
-            if (!qualifies(parcel.getParcelNumber(), variant, assessmentClass, valuation)) {
+            int assessmentClass = valueOrZero(detail.assessmentClass());
+            BigDecimal valuation = valueOrZero(detail.valuation());
+            if (!qualifies(parcel.parcelNumber(), variant, assessmentClass, valuation)) {
                 continue;
             }
 
@@ -65,29 +65,36 @@ public class PropertyTaxExemptionsKernel {
             selectedValue = valuation;
             class299 |= assessmentClass == 299;
             fullSecondaryOccupancy |= detailType <= 4;
-            if (isPositive(detail.getPercentAssessed())) {
-                qualifyingPercentages.add(detail.getPercentAssessed());
+            BigDecimal percentAssessed = detail.percentAssessed();
+            if (percentAssessed != null && percentAssessed.signum() > 0) {
+                qualifyingPercentages.add(percentAssessed);
             }
-            if (isPositive(detail.getOccupancyFactor())
-                    && detail.getOccupancyFactor().compareTo(maximumOccupancy) > 0) {
-                maximumOccupancy = detail.getOccupancyFactor();
+            BigDecimal occupancyFactor = detail.occupancyFactor();
+            if (occupancyFactor != null
+                    && occupancyFactor.signum() > 0
+                    && occupancyFactor.compareTo(maximumOccupancy) > 0) {
+                maximumOccupancy = occupancyFactor;
             }
-            if (detail.getKeyParcelNumber() != null && detail.getKeyParcelNumber() > 0) {
-                keyParcels.add(detail.getKeyParcelNumber());
+            if (detail.keyParcelNumber() != null
+                    && new BigInteger(detail.keyParcelNumber()).signum() > 0) {
+                keyParcels.add(detail.keyParcelNumber());
             }
-            if (detail.getSplitCode() != null && !detail.getSplitCode().isBlank()) {
-                splitCodes.add(detail.getSplitCode());
+            if (detail.splitCode() != null && !detail.splitCode().isBlank()) {
+                splitCodes.add(detail.splitCode());
             }
         }
 
         List<EligibilityWarning> warnings = new ArrayList<>(2);
         if (keyParcels.size() > 1) {
-            warnings.add(new EligibilityWarning(
-                    "asrea859-003", "Conflicting key-parcel values were retained as a warning."));
+            warnings.add(
+                    new EligibilityWarning(
+                            "asrea859-003",
+                            "Conflicting key-parcel values were retained as a warning."));
         }
         if (splitCodes.size() > 1) {
-            warnings.add(new EligibilityWarning(
-                    "asrea859-003", "Conflicting split codes were retained as a warning."));
+            warnings.add(
+                    new EligibilityWarning(
+                            "asrea859-003", "Conflicting split codes were retained as a warning."));
         }
 
         return new EligibilityDecision(
@@ -97,50 +104,48 @@ public class PropertyTaxExemptionsKernel {
                 proration(class299, qualifyingPercentages),
                 maximumOccupancy,
                 fullSecondaryOccupancy ? ONE_HUNDRED : maximumOccupancy,
-                keyParcels.stream().sorted().findFirst().orElse(parcel.getParcelNumber()),
+                keyParcels.stream().sorted().findFirst().orElse(parcel.parcelNumber()),
                 splitCodes.stream().sorted().findFirst().orElse(null),
                 List.copyOf(warnings));
     }
 
+    /// Calculates the rounded mean eligible share as a six-place decimal fraction.
+    ///
+    /// Class 299 and an empty percentage input both produce a full share.
     public BigDecimal proration(boolean class299, List<BigDecimal> percentages) {
         if (class299 || percentages.isEmpty()) {
             return ONE;
         }
         BigDecimal total = percentages.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal averagePercent = total.divide(
-                BigDecimal.valueOf(percentages.size()), 8, RoundingMode.HALF_UP);
+        BigDecimal averagePercent =
+                total.divide(BigDecimal.valueOf(percentages.size()), 8, RoundingMode.HALF_UP);
         return averagePercent.divide(ONE_HUNDRED, 6, RoundingMode.HALF_UP);
     }
 
     boolean qualifies(
-            Long parcelNumber,
+            String parcelNumber,
             HomeownerVariant variant,
             int assessmentClass,
-            long valuation) {
+            BigDecimal valuation) {
         if (variant == HomeownerVariant.BROAD) {
             return assessmentClass >= 100 && assessmentClass <= 899;
         }
         if (assessmentClass == 297) {
-            return valuation > 1_000;
+            return valuation.compareTo(BigDecimal.valueOf(1_000)) > 0;
         }
         if (assessmentClass == 299) {
-            return valuation > 0 && !isExcludedGarageSuffix(parcelNumber);
+            return valuation.signum() > 0 && !isExcludedGarageSuffix(parcelNumber);
         }
         return ENUMERATED_CLASSES.contains(assessmentClass);
     }
 
-    private static boolean isExcludedGarageSuffix(Long parcelNumber) {
-        if (parcelNumber == null) {
-            return false;
-        }
-        long suffix = Math.floorMod(parcelNumber, 10_000L);
+    /// Tests the numeric property suffix at the source arithmetic boundary.
+    private static boolean isExcludedGarageSuffix(String parcelNumber) {
+        int suffix = new BigInteger(parcelNumber).abs().mod(BigInteger.valueOf(10_000)).intValue();
         return suffix >= 1_000 && suffix <= 2_999;
     }
 
     private static int parseDetailType(String value) {
-        if (value == null) {
-            return 0;
-        }
         try {
             return Integer.parseInt(value.trim());
         } catch (NumberFormatException exception) {
@@ -148,33 +153,50 @@ public class PropertyTaxExemptionsKernel {
         }
     }
 
-    private static boolean isPositive(BigDecimal value) {
-        return value != null && value.signum() > 0;
-    }
-
-    private static int valueOrZero(Integer value) {
+    private static int valueOrZero(@Nullable Integer value) {
         return value == null ? 0 : value;
     }
 
-    private static long valueOrZero(Long value) {
-        return value == null ? 0L : value;
+    private static BigDecimal valueOrZero(@Nullable BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 
+    /// Selects either the source enumeration or the broad numeric classification policy.
     public enum HomeownerVariant {
         ENUMERATED,
         BROAD
     }
 
+    /// Immutable result of evaluating all eligible details for one parcel.
+    ///
+    /// @param eligible whether at least one detail qualifies
+    /// @param assessmentClass selected property classification code
+    /// @param assessedValue selected assessed valuation in whole dollars
+    /// @param proration rounded eligible share as a six-place decimal fraction
+    /// @param occupancyFactor greatest primary occupancy percentage
+    /// @param secondaryOccupancyFactor greatest secondary occupancy percentage
+    /// @param keyParcelNumber related parcel identity selected from the details
+    /// @param splitCode unique split code, or absent when none or multiple values exist
+    /// @param warnings nonfatal detail ambiguities
     public record EligibilityDecision(
             boolean eligible,
             int assessmentClass,
-            long assessedValue,
+            BigDecimal assessedValue,
             BigDecimal proration,
             BigDecimal occupancyFactor,
             BigDecimal secondaryOccupancyFactor,
-            Long keyParcelNumber,
-            String splitCode,
-            List<EligibilityWarning> warnings) {}
+            String keyParcelNumber,
+            @Nullable String splitCode,
+            List<EligibilityWarning> warnings) {
+        /// Copies ambiguity warnings so the decision does not retain caller-owned mutable state.
+        public EligibilityDecision {
+            warnings = List.copyOf(warnings);
+        }
+    }
 
+    /// One nonfatal ambiguity found while selecting parcel detail.
+    ///
+    /// @param ruleId governing eligibility rule
+    /// @param message explanation of the ambiguity
     public record EligibilityWarning(String ruleId, String message) {}
 }

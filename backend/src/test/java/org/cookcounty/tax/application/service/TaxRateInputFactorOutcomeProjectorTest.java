@@ -1,41 +1,44 @@
 package org.cookcounty.tax.application.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
+import static com.google.common.truth.Truth.assertThat;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.LocalDate;
-import java.util.Base64;
+import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.cookcounty.tax.domain.port.out.FrozenAgencyAdjustmentRepository;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.TaxRateInputPreparationRunRequest;
 import org.junit.jupiter.api.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.Base64;
 
 class TaxRateInputFactorOutcomeProjectorTest {
     @Test
     void successfulProjectionMatchesExactIsomorphicWireOutcome() throws Exception {
         TaxRateInputSeedFixture seed = TaxRateInputSeedFixture.fromV9();
-        TaxRateInputProcessor processor = new TaxRateInputProcessor(
-                seed, mock(FrozenAgencyAdjustmentRepository.class));
-        TaxRateInputFactorOutcomeProjector projector =
-                new TaxRateInputFactorOutcomeProjector();
+        TaxRateInputProcessor processor =
+                new TaxRateInputProcessor(
+                        seed,
+                        mock(FrozenAgencyAdjustmentRepository.class),
+                        new TaxRateInputKernel());
+        TaxRateInputFactorOutcomeProjector projector = new TaxRateInputFactorOutcomeProjector();
         TaxRateInputKernel.Result result = processor.process();
-        TaxRateInputPreparationRunRequest request = new TaxRateInputPreparationRunRequest();
-        request.setBusinessDate(LocalDate.of(2025, 9, 15));
-        request.setBusinessTime("12:00:00");
-        request.setIdempotencyKey("projector-parity");
+        LocalDate businessDate = LocalDate.of(2025, 9, 15);
+        String businessTime = "12:00:00";
 
         ObjectMapper mapper = new ObjectMapper();
-        JsonNode golden = mapper.readTree(Files.readString(goldenPath()));
-        JsonNode wireOutcome = mapper.valueToTree(projector.project(request, result));
+        JsonNode golden =
+                mapper.readTree(
+                        ReviewedFixture.string(
+                                "goldens/clerk-agency-attachment.golden.json"));
+        JsonNode wireOutcome =
+                mapper.valueToTree(projector.project(businessDate, businessTime, result));
 
-        assertEquals(expectedWireOutcome(mapper, golden), wireOutcome);
+        assertThat(wireOutcome).isEqualTo(expectedWireOutcome(mapper, golden));
     }
 
     private static JsonNode expectedWireOutcome(ObjectMapper mapper, JsonNode golden) {
@@ -53,8 +56,7 @@ class TaxRateInputFactorOutcomeProjectorTest {
             expectedStep.put("completion_code", "");
             expectedStep.putArray("messages");
             expectedStep.putArray("dataset_ops");
-            goldenStep.path("sysout")
-                    .forEach(message -> expectedDisplays.add(message.textValue()));
+            goldenStep.path("sysout").forEach(message -> expectedDisplays.add(message.textValue()));
         }
 
         expected.set("outputs", mapper.createObjectNode());
@@ -69,12 +71,17 @@ class TaxRateInputFactorOutcomeProjectorTest {
             expectedOutput.put("records", goldenOutput.path("recordCount").intValue());
             ArrayNode expectedRecordData = expectedOutput.putArray("recordData");
             ArrayNode expectedRecordDataBase64 = expectedOutput.putArray("recordDataBase64");
-            goldenOutput.path("records").forEach(record -> {
-                String value = record.textValue();
-                expectedRecordData.add(value);
-                expectedRecordDataBase64.add(Base64.getEncoder().encodeToString(
-                        value.getBytes(StandardCharsets.US_ASCII)));
-            });
+            goldenOutput
+                    .path("records")
+                    .forEach(
+                            record -> {
+                                String value = record.textValue();
+                                expectedRecordData.add(value);
+                                expectedRecordDataBase64.add(
+                                        Base64.getEncoder()
+                                                .encodeToString(
+                                                        value.getBytes(StandardCharsets.US_ASCII)));
+                            });
         }
 
         expected.putNull("abend");
@@ -83,15 +90,4 @@ class TaxRateInputFactorOutcomeProjectorTest {
         return expected;
     }
 
-    private static Path goldenPath() {
-        Path directory = Path.of("").toAbsolutePath();
-        while (directory != null) {
-            Path candidate = directory.resolve("goldens/clerk-agency-attachment.golden.json");
-            if (Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-            directory = directory.getParent();
-        }
-        throw new IllegalStateException("Reviewed clerk-agency-attachment golden was not found");
-    }
 }
