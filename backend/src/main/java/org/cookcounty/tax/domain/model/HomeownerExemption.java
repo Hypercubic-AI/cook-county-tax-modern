@@ -1,189 +1,107 @@
-
 package org.cookcounty.tax.domain.model;
 
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 
-
-public class HomeownerExemption {
-
-    private Long id;
-
-    // GENERATED-FIELDS:start
-
-    private Integer applicationYear;
-
-    private Long assessedValue;
-
-    private Integer assessmentClass;
-
-    private Integer certificateOfErrorNumber;
-
-    private String city;
-
-    private Integer clerksClass;
-
-    private Integer cooperativeQuantity;
-
-    private Integer eligibilityIndicator;
-
-    private BigDecimal equalizationFactor;
-
-    private Long equalizedValue;
-
-    private Integer exemptionType;
-
-    private Long keyParcelNumber;
-
-    private String mailingAddress;
-
-    private BigDecimal occupancyFactor;
-
-    private String ownerName;
-
-    private Long propertyNumber;
-
-    private BigDecimal proration;
-
-    private Integer recordCode;
-
-    private Integer responseStatus;
-
-    private Integer secondaryResponseStatus;
-
-    private Integer splitCode;
-
-    private String state;
-
-    private Integer taxCode;
-
-    private Integer taxType;
-
-    private Integer tertiaryStatus;
-
-    private Integer volumeNumber;
-
-    private Long zipCode;
-
-
-
-    // GENERATED-FIELDS:end
-
-    public HomeownerExemption() {}
-
-    // GENERATED-ACCESSORS:start
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-
-    public Integer getApplicationYear() { return applicationYear; }
-    public void setApplicationYear(Integer applicationYear) { this.applicationYear = applicationYear; }
-
-
-    public Long getAssessedValue() { return assessedValue; }
-    public void setAssessedValue(Long assessedValue) { this.assessedValue = assessedValue; }
-
-
-    public Integer getAssessmentClass() { return assessmentClass; }
-    public void setAssessmentClass(Integer assessmentClass) { this.assessmentClass = assessmentClass; }
-
-
-    public Integer getCertificateOfErrorNumber() { return certificateOfErrorNumber; }
-    public void setCertificateOfErrorNumber(Integer certificateOfErrorNumber) { this.certificateOfErrorNumber = certificateOfErrorNumber; }
-
-
-    public String getCity() { return city; }
-    public void setCity(String city) { this.city = city; }
-
-
-    public Integer getClerksClass() { return clerksClass; }
-    public void setClerksClass(Integer clerksClass) { this.clerksClass = clerksClass; }
-
-
-    public Integer getCooperativeQuantity() { return cooperativeQuantity; }
-    public void setCooperativeQuantity(Integer cooperativeQuantity) { this.cooperativeQuantity = cooperativeQuantity; }
-
-
-    public Integer getEligibilityIndicator() { return eligibilityIndicator; }
-    public void setEligibilityIndicator(Integer eligibilityIndicator) { this.eligibilityIndicator = eligibilityIndicator; }
-
-
-    public BigDecimal getEqualizationFactor() { return equalizationFactor; }
-    public void setEqualizationFactor(BigDecimal equalizationFactor) { this.equalizationFactor = equalizationFactor; }
-
-
-    public Long getEqualizedValue() { return equalizedValue; }
-    public void setEqualizedValue(Long equalizedValue) { this.equalizedValue = equalizedValue; }
-
-
-    public Integer getExemptionType() { return exemptionType; }
-    public void setExemptionType(Integer exemptionType) { this.exemptionType = exemptionType; }
-
-
-    public Long getKeyParcelNumber() { return keyParcelNumber; }
-    public void setKeyParcelNumber(Long keyParcelNumber) { this.keyParcelNumber = keyParcelNumber; }
-
-
-    public String getMailingAddress() { return mailingAddress; }
-    public void setMailingAddress(String mailingAddress) { this.mailingAddress = mailingAddress; }
-
-
-    public BigDecimal getOccupancyFactor() { return occupancyFactor; }
-    public void setOccupancyFactor(BigDecimal occupancyFactor) { this.occupancyFactor = occupancyFactor; }
-
-
-    public String getOwnerName() { return ownerName; }
-    public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
-
-
-    public Long getPropertyNumber() { return propertyNumber; }
-    public void setPropertyNumber(Long propertyNumber) { this.propertyNumber = propertyNumber; }
-
-
-    public BigDecimal getProration() { return proration; }
-    public void setProration(BigDecimal proration) { this.proration = proration; }
-
-
-    public Integer getRecordCode() { return recordCode; }
-    public void setRecordCode(Integer recordCode) { this.recordCode = recordCode; }
-
-
-    public Integer getResponseStatus() { return responseStatus; }
-    public void setResponseStatus(Integer responseStatus) { this.responseStatus = responseStatus; }
-
-
-    public Integer getSecondaryResponseStatus() { return secondaryResponseStatus; }
-    public void setSecondaryResponseStatus(Integer secondaryResponseStatus) { this.secondaryResponseStatus = secondaryResponseStatus; }
-
-
-    public Integer getSplitCode() { return splitCode; }
-    public void setSplitCode(Integer splitCode) { this.splitCode = splitCode; }
-
-
-    public String getState() { return state; }
-    public void setState(String state) { this.state = state; }
-
-
-    public Integer getTaxCode() { return taxCode; }
-    public void setTaxCode(Integer taxCode) { this.taxCode = taxCode; }
-
-
-    public Integer getTaxType() { return taxType; }
-    public void setTaxType(Integer taxType) { this.taxType = taxType; }
-
-
-    public Integer getTertiaryStatus() { return tertiaryStatus; }
-    public void setTertiaryStatus(Integer tertiaryStatus) { this.tertiaryStatus = tertiaryStatus; }
-
-
-    public Integer getVolumeNumber() { return volumeNumber; }
-    public void setVolumeNumber(Integer volumeNumber) { this.volumeNumber = volumeNumber; }
-
-
-    public Long getZipCode() { return zipCode; }
-    public void setZipCode(Long zipCode) { this.zipCode = zipCode; }
-
-
-
-    // GENERATED-ACCESSORS:end
+/// An annual homeowner eligibility snapshot published by the roll-forward process.
+///
+/// @param id Generated database identity. It is absent before the first successful persistence
+///   operation.
+/// @param version Optimistic-lock version. It is absent before persistence hydrates the record.
+/// @param applicationYear Two-digit application year stored by the homeowner process.
+/// @param assessedValue Assessed valuation amount in whole dollars.
+/// @param assessmentClass Assessment classification selected for the property.
+/// @param certificateOfErrorNumber Certificate-of-error reference when the record has one.
+/// @param city Mailing city when owner-detail input supplied it.
+/// @param clerksClass Clerk classification carried by the annual exemption record.
+/// @param cooperativeQuantity Number of cooperative units or shares carried by the exemption
+///   record.
+/// @param eligibilityIndicator Indicator that records the annual eligibility decision.
+/// @param equalizationFactor Factor applied to assessed value. Its stored scale is four fractional
+///   digits.
+/// @param equalizedValue Equalized valuation amount in whole dollars when the process supplied one.
+/// @param exemptionType Exemption category code when the processing path assigned one.
+/// @param keyParcelNumber canonical source-width parcel identifier selected from qualifying
+///   assessment details
+/// @param mailingAddress Mailing street line when owner-detail input supplied it.
+/// @param occupancyFactor Occupancy percentage used by exemption eligibility.
+/// @param ownerName Owner name when owner-detail input supplied it.
+/// @param propertyNumber Canonical 15-digit property identifier used to match homeowner and renewal
+///   input.
+/// @param proration Eligible property share as a decimal fraction. Its stored scale is six
+///   fractional digits.
+/// @param recordCode Record category within the Senior Freeze or homeowner output.
+/// @param responseStatus Primary homeowner response classification.
+/// @param secondaryResponseStatus Secondary homeowner response classification.
+/// @param splitCode Property split classification when qualifying detail supplied it.
+/// @param state Mailing state code when owner-detail input supplied it.
+/// @param taxCode Canonical five-digit taxing-district code carried with the property.
+/// @param taxType Tax-type code carried with the property.
+/// @param tertiaryStatus Third homeowner response classification.
+/// @param volumeNumber canonical three-digit assessment volume that participates in source ordering
+/// @param zipCode Canonical nine-digit postal identifier when owner-detail input supplied it.
+public record HomeownerExemption(
+        @Nullable Long id,
+        @Nullable Long version,
+        Integer applicationYear,
+        BigDecimal assessedValue,
+        Integer assessmentClass,
+        @Nullable Integer certificateOfErrorNumber,
+        @Nullable String city,
+        Integer clerksClass,
+        @Nullable Integer cooperativeQuantity,
+        Integer eligibilityIndicator,
+        BigDecimal equalizationFactor,
+        @Nullable BigDecimal equalizedValue,
+        @Nullable Integer exemptionType,
+        String keyParcelNumber,
+        @Nullable String mailingAddress,
+        BigDecimal occupancyFactor,
+        @Nullable String ownerName,
+        String propertyNumber,
+        BigDecimal proration,
+        Integer recordCode,
+        Integer responseStatus,
+        Integer secondaryResponseStatus,
+        @Nullable Integer splitCode,
+        @Nullable String state,
+        String taxCode,
+        @Nullable Integer taxType,
+        Integer tertiaryStatus,
+        String volumeNumber,
+        @Nullable String zipCode) {
+    /// Pads property and postal identifiers and fixes decimal scales. Optional values retain
+    /// absence.
+    ///
+    /// @throws IllegalArgumentException if an identifier is empty, contains nondigits, or exceeds
+    ///   its width
+    /// @throws ArithmeticException if a decimal exceeds its precision or requires rounding
+    public HomeownerExemption {
+        assessedValue =
+                PropertyTaxExemptionsNumericBoundary.exact(assessedValue, 9, 0, "assessedValue");
+        equalizationFactor =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        equalizationFactor, 5, 4, "equalizationFactor");
+        equalizedValue =
+                PropertyTaxExemptionsNumericBoundary.optionalExact(
+                        equalizedValue, 9, 0, "equalizedValue");
+        keyParcelNumber =
+                PropertyTaxExemptionsNumericBoundary.unsignedIdentifier(
+                        keyParcelNumber, 15, "keyParcelNumber");
+        occupancyFactor =
+                PropertyTaxExemptionsNumericBoundary.exact(
+                        occupancyFactor, 5, 1, "occupancyFactor");
+        propertyNumber =
+                PropertyTaxExemptionsNumericBoundary.unsignedIdentifier(
+                        propertyNumber, 15, "propertyNumber");
+        proration = PropertyTaxExemptionsNumericBoundary.exact(proration, 7, 6, "proration");
+        taxCode = PropertyTaxExemptionsNumericBoundary.unsignedIdentifier(taxCode, 5, "taxCode");
+        volumeNumber =
+                PropertyTaxExemptionsNumericBoundary.unsignedIdentifier(
+                        volumeNumber, 3, "volumeNumber");
+        zipCode =
+                PropertyTaxExemptionsNumericBoundary.optionalUnsignedIdentifier(
+                        zipCode, 9, "zipCode");
+    }
 }

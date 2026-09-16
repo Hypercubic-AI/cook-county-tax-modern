@@ -1,141 +1,106 @@
-
 package org.cookcounty.tax.domain.model;
 
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 
-
-public class FrozenAgencyAdjustment {
-
-    private Long id;
-
-    // GENERATED-FIELDS:start
-
-    private String agencyNumber;
-
-    private Long annexedAssessedValue;
-
-    private Long annexedEqualizedValue;
-
-    private Long current288Value;
-
-    private Long disconnectedAssessedValue;
-
-    private Long disconnectedEqualizedValue;
-
-    private Long expired288Value;
-
-    private Long expiredIncentiveEqualizedValue;
-
-    private BigDecimal expiredIncentiveTaxAmount;
-
-    private Long expiredIncentiveValue;
-
-    private Long firstTimeValue;
-
-    private Long frozenEqualizedValue;
-
-    private BigDecimal frozenTaxAmount;
-
-    private String taxCode;
-
-    private BigDecimal taxRate;
-
-    private Long tifCurrentEqualizedValue;
-
-    private Long tifDifferenceEqualizedValue;
-
-    private Long tifPriorFrozenEqualizedValue;
-
-    private Long totalFrozenValue;
-
-
-
-    // GENERATED-FIELDS:end
-
-    public FrozenAgencyAdjustment() {}
-
-    // GENERATED-ACCESSORS:start
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-
-    public String getAgencyNumber() { return agencyNumber; }
-    public void setAgencyNumber(String agencyNumber) { this.agencyNumber = agencyNumber; }
-
-
-    public Long getAnnexedAssessedValue() { return annexedAssessedValue; }
-    public void setAnnexedAssessedValue(Long annexedAssessedValue) { this.annexedAssessedValue = annexedAssessedValue; }
-
-
-    public Long getAnnexedEqualizedValue() { return annexedEqualizedValue; }
-    public void setAnnexedEqualizedValue(Long annexedEqualizedValue) { this.annexedEqualizedValue = annexedEqualizedValue; }
-
-
-    public Long getCurrent288Value() { return current288Value; }
-    public void setCurrent288Value(Long current288Value) { this.current288Value = current288Value; }
-
-
-    public Long getDisconnectedAssessedValue() { return disconnectedAssessedValue; }
-    public void setDisconnectedAssessedValue(Long disconnectedAssessedValue) { this.disconnectedAssessedValue = disconnectedAssessedValue; }
-
-
-    public Long getDisconnectedEqualizedValue() { return disconnectedEqualizedValue; }
-    public void setDisconnectedEqualizedValue(Long disconnectedEqualizedValue) { this.disconnectedEqualizedValue = disconnectedEqualizedValue; }
-
-
-    public Long getExpired288Value() { return expired288Value; }
-    public void setExpired288Value(Long expired288Value) { this.expired288Value = expired288Value; }
-
-
-    public Long getExpiredIncentiveEqualizedValue() { return expiredIncentiveEqualizedValue; }
-    public void setExpiredIncentiveEqualizedValue(Long expiredIncentiveEqualizedValue) { this.expiredIncentiveEqualizedValue = expiredIncentiveEqualizedValue; }
-
-
-    public BigDecimal getExpiredIncentiveTaxAmount() { return expiredIncentiveTaxAmount; }
-    public void setExpiredIncentiveTaxAmount(BigDecimal expiredIncentiveTaxAmount) { this.expiredIncentiveTaxAmount = expiredIncentiveTaxAmount; }
-
-
-    public Long getExpiredIncentiveValue() { return expiredIncentiveValue; }
-    public void setExpiredIncentiveValue(Long expiredIncentiveValue) { this.expiredIncentiveValue = expiredIncentiveValue; }
-
-
-    public Long getFirstTimeValue() { return firstTimeValue; }
-    public void setFirstTimeValue(Long firstTimeValue) { this.firstTimeValue = firstTimeValue; }
-
-
-    public Long getFrozenEqualizedValue() { return frozenEqualizedValue; }
-    public void setFrozenEqualizedValue(Long frozenEqualizedValue) { this.frozenEqualizedValue = frozenEqualizedValue; }
-
-
-    public BigDecimal getFrozenTaxAmount() { return frozenTaxAmount; }
-    public void setFrozenTaxAmount(BigDecimal frozenTaxAmount) { this.frozenTaxAmount = frozenTaxAmount; }
-
-
-    public String getTaxCode() { return taxCode; }
-    public void setTaxCode(String taxCode) { this.taxCode = taxCode; }
-
-
-    public BigDecimal getTaxRate() { return taxRate; }
-    public void setTaxRate(BigDecimal taxRate) { this.taxRate = taxRate; }
-
-
-    public Long getTifCurrentEqualizedValue() { return tifCurrentEqualizedValue; }
-    public void setTifCurrentEqualizedValue(Long tifCurrentEqualizedValue) { this.tifCurrentEqualizedValue = tifCurrentEqualizedValue; }
-
-
-    public Long getTifDifferenceEqualizedValue() { return tifDifferenceEqualizedValue; }
-    public void setTifDifferenceEqualizedValue(Long tifDifferenceEqualizedValue) { this.tifDifferenceEqualizedValue = tifDifferenceEqualizedValue; }
-
-
-    public Long getTifPriorFrozenEqualizedValue() { return tifPriorFrozenEqualizedValue; }
-    public void setTifPriorFrozenEqualizedValue(Long tifPriorFrozenEqualizedValue) { this.tifPriorFrozenEqualizedValue = tifPriorFrozenEqualizedValue; }
-
-
-    public Long getTotalFrozenValue() { return totalFrozenValue; }
-    public void setTotalFrozenValue(Long totalFrozenValue) { this.totalFrozenValue = totalFrozenValue; }
-
-
-
-    // GENERATED-ACCESSORS:end
+/// Immutable frozen agency adjustment domain snapshot.
+///
+/// Every valuation is a whole-unit amount unless its component documents a decimal rate or amount.
+/// A repository returns a new snapshot after each save. The source object never changes.
+///
+/// @param id Generated persistence identifier. It is absent before the first successful save.
+/// @param version Persistence version used to detect concurrent replacement. It is absent before
+///   hydration.
+/// @param agencyNumber Agency identifier, including leading zeroes.
+/// @param annexedAssessedValue Whole-unit valuation amount for this category.
+/// @param annexedEqualizedValue Whole-unit valuation amount for this category.
+/// @param current288Value Whole-unit valuation amount for this category.
+/// @param disconnectedAssessedValue Whole-unit valuation amount for this category.
+/// @param disconnectedEqualizedValue Whole-unit valuation amount for this category.
+/// @param expired288Value Whole-unit valuation amount for this category.
+/// @param expiredIncentiveEqualizedValue Whole-unit valuation amount for this category.
+/// @param expiredIncentiveTaxAmount exact tax amount when calculated, otherwise absent
+/// @param expiredIncentiveValue Whole-unit valuation amount for this category.
+/// @param firstTimeValue Whole-unit valuation amount for this category.
+/// @param frozenEqualizedValue Whole-unit valuation amount for this category.
+/// @param frozenTaxAmount Exact monetary amount in the source calculation.
+/// @param taxCode Five-character tax-code identifier, including leading zeroes.
+/// @param taxRate Exact tax rate used by the source calculation.
+/// @param tifCurrentEqualizedValue Whole-unit valuation amount for this category.
+/// @param tifDifferenceEqualizedValue Whole-unit valuation amount for this category.
+/// @param tifPriorFrozenEqualizedValue Whole-unit valuation amount for this category.
+/// @param totalFrozenValue Whole-unit valuation amount for this category.
+public record FrozenAgencyAdjustment(
+        @Nullable Long id,
+        @Nullable Long version,
+        String agencyNumber,
+        BigDecimal annexedAssessedValue,
+        BigDecimal annexedEqualizedValue,
+        BigDecimal current288Value,
+        BigDecimal disconnectedAssessedValue,
+        BigDecimal disconnectedEqualizedValue,
+        BigDecimal expired288Value,
+        BigDecimal expiredIncentiveEqualizedValue,
+        @Nullable BigDecimal expiredIncentiveTaxAmount,
+        BigDecimal expiredIncentiveValue,
+        BigDecimal firstTimeValue,
+        BigDecimal frozenEqualizedValue,
+        BigDecimal frozenTaxAmount,
+        String taxCode,
+        BigDecimal taxRate,
+        BigDecimal tifCurrentEqualizedValue,
+        BigDecimal tifDifferenceEqualizedValue,
+        BigDecimal tifPriorFrozenEqualizedValue,
+        BigDecimal totalFrozenValue) {
+    /// Validates that every source-backed component is present.
+    public FrozenAgencyAdjustment {
+        agencyNumber = TaxRateNumericBoundary.identifier(agencyNumber, 9, "agencyNumber");
+        annexedAssessedValue =
+                TaxRateNumericBoundary.fixedPoint(
+                        annexedAssessedValue, 13, 0, "annexedAssessedValue");
+        annexedEqualizedValue =
+                TaxRateNumericBoundary.fixedPoint(
+                        annexedEqualizedValue, 13, 0, "annexedEqualizedValue");
+        current288Value =
+                TaxRateNumericBoundary.fixedPoint(current288Value, 13, 0, "current288Value");
+        disconnectedAssessedValue =
+                TaxRateNumericBoundary.fixedPoint(
+                        disconnectedAssessedValue, 13, 0, "disconnectedAssessedValue");
+        disconnectedEqualizedValue =
+                TaxRateNumericBoundary.fixedPoint(
+                        disconnectedEqualizedValue, 13, 0, "disconnectedEqualizedValue");
+        expired288Value =
+                TaxRateNumericBoundary.fixedPoint(expired288Value, 13, 0, "expired288Value");
+        expiredIncentiveEqualizedValue =
+                TaxRateNumericBoundary.fixedPoint(
+                        expiredIncentiveEqualizedValue, 11, 0, "expiredIncentiveEqualizedValue");
+        expiredIncentiveValue =
+                TaxRateNumericBoundary.fixedPoint(
+                        expiredIncentiveValue, 11, 0, "expiredIncentiveValue");
+        firstTimeValue = TaxRateNumericBoundary.fixedPoint(firstTimeValue, 13, 0, "firstTimeValue");
+        frozenEqualizedValue =
+                TaxRateNumericBoundary.fixedPoint(
+                        frozenEqualizedValue, 13, 0, "frozenEqualizedValue");
+        frozenTaxAmount =
+                TaxRateNumericBoundary.fixedPoint(frozenTaxAmount, 15, 2, "frozenTaxAmount");
+        taxCode = TaxRateNumericBoundary.identifier(taxCode, 5, "taxCode");
+        taxRate = TaxRateNumericBoundary.fixedPoint(taxRate, 6, 3, "taxRate");
+        tifCurrentEqualizedValue =
+                TaxRateNumericBoundary.fixedPoint(
+                        tifCurrentEqualizedValue, 13, 0, "tifCurrentEqualizedValue");
+        tifDifferenceEqualizedValue =
+                TaxRateNumericBoundary.fixedPoint(
+                        tifDifferenceEqualizedValue, 13, 0, "tifDifferenceEqualizedValue");
+        tifPriorFrozenEqualizedValue =
+                TaxRateNumericBoundary.fixedPoint(
+                        tifPriorFrozenEqualizedValue, 13, 0, "tifPriorFrozenEqualizedValue");
+        totalFrozenValue =
+                TaxRateNumericBoundary.fixedPoint(totalFrozenValue, 13, 0, "totalFrozenValue");
+        expiredIncentiveTaxAmount =
+                expiredIncentiveTaxAmount == null
+                        ? null
+                        : TaxRateNumericBoundary.fixedPoint(
+                                expiredIncentiveTaxAmount, 11, 2, "expiredIncentiveTaxAmount");
+    }
 }

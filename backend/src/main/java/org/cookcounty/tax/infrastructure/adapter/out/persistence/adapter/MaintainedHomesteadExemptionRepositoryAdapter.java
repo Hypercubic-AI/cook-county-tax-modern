@@ -1,31 +1,37 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.adapter;
 
 import org.cookcounty.tax.domain.model.MaintainedHomesteadExemption;
 import org.cookcounty.tax.domain.port.out.MaintainedHomesteadExemptionRepository;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.mapper.MaintainedHomesteadExemptionMapper;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.repository.JpaMaintainedHomesteadExemptionRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 import java.util.Optional;
 
 // GENERATED-IMPORTS:start
 // GENERATED-IMPORTS:end
 
+/// Stores immutable maintained-homestead snapshots through mutable JPA entities.
 @Component
-public class MaintainedHomesteadExemptionRepositoryAdapter implements MaintainedHomesteadExemptionRepository {
+public class MaintainedHomesteadExemptionRepositoryAdapter
+        implements MaintainedHomesteadExemptionRepository {
 
     private final JpaMaintainedHomesteadExemptionRepository jpaRepository;
 
-    public MaintainedHomesteadExemptionRepositoryAdapter(JpaMaintainedHomesteadExemptionRepository jpaRepository) {
+    /// Creates the adapter over the maintained-homestead persistence repository.
+    public MaintainedHomesteadExemptionRepositoryAdapter(
+            JpaMaintainedHomesteadExemptionRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
 
     // GENERATED-OVERRIDES:start
     @Override
-    public Page<MaintainedHomesteadExemption> findAll(Pageable pageable) {
-        return jpaRepository.findAll(pageable).map(MaintainedHomesteadExemptionMapper::toDomain);
+    public List<MaintainedHomesteadExemption> findAllInPersistenceOrder() {
+        return jpaRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
+                .map(MaintainedHomesteadExemptionMapper::toDomain)
+                .toList();
     }
 
     @Override
@@ -34,8 +40,12 @@ public class MaintainedHomesteadExemptionRepositoryAdapter implements Maintained
     }
 
     @Override
-    public MaintainedHomesteadExemption save(MaintainedHomesteadExemption maintainedHomesteadExemption) {
-        return MaintainedHomesteadExemptionMapper.toDomain(jpaRepository.save(MaintainedHomesteadExemptionMapper.toEntity(maintainedHomesteadExemption)));
+    public MaintainedHomesteadExemption save(
+            MaintainedHomesteadExemption maintainedHomesteadExemption) {
+        var saved =
+                jpaRepository.save(
+                        MaintainedHomesteadExemptionMapper.toEntity(maintainedHomesteadExemption));
+        return MaintainedHomesteadExemptionMapper.toDomain(saved);
     }
 
     @Override

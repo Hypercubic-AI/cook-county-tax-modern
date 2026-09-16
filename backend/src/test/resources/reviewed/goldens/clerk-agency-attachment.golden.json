@@ -1,0 +1,65 @@
+{
+  "job": "CLKATTCH",
+  "jcl": "CLKATTCH",
+  "date": "20250915",
+  "time": "120000",
+  "maxRC": 0,
+  "steps": [
+    {
+      "name": "S001",
+      "program": "CLRTM751",
+      "returnCode": 0,
+      "sysout": [
+        "PROGRAM CLRTM751 DATE AND TIME OF RUN =  09/15/2025   12:00",
+        "TOTAL MASTER RECORDS READ          10",
+        "TOTAL DIVISION RECORDS READ        10",
+        "TOTAL MASTER RECORDS WRITTEN       10",
+        "TOTAL MASTER RECORDS UPTD/DIVN NO  10",
+        "TOTAL DIVISION RECORDS UNMATCHED   0"
+      ]
+    },
+    {
+      "name": "S002",
+      "program": "CLRTM752",
+      "returnCode": 0,
+      "sysout": [
+        "   TOTAL ASSESSMENT MASTER RECORDS READ              10",
+        "   TOTAL ASSESSMENT MASTER RECORDS WRITTEN            0",
+        "   TOTAL ASSESSMENT MASTER RECORDS UNMATCHED         10"
+      ]
+    }
+  ],
+  "catalogedOutputs": [
+    {
+      "dsn": "output/CLRTM752-AGCYMSTR.dat",
+      "generation": 1,
+      "recordCount": 0
+    },
+    {
+      "dsn": "output/CLRTM752-PRINTFLE.dat",
+      "generation": 1,
+      "recordCount": 19,
+      "records": [
+        "                                                                                                                                     ",
+        "   001   000010011000010000   0 10001   NO MATCHING TAX CODE MASTER RECORD                                                           ",
+        "   002   000012022000020000   0 12001   NO MATCHING TAX CODE MASTER RECORD                                                           ",
+        "   003   000013066000060000   1 13001   NO MATCHING TAX CODE MASTER RECORD                                                           ",
+        "   004   000014077000070000   2 14001   NO MATCHING TAX CODE MASTER RECORD                                                           ",
+        "   005   000020033000030000   0 20001   NO MATCHING TAX CODE MASTER RECORD                                                           ",
+        "   006   000022055000050000   3 22001   NO MATCHING TAX CODE MASTER RECORD                                                           ",
+        "   007   000037044000040000   0 37001   NO MATCHING TAX CODE MASTER RECORD                                                           ",
+        "   010   000071011100110000   5 71001   NO MATCHING TAX CODE MASTER RECORD                                                           ",
+        "   011   000076022200120000   0 76001   NO MATCHING TAX CODE MASTER RECORD                                                           ",
+        "   012   000077033300130000   0 77001   NO MATCHING TAX CODE MASTER RECORD                                                           ",
+        " CLRTM752                                        OFFICE OF THE COOK COUNTY CLERK                                        PAGE     1   ",
+        " 09/15/2025                                DISCONNECT/ANNEXATION AGENCY UPDATE ERROR REPORT                                          ",
+        "   VOL    PERMANENT INDEX     TAX    TAX                                                                                             ",
+        "               NUMBER        TYPE   CODE                                                                                             ",
+        "                                                                                                                                     ",
+        "   TOTAL ASSESSMENT MASTER RECORDS READ              10                                                                              ",
+        "   TOTAL ASSESSMENT MASTER RECORDS WRITTEN            0                                                                              ",
+        "   TOTAL ASSESSMENT MASTER RECORDS UNMATCHED         10                                                                              "
+      ]
+    }
+  ]
+}

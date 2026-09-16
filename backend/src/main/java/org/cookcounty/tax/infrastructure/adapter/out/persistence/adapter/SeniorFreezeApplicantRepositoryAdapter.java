@@ -1,31 +1,36 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.adapter;
 
 import org.cookcounty.tax.domain.model.SeniorFreezeApplicant;
 import org.cookcounty.tax.domain.port.out.SeniorFreezeApplicantRepository;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.mapper.SeniorFreezeApplicantMapper;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.repository.JpaSeniorFreezeApplicantRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 import java.util.Optional;
 
 // GENERATED-IMPORTS:start
 // GENERATED-IMPORTS:end
 
+/// Stores immutable Senior Freeze applicant snapshots through mutable JPA entities.
 @Component
 public class SeniorFreezeApplicantRepositoryAdapter implements SeniorFreezeApplicantRepository {
 
     private final JpaSeniorFreezeApplicantRepository jpaRepository;
 
-    public SeniorFreezeApplicantRepositoryAdapter(JpaSeniorFreezeApplicantRepository jpaRepository) {
+    /// Creates the adapter over the Senior Freeze applicant persistence repository.
+    public SeniorFreezeApplicantRepositoryAdapter(
+            JpaSeniorFreezeApplicantRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
 
     // GENERATED-OVERRIDES:start
     @Override
-    public Page<SeniorFreezeApplicant> findAll(Pageable pageable) {
-        return jpaRepository.findAll(pageable).map(SeniorFreezeApplicantMapper::toDomain);
+    public List<SeniorFreezeApplicant> findAllInPersistenceOrder() {
+        return jpaRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
+                .map(SeniorFreezeApplicantMapper::toDomain)
+                .toList();
     }
 
     @Override
@@ -35,7 +40,8 @@ public class SeniorFreezeApplicantRepositoryAdapter implements SeniorFreezeAppli
 
     @Override
     public SeniorFreezeApplicant save(SeniorFreezeApplicant seniorFreezeApplicant) {
-        return SeniorFreezeApplicantMapper.toDomain(jpaRepository.save(SeniorFreezeApplicantMapper.toEntity(seniorFreezeApplicant)));
+        var saved = jpaRepository.save(SeniorFreezeApplicantMapper.toEntity(seniorFreezeApplicant));
+        return SeniorFreezeApplicantMapper.toDomain(saved);
     }
 
     @Override

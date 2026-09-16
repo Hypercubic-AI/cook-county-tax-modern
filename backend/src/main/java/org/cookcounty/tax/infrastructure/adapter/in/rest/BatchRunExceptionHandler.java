@@ -1,114 +1,138 @@
 package org.cookcounty.tax.infrastructure.adapter.in.rest;
 
-import java.util.Optional;
-
 import jakarta.validation.ConstraintViolationException;
 
-import org.cookcounty.tax.application.batch.BatchRunIdempotencyConflictException;
-import org.cookcounty.tax.application.batch.BatchRunInvalidRequestException;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
+import java.util.List;
+
+/// Keeps validation and unexpected failures in the same caller-safe response shape.
+///
+/// Structural validation reports all violations. Business-rule precedence remains the
+/// responsibility of the capability service. Field names come from validation metadata, never from
+/// message text.
 @RestControllerAdvice
 public final class BatchRunExceptionHandler {
+    /// Retains unexpected exception details in server diagnostics, not the response body.
+    private static final Logger LOGGER = LoggerFactory.getLogger(BatchRunExceptionHandler.class);
 
-    @ExceptionHandler(BatchRunInvalidRequestException.class)
-    public ResponseEntity<ErrorEnvelope> handleInvalidRequest(BatchRunInvalidRequestException exception) {
-        return invalidRequest(exception.getMessage());
-    }
-
+    /// Reports every rejected body field and object-level constraint in deterministic order.
+    ///
+    /// @param exception structured Bean Validation results for the request body
+    /// @return 400 with all violations in the shared error envelope
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorEnvelope> handleMethodArgumentNotValid(
             MethodArgumentNotValidException exception) {
-        String message = exception.getBindingResult().getFieldErrors().stream()
-                .map(error -> validationMessage(error.getField(), error.getDefaultMessage()))
-                .sorted()
-                .findFirst()
-                .orElseGet(() -> exception.getBindingResult().getAllErrors().stream()
-                        .map(error -> validationMessage(null, error.getDefaultMessage()))
+        List<String> messages =
+                exception.getBindingResult().getAllErrors().stream()
+                        .map(
+                                error ->
+                                        validationMessage(
+                                                error instanceof FieldError fieldError
+                                                        ? fieldError.getField()
+                                                        : null,
+                                                error.getDefaultMessage()))
                         .sorted()
-                        .findFirst()
-                        .orElse("Request validation failed"));
-        return invalidRequest(message);
+                        .toList();
+        return invalidRequest(messages);
     }
 
+    /// Reports every invalid request parameter using its structured parameter name.
+    ///
+    /// @param exception validation results for method parameters
+    /// @return 400 with all parameter violations in the shared error envelope
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<ErrorEnvelope> handleHandlerMethodValidation(
             HandlerMethodValidationException exception) {
-        String message = exception.getParameterValidationResults().stream()
-                .flatMap(result -> {
-                    String parameterName = Optional.ofNullable(
-                                    result.getMethodParameter().getParameterName())
-                            .orElse("request parameter");
-                    return result.getResolvableErrors().stream()
-                            .map(error -> validationMessage(
-                                    parameterName, error.getDefaultMessage()));
-                })
-                .sorted()
-                .findFirst()
-                .orElse("Request parameter validation failed");
-        return invalidRequest(message);
+        List<String> messages =
+                exception.getParameterValidationResults().stream()
+                        .flatMap(
+                                result ->
+                                        result.getResolvableErrors().stream()
+                                                .map(
+                                                        error ->
+                                                                validationMessage(
+                                                                        result.getMethodParameter()
+                                                                                .getParameterName(),
+                                                                        error.getDefaultMessage())))
+                        .sorted()
+                        .toList();
+        return invalidRequest(messages);
     }
 
+    /// Reports all constraints rejected outside request-body binding.
+    ///
+    /// @param exception violations with structured property paths
+    /// @return 400 with all property violations in the shared error envelope
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorEnvelope> handleConstraintViolation(
             ConstraintViolationException exception) {
-        String message = exception.getConstraintViolations().stream()
-                .map(violation -> validationMessage(
-                        finalPathSegment(violation.getPropertyPath().toString()),
-                        violation.getMessage()))
-                .sorted()
-                .findFirst()
-                .orElse("Request constraint validation failed");
-        return invalidRequest(message);
+        List<String> messages =
+                exception.getConstraintViolations().stream()
+                        .map(
+                                violation ->
+                                        validationMessage(
+                                                finalPathSegment(
+                                                        violation.getPropertyPath().toString()),
+                                                violation.getMessage()))
+                        .sorted()
+                        .toList();
+        return invalidRequest(messages);
     }
 
+    /// Rejects an unreadable body without exposing parser or deserialization details.
+    ///
+    /// @return 400 in the shared error envelope
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorEnvelope> handleUnreadableRequest(
-            HttpMessageNotReadableException exception) {
-        return invalidRequest("Request body is malformed or contains an invalid value");
+    public ResponseEntity<ErrorEnvelope> handleUnreadableRequest() {
+        return invalidRequest(List.of("Request body is malformed or contains an invalid value"));
     }
 
-    @ExceptionHandler(BatchRunIdempotencyConflictException.class)
-    public ResponseEntity<ErrorEnvelope> handleIdempotencyConflict(
-            BatchRunIdempotencyConflictException exception) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorEnvelope("IDEMPOTENCY_CONFLICT", exception.getMessage()));
+    /// Logs an unexpected exception and returns a safe, consistent server-error response.
+    ///
+    /// @param exception unexpected failure retained with its stack trace in server diagnostics
+    /// @return 500 without internal exception details
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorEnvelope> handleUnexpected(Exception exception) {
+        LOGGER.error("Unexpected request failure", exception);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(
+                        new ErrorEnvelope(
+                                "INTERNAL_ERROR", "The service could not complete the request."));
     }
 
-    private static ResponseEntity<ErrorEnvelope> invalidRequest(String message) {
-        return ResponseEntity.badRequest()
-                .body(new ErrorEnvelope("INVALID_REQUEST", message));
+    /// Combines every structural violation without changing the existing response schema.
+    private static ResponseEntity<ErrorEnvelope> invalidRequest(List<String> messages) {
+        String message =
+                messages.isEmpty() ? "Request validation failed" : String.join("\n", messages);
+        return ResponseEntity.badRequest().body(new ErrorEnvelope("INVALID_REQUEST", message));
     }
 
-    private static String validationMessage(String subject, String detail) {
-        if (detail == null || detail.isBlank()) {
-            return subject == null ? "Request validation failed" : subject + " is invalid";
-        }
-        if (subject == null || detail.startsWith(subject) || namesRequestField(detail)) {
-            return detail;
-        }
-        return subject + " " + detail;
+    /// Combines the metadata path and diagnostic without inferring a field name from prose.
+    private static String validationMessage(@Nullable String subject, @Nullable String detail) {
+        String description = detail == null || detail.isBlank() ? "is invalid" : detail;
+        return subject == null || subject.isBlank() ? description : subject + ": " + description;
     }
 
-    private static boolean namesRequestField(String detail) {
-        int separator = detail.indexOf(' ');
-        if (separator < 1 || separator == detail.length() - 1) {
-            return false;
-        }
-        String remainder = detail.substring(separator + 1);
-        return remainder.startsWith("is ") || remainder.startsWith("must ");
-    }
-
+    /// Removes method-path prefixes while preserving the validation provider's property name.
     private static String finalPathSegment(String path) {
         int separator = path.lastIndexOf('.');
         return separator < 0 ? path : path.substring(separator + 1);
     }
 
+    /// Shared safe error body for structural validation and unexpected request failures.
+    ///
+    /// @param error stable machine-readable failure category
+    /// @param message caller-safe detail, with one structural violation per line when applicable
     public record ErrorEnvelope(String error, String message) {}
 }

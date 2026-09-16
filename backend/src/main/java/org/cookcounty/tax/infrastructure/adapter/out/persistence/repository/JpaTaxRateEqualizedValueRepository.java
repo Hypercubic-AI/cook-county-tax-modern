@@ -1,18 +1,13 @@
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.repository;
 
-import java.util.List;
-
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.entity.TaxRateEqualizedValueEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-// GENERATED-IMPORTS:start
-// GENERATED-IMPORTS:end
+import java.util.List;
 
+/// Reads maintained equalized-value rows through the persistence provider.
 public interface JpaTaxRateEqualizedValueRepository
         extends JpaRepository<TaxRateEqualizedValueEntity, Integer> {
-
-    // GENERATED-METHODS:start
-    // GENERATED-METHODS:end
-
+    /// Returns every row in ascending source order for deterministic batch processing.
     List<TaxRateEqualizedValueEntity> findAllByOrderBySourceOrderAsc();
 }

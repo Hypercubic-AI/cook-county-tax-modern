@@ -1,42 +1,35 @@
 # Cook County Tax Modernization
 
-The modern application runs with Postgres, the Spring Boot backend, and the Vite frontend. Run the commands below from this `modernized` directory unless a step changes directories.
+The application runs with PostgreSQL, the Spring Boot backend, and the Vite frontend. Run these commands from the repository root.
 
-## 1. Start Postgres
+The backend requires Java 25 and Maven. See [backend quality and source compatibility](docs/backend-quality.md) for verification, Spring composition, nullability, and deployment guidance.
+
+## 1. Start PostgreSQL
 
 ```bash
 docker compose up --detach db
 ```
 
-The Compose service publishes Postgres on `localhost:5432` with database `cook-county-tax-rate-making` and the local-development `postgres`/`postgres` credentials.
+The Compose service publishes PostgreSQL on `localhost:5432`. It creates the `cook-county-tax-rate-making` database with local `postgres` credentials.
 
-## 2. Start the backend and load seed data
+## 2. Start the backend
 
 ```bash
 cd backend
-SPRING_PROFILES_ACTIVE=factor-comparator \
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/cook-county-tax-rate-making \
-SPRING_DATASOURCE_USERNAME=postgres \
-SPRING_DATASOURCE_PASSWORD=postgres \
+DATABASE_URL=jdbc:postgresql://localhost:5432/cook-county-tax-rate-making \
+DATABASE_USERNAME=postgres \
+DATABASE_PASSWORD=postgres \
+CORS_ALLOWED_ORIGINS=http://localhost:5173 \
 mvn spring-boot:run
 ```
 
-The backend listens on `http://localhost:8080`. On a clean database, Flyway creates the schema and loads deterministic fixtures in migrations V2, V4, V6, and V8 through V15. The fixtures contain exactly ten rows in each populated collection below; assessment details is intentionally empty after V14:
+The backend listens on `http://localhost:8080`. `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `CORS_ALLOWED_ORIGINS` are required. `SERVER_PORT`, `BATCH_MAX_CONCURRENT_RUNS`, and `BATCH_RUN_LEASE` have defaults.
 
-- assessment parcels and preserved assessment source records, with no separate assessment detail occurrences;
-- homeowner masters, homeowner exemptions, maintained homestead exemptions, Senior Freeze masters, and Senior Freeze applicants;
-- frozen agency adjustments, frozen valuations, and agency equalized valuations;
-- tax-rate equalized values and tax-rate divisions.
+Set `SPRING_PROFILES_ACTIVE=factor-comparator` only when the enclosing Isomorphic application needs the internal comparison endpoint and evidence recorder.
 
-The records preserve the reviewed parcel, owner, class, tax-type, status, division, and agency variations used by the accepted bullets.
+Flyway creates the schema on a new database. A new deployment contains maintained township reference data, but it does not contain scenario records. Author scenario records through the enclosing Isomorphic application's fixtures and repository ports. This standalone repository does not contain the application's `rifle/refire` substitutions.
 
-To discard mutated local data and recreate a clean seed database, first stop the backend, then run:
-
-```bash
-./scripts/reset-seed.sh --confirm
-```
-
-This removes the local Compose Postgres volume and starts an empty database. Restart the backend afterward so Flyway recreates and seeds it. The script never connects to Postgres directly and refuses to delete the volume without `--confirm`.
+The HTTP examples below remain valid without scenario records. Their output depends on the production or scenario input that you load through the application.
 
 ## 3. Start the frontend
 
@@ -48,7 +41,7 @@ npm install
 VITE_API_BASE_URL=http://localhost:8080 npm run dev
 ```
 
-`VITE_API_BASE_URL` is optional; the frontend defaults to `http://localhost:8080`.
+`VITE_API_BASE_URL` is optional. The frontend defaults to `http://localhost:8080`.
 
 ## 4. Run the accepted batches
 

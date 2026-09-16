@@ -1,10 +1,13 @@
 package org.cookcounty.tax.application.service;
 
+import org.cookcounty.tax.domain.model.TaxRateDivision;
+import org.cookcounty.tax.domain.model.TaxRateEqualizedValue;
+import org.cookcounty.tax.domain.port.out.TaxRateInputReferenceDataRepository;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -12,24 +15,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.cookcounty.tax.domain.model.TaxRateDivision;
-import org.cookcounty.tax.domain.model.TaxRateEqualizedValue;
-import org.cookcounty.tax.domain.port.out.TaxRateInputReferenceDataRepository;
-
 /** Test-only bridge from the reviewed inputs and the production V9 seed to domain records. */
 record TaxRateInputSeedFixture(
-        List<TaxRateEqualizedValue> equalizedValues,
-        List<TaxRateDivision> divisions) implements TaxRateInputReferenceDataRepository {
+        List<TaxRateEqualizedValue> equalizedValues, List<TaxRateDivision> divisions)
+        implements TaxRateInputReferenceDataRepository {
 
-    private static final String V9_RESOURCE =
-            "db/migration/V9__tax_rate_input_reference_data.sql";
-    private static final Pattern INSERT = Pattern.compile(
-            "(?is)\\bINSERT\\s+INTO\\s+([a-z_][a-z0-9_]*)\\s*"
-                    + "\\(([^)]*)\\)\\s*VALUES\\s*(.*?);");
+    private static final String V9_RESOURCE = "db/migration/V9__tax_rate_input_reference_data.sql";
+    private static final Pattern INSERT =
+            Pattern.compile(
+                    "(?is)\\bINSERT\\s+INTO\\s+([a-z_][a-z0-9_]*)\\s*"
+                            + "\\(([^)]*)\\)\\s*VALUES\\s*(.*?);");
     private static final int EQUALIZED_RECORD_LENGTH = 115;
     private static final int DIVISION_RECORD_LENGTH = 90;
 
@@ -40,46 +40,57 @@ record TaxRateInputSeedFixture(
 
     static TaxRateInputSeedFixture fromV9() throws IOException {
         String sql;
-        try (InputStream stream = TaxRateInputSeedFixture.class.getClassLoader()
-                .getResourceAsStream(V9_RESOURCE)) {
+        ClassLoader classLoader = TaxRateInputSeedFixture.class.getClassLoader();
+        if (classLoader == null) {
+            throw new IllegalStateException("TaxRateInputSeedFixture has no class loader");
+        }
+        try (InputStream stream = classLoader.getResourceAsStream(V9_RESOURCE)) {
             if (stream == null) {
                 throw new IllegalStateException("V9 tax-rate seed is not on the test classpath");
             }
             sql = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         }
 
-        List<TaxRateEqualizedValue> equalized = rows(sql, "tax_rate_equalized_values")
-                .stream()
-                .map(row -> new TaxRateEqualizedValue(
-                        integer(row, "source_order"),
-                        integer(row, "volume_number"),
-                        number(row, "parcel_number"),
-                        integer(row, "tax_code"),
-                        number(row, "assessed_value"),
-                        number(row, "equalized_value"),
-                        text(row, "tax_type")))
-                .sorted(Comparator.comparingInt(TaxRateEqualizedValue::sourceOrder))
-                .toList();
-        List<TaxRateDivision> divisions = rows(sql, "tax_rate_divisions").stream()
-                .map(row -> new TaxRateDivision(
-                        integer(row, "source_order"),
-                        integer(row, "volume_number"),
-                        number(row, "parcel_number"),
-                        number(row, "division_number")))
-                .sorted(Comparator.comparingInt(TaxRateDivision::sourceOrder))
-                .toList();
-        requireUniqueSourceOrder(equalized.stream()
-                .map(TaxRateEqualizedValue::sourceOrder).toList(), "equalized value");
-        requireUniqueSourceOrder(divisions.stream()
-                .map(TaxRateDivision::sourceOrder).toList(), "division");
+        List<TaxRateEqualizedValue> equalized =
+                rows(sql, "tax_rate_equalized_values").stream()
+                        .map(
+                                row ->
+                                        new TaxRateEqualizedValue(
+                                                integer(row, "source_order"),
+                                                fixed(number(row, "volume_number"), 3),
+                                                fixed(number(row, "parcel_number"), 15),
+                                                fixed(number(row, "tax_code"), 5),
+                                                BigDecimal.valueOf(number(row, "assessed_value")),
+                                                BigDecimal.valueOf(number(row, "equalized_value")),
+                                                text(row, "tax_type"),
+                                                null))
+                        .sorted(Comparator.comparingInt(TaxRateEqualizedValue::sourceOrder))
+                        .toList();
+        List<TaxRateDivision> divisions =
+                rows(sql, "tax_rate_divisions").stream()
+                        .map(
+                                row ->
+                                        new TaxRateDivision(
+                                                integer(row, "source_order"),
+                                                fixed(number(row, "volume_number"), 3),
+                                                fixed(number(row, "parcel_number"), 15),
+                                                fixed(number(row, "division_number"), 14),
+                                                null))
+                        .sorted(Comparator.comparingInt(TaxRateDivision::sourceOrder))
+                        .toList();
+        requireUniqueSourceOrder(
+                equalized.stream().map(TaxRateEqualizedValue::sourceOrder).toList(),
+                "equalized value");
+        requireUniqueSourceOrder(
+                divisions.stream().map(TaxRateDivision::sourceOrder).toList(), "division");
         return new TaxRateInputSeedFixture(equalized, divisions);
     }
 
     static TaxRateInputSeedFixture fromReviewedCobolInputs() throws IOException {
-        byte[] equalizedSource = Files.readAllBytes(projectPath(
-                "data/cobol-fixtures/equalval.bin"));
-        byte[] divisionSource = Files.readAllBytes(projectPath(
-                "data/cobol-fixtures/divsion.bin"));
+        byte[] equalizedSource =
+                ReviewedFixture.bytes("data/cobol-fixtures/equalval.bin");
+        byte[] divisionSource =
+                ReviewedFixture.bytes("data/cobol-fixtures/divsion.bin");
         requireWholeRecords(equalizedSource, EQUALIZED_RECORD_LENGTH, "EQUALVAL");
         requireWholeRecords(divisionSource, DIVISION_RECORD_LENGTH, "DIVSION");
 
@@ -87,25 +98,29 @@ record TaxRateInputSeedFixture(
         for (int offset = 0, sourceOrder = 1;
                 offset < equalizedSource.length;
                 offset += EQUALIZED_RECORD_LENGTH, sourceOrder++) {
-            equalized.add(new TaxRateEqualizedValue(
-                    sourceOrder,
-                    Math.toIntExact(packed(equalizedSource, offset, 2)),
-                    packed(equalizedSource, offset + 2, 8),
-                    Math.toIntExact(packed(equalizedSource, offset + 10, 3)),
-                    packed(equalizedSource, offset + 13, 6),
-                    packed(equalizedSource, offset + 22, 6),
-                    displayDigit(equalizedSource[offset + 56])));
+            equalized.add(
+                    new TaxRateEqualizedValue(
+                            sourceOrder,
+                            fixed(packed(equalizedSource, offset, 2), 3),
+                            fixed(packed(equalizedSource, offset + 2, 8), 15),
+                            fixed(packed(equalizedSource, offset + 10, 3), 5),
+                            BigDecimal.valueOf(packed(equalizedSource, offset + 13, 6)),
+                            BigDecimal.valueOf(packed(equalizedSource, offset + 22, 6)),
+                            displayDigit(equalizedSource[offset + 56]),
+                            null));
         }
 
         List<TaxRateDivision> divisions = new ArrayList<>();
         for (int offset = 0, sourceOrder = 1;
                 offset < divisionSource.length;
                 offset += DIVISION_RECORD_LENGTH, sourceOrder++) {
-            divisions.add(new TaxRateDivision(
-                    sourceOrder,
-                    Math.toIntExact(packed(divisionSource, offset + 5, 2)),
-                    packed(divisionSource, offset + 7, 8),
-                    packed(divisionSource, offset + 1, 4)));
+            divisions.add(
+                    new TaxRateDivision(
+                            sourceOrder,
+                            fixed(packed(divisionSource, offset + 5, 2), 3),
+                            fixed(packed(divisionSource, offset + 7, 8), 15),
+                            fixed(packed(divisionSource, offset + 1, 4), 14),
+                            null));
         }
         return new TaxRateInputSeedFixture(equalized, divisions);
     }
@@ -120,15 +135,23 @@ record TaxRateInputSeedFixture(
         return divisions;
     }
 
+    /// Formats an unsigned packed-decimal business key at its exact source width.
+    private static String fixed(long value, int digits) {
+        return String.format("%0" + digits + "d", value);
+    }
+
     private static List<Map<String, String>> rows(String sql, String table) {
         List<Map<String, String>> result = new ArrayList<>();
         Matcher statements = INSERT.matcher(sql);
         while (statements.find()) {
-            if (!statements.group(1).equalsIgnoreCase(table)) {
+            String matchedTable = Objects.requireNonNull(statements.group(1), "matched table");
+            if (!matchedTable.equalsIgnoreCase(table)) {
                 continue;
             }
-            List<String> columns = commaSeparated(statements.group(2));
-            for (String tuple : tuples(statements.group(3))) {
+            String matchedColumns = Objects.requireNonNull(statements.group(2), "matched columns");
+            String matchedValues = Objects.requireNonNull(statements.group(3), "matched values");
+            List<String> columns = commaSeparated(matchedColumns);
+            for (String tuple : tuples(matchedValues)) {
                 List<String> values = commaSeparated(tuple);
                 if (columns.size() != values.size()) {
                     throw new IllegalStateException(
@@ -155,7 +178,9 @@ record TaxRateInputSeedFixture(
         boolean quoted = false;
         for (int index = 0; index < valuesClause.length(); index++) {
             char current = valuesClause.charAt(index);
-            if (current == '\'' && quoted && index + 1 < valuesClause.length()
+            if (current == '\''
+                    && quoted
+                    && index + 1 < valuesClause.length()
                     && valuesClause.charAt(index + 1) == '\'') {
                 index++;
                 continue;
@@ -187,7 +212,9 @@ record TaxRateInputSeedFixture(
         boolean quoted = false;
         for (int index = 0; index < source.length(); index++) {
             char current = source.charAt(index);
-            if (current == '\'' && quoted && index + 1 < source.length()
+            if (current == '\''
+                    && quoted
+                    && index + 1 < source.length()
                     && source.charAt(index + 1) == '\'') {
                 index++;
             } else if (current == '\'') {
@@ -214,7 +241,8 @@ record TaxRateInputSeedFixture(
 
     private static String text(Map<String, String> row, String column) {
         String literal = required(row, column);
-        if (literal.length() < 2 || literal.charAt(0) != '\''
+        if (literal.length() < 2
+                || literal.charAt(0) != '\''
                 || literal.charAt(literal.length() - 1) != '\'') {
             throw new IllegalStateException(column + " is not a V9 string literal");
         }
@@ -274,15 +302,4 @@ record TaxRateInputSeedFixture(
         return Character.toString((char) unsigned);
     }
 
-    private static Path projectPath(String relative) {
-        Path directory = Path.of("").toAbsolutePath();
-        while (directory != null) {
-            Path candidate = directory.resolve(relative);
-            if (Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-            directory = directory.getParent();
-        }
-        throw new IllegalStateException("Reviewed tax-rate fixture was not found: " + relative);
-    }
 }

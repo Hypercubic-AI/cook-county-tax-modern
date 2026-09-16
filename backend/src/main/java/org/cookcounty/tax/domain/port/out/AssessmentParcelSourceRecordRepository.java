@@ -1,12 +1,12 @@
 package org.cookcounty.tax.domain.port.out;
 
-import java.util.List;
-
 import org.cookcounty.tax.domain.model.AssessmentParcelSourceRecord;
 
-public interface AssessmentParcelSourceRecordRepository {
-    // GENERATED-METHODS:start
-    // GENERATED-METHODS:end
+import java.util.List;
 
+/// Reads preserved parcel prefixes needed for complete fixed-width publication.
+public interface AssessmentParcelSourceRecordRepository {
+
+    /// Returns every prefix in deterministic source assessment-master order.
     List<AssessmentParcelSourceRecord> findAllInSourceOrder();
 }

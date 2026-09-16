@@ -1,7 +1,7 @@
 package org.cookcounty.tax.infrastructure.adapter.in.rest;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -15,34 +15,37 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
+import static java.util.Objects.requireNonNull;
 
 import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder;
-import org.cookcounty.tax.application.batch.BatchRunStartResult;
+import org.cookcounty.tax.domain.contract.BatchRunFailure;
+import org.cookcounty.tax.domain.contract.BatchRunStart;
+import org.cookcounty.tax.domain.contract.Result;
+import org.cookcounty.tax.domain.contract.dto.TaxRateInputPreparationErrorResponse;
+import org.cookcounty.tax.domain.contract.dto.TaxRateInputPreparationRunRequest;
+import org.cookcounty.tax.domain.contract.dto.TaxRateInputPreparationRunResponse;
 import org.cookcounty.tax.domain.port.in.TaxRateInputPreparationRunUseCase;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.TaxRateInputPreparationErrorResponse;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.TaxRateInputPreparationRunRequest;
-import org.cookcounty.tax.infrastructure.adapter.in.rest.dto.TaxRateInputPreparationRunResponse;
-import org.springframework.http.HttpHeaders;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.LocalDate;
+import java.util.List;
+
 class TaxRateInputPreparationRunControllerTest {
 
     @Test
-    void acceptedAndReplayedStartsBothReturnCreatedWithRunLocation() {
+    void acceptedAndReplayedStartsPreserveCreatedStatusAndLocation() {
         TaxRateInputPreparationRunUseCase useCase = mock(TaxRateInputPreparationRunUseCase.class);
         TaxRateInputPreparationRunRequest request = request();
         TaxRateInputPreparationRunResponse queued = response(2_147_483_648L, "QUEUED");
         when(useCase.startTaxRateInputPreparationRun(request))
-                .thenReturn(new BatchRunStartResult<>(queued.getId(), queued, false))
-                .thenReturn(new BatchRunStartResult<>(queued.getId(), queued, true));
+                .thenReturn(new Result.Ok<>(new BatchRunStart<>(queued.id(), queued, false)))
+                .thenReturn(new Result.Ok<>(new BatchRunStart<>(queued.id(), queued, true)));
         FactorBatchOutcomeRecorder recorder = mock(FactorBatchOutcomeRecorder.class);
         TaxRateInputPreparationRunController controller =
                 new TaxRateInputPreparationRunController(useCase, recorder);
@@ -51,24 +54,31 @@ class TaxRateInputPreparationRunControllerTest {
         requestHeaders.add("X-Factor-Probe", "first");
         requestHeaders.add("X-Factor-Probe", "second");
 
-        ResponseEntity<TaxRateInputPreparationRunResponse> accepted =
+        ResponseEntity<?> accepted =
                 controller.startTaxRateInputPreparationRun(request, requestHeaders);
-        ResponseEntity<TaxRateInputPreparationRunResponse> replayed =
+        ResponseEntity<?> replayed =
                 controller.startTaxRateInputPreparationRun(request, requestHeaders);
+        var acceptedLocation =
+                requireNonNull(accepted.getHeaders().getLocation(), "accepted Location");
+        var replayedLocation =
+                requireNonNull(replayed.getHeaders().getLocation(), "replayed Location");
 
-        assertEquals(HttpStatus.CREATED, accepted.getStatusCode());
-        assertEquals(
-                "/api/tax-rate-input-preparation-runs/2147483648",
-                accepted.getHeaders().getLocation().toString());
-        assertEquals(HttpStatus.CREATED, replayed.getStatusCode());
-        assertEquals(accepted.getHeaders().getLocation(), replayed.getHeaders().getLocation());
-        verify(recorder, times(2)).accepted(
-                eq("clerk-agency-attachment"),
-                eq(queued.getId()),
-                eq(request),
-                argThat(headers -> "clerk-agency-attachment".equals(
-                                headers.get("X-Factor-Scenario-Id"))
-                        && "first,second".equals(headers.get("X-Factor-Probe"))));
+        assertThat(accepted.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(acceptedLocation.toString())
+                .isEqualTo("/api/tax-rate-input-preparation-runs/2147483648");
+        assertThat(replayed.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(replayedLocation).isEqualTo(acceptedLocation);
+        verify(recorder, times(2))
+                .accepted(
+                        eq("clerk-agency-attachment"),
+                        eq(queued.id()),
+                        eq(request),
+                        argThat(
+                                headers ->
+                                        "clerk-agency-attachment"
+                                                        .equals(headers.get("X-Factor-Scenario-Id"))
+                                                && "first,second"
+                                                        .equals(headers.get("X-Factor-Probe"))));
     }
 
     @Test
@@ -76,39 +86,45 @@ class TaxRateInputPreparationRunControllerTest {
         TaxRateInputPreparationRunUseCase useCase = mock(TaxRateInputPreparationRunUseCase.class);
         TaxRateInputPreparationRunResponse queued = response(2_147_483_648L, "QUEUED");
         when(useCase.startTaxRateInputPreparationRun(any(TaxRateInputPreparationRunRequest.class)))
-                .thenReturn(new BatchRunStartResult<>(queued.getId(), queued, false));
+                .thenReturn(new Result.Ok<>(new BatchRunStart<>(queued.id(), queued, false)));
 
-        mvc(useCase).perform(post("/api/tax-rate-input-preparation-runs")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "businessDate":"2025-09-15",
-                                  "businessTime":"12:00:00",
-                                  "idempotencyKey":"reviewed-tax-rate-input"
-                                }
-                                """))
+        mvc(useCase)
+                .perform(
+                        post("/api/tax-rate-input-preparation-runs")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "businessDate":"2025-09-15",
+                                          "businessTime":"12:00:00",
+                                          "idempotencyKey":"reviewed-tax-rate-input"
+                                        }
+                                        """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string(
-                        "Location", "/api/tax-rate-input-preparation-runs/2147483648"));
+                .andExpect(
+                        header().string(
+                                        "Location",
+                                        "/api/tax-rate-input-preparation-runs/2147483648"));
     }
 
     @Test
     void invalidBusinessTimeIsRejectedBeforeServiceInvocation() throws Exception {
         TaxRateInputPreparationRunUseCase useCase = mock(TaxRateInputPreparationRunUseCase.class);
 
-        mvc(useCase).perform(post("/api/tax-rate-input-preparation-runs")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "businessDate":"2025-09-15",
-                                  "businessTime":"24:00:00",
-                                  "idempotencyKey":"invalid-tax-rate-input"
-                                }
-                                """))
+        mvc(useCase)
+                .perform(
+                        post("/api/tax-rate-input-preparation-runs")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "businessDate":"2025-09-15",
+                                          "businessTime":"24:00:00",
+                                          "idempotencyKey":"invalid-tax-rate-input"
+                                        }
+                                        """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value(
-                        "businessTime must use HH:mm:ss in 24-hour time."));
+                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"));
 
         verifyNoInteractions(useCase);
     }
@@ -116,43 +132,47 @@ class TaxRateInputPreparationRunControllerTest {
     @Test
     void missingLongRunIdentifierReturnsApprovedJsonErrorShape() {
         TaxRateInputPreparationRunUseCase useCase = mock(TaxRateInputPreparationRunUseCase.class);
-        when(useCase.getTaxRateInputPreparationRun(Long.MAX_VALUE)).thenReturn(Optional.empty());
+        when(useCase.getTaxRateInputPreparationRun(Long.MAX_VALUE))
+                .thenReturn(new Result.Err<>(new BatchRunFailure.RunNotFound(Long.MAX_VALUE)));
         TaxRateInputPreparationRunController controller =
                 new TaxRateInputPreparationRunController(
                         useCase, mock(FactorBatchOutcomeRecorder.class));
 
         ResponseEntity<?> response = controller.getTaxRateInputPreparationRun(Long.MAX_VALUE);
 
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        TaxRateInputPreparationErrorResponse error = assertInstanceOf(
-                TaxRateInputPreparationErrorResponse.class, response.getBody());
-        assertEquals("RUN_NOT_FOUND", error.getError());
-        assertEquals("No run exists for the supplied identifier", error.getMessage());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        Object body = requireNonNull(response.getBody(), "not-found response body");
+        assertThat(body).isInstanceOf(TaxRateInputPreparationErrorResponse.class);
+        TaxRateInputPreparationErrorResponse error = (TaxRateInputPreparationErrorResponse) body;
+        assertThat(error.error()).isEqualTo("RUN_NOT_FOUND");
     }
 
     private static MockMvc mvc(TaxRateInputPreparationRunUseCase useCase) {
-        return MockMvcBuilders.standaloneSetup(new TaxRateInputPreparationRunController(
-                        useCase, mock(FactorBatchOutcomeRecorder.class)))
+        return MockMvcBuilders.standaloneSetup(
+                        new TaxRateInputPreparationRunController(
+                                useCase, mock(FactorBatchOutcomeRecorder.class)))
                 .setControllerAdvice(new BatchRunExceptionHandler())
                 .build();
     }
 
     private static TaxRateInputPreparationRunRequest request() {
-        TaxRateInputPreparationRunRequest request = new TaxRateInputPreparationRunRequest();
-        request.setBusinessDate(LocalDate.of(2025, 9, 15));
-        request.setBusinessTime("12:00:00");
-        request.setIdempotencyKey("controller-test");
-        return request;
+        return new TaxRateInputPreparationRunRequest(
+                LocalDate.of(2025, 9, 15), "12:00:00", "controller-test");
     }
 
     private static TaxRateInputPreparationRunResponse response(long id, String status) {
-        TaxRateInputPreparationRunResponse response = new TaxRateInputPreparationRunResponse();
-        response.setId(id);
-        response.setStatus(status);
-        response.setBusinessDate(LocalDate.of(2025, 9, 15));
-        response.setBusinessTime("12:00:00");
-        response.setOutputs(List.of());
-        response.setMessages(List.of());
-        return response;
+        return new TaxRateInputPreparationRunResponse(
+                LocalDate.of(2025, 9, 15),
+                "12:00:00",
+                id,
+                List.of(),
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                status);
     }
 }

@@ -1,219 +1,461 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
+import org.jspecify.annotations.Nullable;
 
-// GENERATED-IMPORTS:start
+import java.math.BigDecimal;
 
-// GENERATED-IMPORTS:end
-
+/// Mutable persistence boundary for one assessment parcel.
+///
+/// Fields are nullable before JPA hydration. The canonical mapper establishes the complete domain
+/// contract after hydration and preserves all twelve valuation slots and the optimistic-lock
+/// version.
 @Entity
 @Table(name = "assessment_parcels")
 public class AssessmentParcelEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private @Nullable Long id;
 
-    // GENERATED-FIELDS:start
+    @Version private @Nullable Long version;
 
-    @Column(name = "archived_pre_conversion_proposed_total")
-    private Long archivedPreConversionProposedTotal;
+    @Column(name = "archived_pre_conversion_proposed_total", precision = 9, scale = 0)
+    private @Nullable BigDecimal archivedPreConversionProposedTotal;
 
     @Column(name = "assessment_status")
-    private String assessmentStatus;
+    private @Nullable String assessmentStatus;
 
     @Column(name = "clerk_major_class")
-    private String clerkMajorClass;
+    private @Nullable String clerkMajorClass;
 
-    @Column(name = "combined_homeowner_non_homeowner_value")
-    private Long combinedHomeownerNonHomeownerValue;
+    @Column(name = "combined_homeowner_non_homeowner_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal combinedHomeownerNonHomeownerValue;
 
-    @Column(name = "current_improvement_value")
-    private Long currentImprovementValue;
+    @Column(name = "current_improvement_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal currentImprovementValue;
 
-    @Column(name = "current_land_value")
-    private Long currentLandValue;
+    @Column(name = "current_land_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal currentLandValue;
 
-    @Column(name = "current_total_value")
-    private Long currentTotalValue;
+    @Column(name = "current_total_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal currentTotalValue;
 
     @Column(name = "detail_questionnaire_count")
-    private Integer detailQuestionnaireCount;
+    private @Nullable Integer detailQuestionnaireCount;
 
-    @Column(name = "farm_value")
-    private Long farmValue;
+    @Column(name = "farm_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal farmValue;
 
     @Column(name = "overall_class")
-    private Integer overallClass;
+    private @Nullable Integer overallClass;
 
-    @Column(name = "parcel_number")
-    private Long parcelNumber;
+    @Column(name = "parcel_number", length = 16)
+    private @Nullable String parcelNumber;
 
     @Column(name = "parcel_status")
-    private String parcelStatus;
+    private @Nullable String parcelStatus;
 
-    @Column(name = "prior_improvement_value")
-    private Long priorImprovementValue;
+    @Column(name = "prior_improvement_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal priorImprovementValue;
 
-    @Column(name = "prior_land_value")
-    private Long priorLandValue;
+    @Column(name = "prior_land_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal priorLandValue;
 
-    @Column(name = "prior_total_value")
-    private Long priorTotalValue;
+    @Column(name = "prior_total_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal priorTotalValue;
 
+    @Column(name = "proposed_improvement_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal proposedImprovementValue;
 
-    @Column(name = "proposed_improvement_value")
-    private Long proposedImprovementValue;
+    @Column(name = "proposed_land_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal proposedLandValue;
 
-    @Column(name = "proposed_land_value")
-    private Long proposedLandValue;
-
-    @Column(name = "proposed_total_value")
-    private Long proposedTotalValue;
+    @Column(name = "proposed_total_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal proposedTotalValue;
 
     @Column(name = "sales_segment_count")
-    private Integer salesSegmentCount;
+    private @Nullable Integer salesSegmentCount;
 
-    @Column(name = "tax_code")
-    private Integer taxCode;
+    @Column(name = "tax_code", length = 6)
+    private @Nullable String taxCode;
 
     @Column(name = "tax_type")
-    private String taxType;
+    private @Nullable String taxType;
 
-    @Column(name = "volume_number")
-    private Integer volumeNumber;
-
-
-
-    // GENERATED-FIELDS:end
+    @Column(name = "volume_number", length = 4)
+    private @Nullable String volumeNumber;
 
     @Column(name = "prior_parcel_status", insertable = false, updatable = false)
-    private String priorParcelStatus;
+    private @Nullable String priorParcelStatus;
 
-    @Column(name = "eifd_prior_land_value", insertable = false, updatable = false)
-    private Long eifdPriorLandValue;
+    @Column(name = "property_division_number", length = 14, insertable = false, updatable = false)
+    private @Nullable String propertyDivisionNumber;
 
-    @Column(name = "eifd_prior_improvement_value", insertable = false, updatable = false)
-    private Long eifdPriorImprovementValue;
+    @Column(name = "eifd_prior_land_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal eifdPriorLandValue;
 
-    @Column(name = "eifd_prior_total_value", insertable = false, updatable = false)
-    private Long eifdPriorTotalValue;
+    @Column(name = "eifd_prior_improvement_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal eifdPriorImprovementValue;
 
-    @Column(name = "eifd_current_land_value", insertable = false, updatable = false)
-    private Long eifdCurrentLandValue;
+    @Column(name = "eifd_prior_total_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal eifdPriorTotalValue;
 
-    @Column(name = "eifd_current_improvement_value", insertable = false, updatable = false)
-    private Long eifdCurrentImprovementValue;
+    @Column(name = "eifd_current_land_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal eifdCurrentLandValue;
 
-    @Column(name = "eifd_current_total_value", insertable = false, updatable = false)
-    private Long eifdCurrentTotalValue;
+    @Column(name = "eifd_current_improvement_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal eifdCurrentImprovementValue;
 
-    // GENERATED-ACCESSORS:start
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    @Column(name = "eifd_current_total_value", precision = 9, scale = 0)
+    private @Nullable BigDecimal eifdCurrentTotalValue;
 
+    /// Creates an unhydrated entity for JPA or the canonical mapper.
+    public AssessmentParcelEntity() {}
 
-    public Long getArchivedPreConversionProposedTotal() { return archivedPreConversionProposedTotal; }
-    public void setArchivedPreConversionProposedTotal(Long archivedPreConversionProposedTotal) { this.archivedPreConversionProposedTotal = archivedPreConversionProposedTotal; }
+    /// Returns the generated persistence identity, or `null` before hydration or when its input is
+    /// absent.
+    public @Nullable Long getId() {
+        return id;
+    }
 
+    /// Sets the generated persistence identity during hydration or complete domain mapping.
+    public void setId(@Nullable Long id) {
+        this.id = id;
+    }
 
-    public String getAssessmentStatus() { return assessmentStatus; }
-    public void setAssessmentStatus(String assessmentStatus) { this.assessmentStatus = assessmentStatus; }
+    /// Returns the optimistic-lock version, or `null` before hydration or when its input is absent.
+    public @Nullable Long getVersion() {
+        return version;
+    }
 
+    /// Sets the optimistic-lock version during hydration or complete domain mapping.
+    public void setVersion(@Nullable Long version) {
+        this.version = version;
+    }
 
-    public String getClerkMajorClass() { return clerkMajorClass; }
-    public void setClerkMajorClass(String clerkMajorClass) { this.clerkMajorClass = clerkMajorClass; }
+    /// Returns the archived pre-conversion proposed total, or `null` before hydration or when its
+    /// input is absent.
+    public @Nullable BigDecimal getArchivedPreConversionProposedTotal() {
+        return archivedPreConversionProposedTotal;
+    }
 
+    /// Sets the archived pre-conversion proposed total during hydration or complete domain mapping.
+    public void setArchivedPreConversionProposedTotal(
+            @Nullable BigDecimal archivedPreConversionProposedTotal) {
+        this.archivedPreConversionProposedTotal = archivedPreConversionProposedTotal;
+    }
 
-    public Long getCombinedHomeownerNonHomeownerValue() { return combinedHomeownerNonHomeownerValue; }
-    public void setCombinedHomeownerNonHomeownerValue(Long combinedHomeownerNonHomeownerValue) { this.combinedHomeownerNonHomeownerValue = combinedHomeownerNonHomeownerValue; }
+    /// Returns the assessment status, or `null` before hydration or when its input is absent.
+    public @Nullable String getAssessmentStatus() {
+        return assessmentStatus;
+    }
 
+    /// Sets the assessment status during hydration or complete domain mapping.
+    public void setAssessmentStatus(@Nullable String assessmentStatus) {
+        this.assessmentStatus = assessmentStatus;
+    }
 
-    public Long getCurrentImprovementValue() { return currentImprovementValue; }
-    public void setCurrentImprovementValue(Long currentImprovementValue) { this.currentImprovementValue = currentImprovementValue; }
+    /// Returns the Clerk major class, or `null` before hydration or when its input is absent.
+    public @Nullable String getClerkMajorClass() {
+        return clerkMajorClass;
+    }
 
+    /// Sets the Clerk major class during hydration or complete domain mapping.
+    public void setClerkMajorClass(@Nullable String clerkMajorClass) {
+        this.clerkMajorClass = clerkMajorClass;
+    }
 
-    public Long getCurrentLandValue() { return currentLandValue; }
-    public void setCurrentLandValue(Long currentLandValue) { this.currentLandValue = currentLandValue; }
+    /// Returns the combined homeowner and non-homeowner value, or `null` before hydration or when
+    /// its input is absent.
+    public @Nullable BigDecimal getCombinedHomeownerNonHomeownerValue() {
+        return combinedHomeownerNonHomeownerValue;
+    }
 
+    /// Sets the combined homeowner and non-homeowner value during hydration or complete domain
+    /// mapping.
+    public void setCombinedHomeownerNonHomeownerValue(
+            @Nullable BigDecimal combinedHomeownerNonHomeownerValue) {
+        this.combinedHomeownerNonHomeownerValue = combinedHomeownerNonHomeownerValue;
+    }
 
-    public Long getCurrentTotalValue() { return currentTotalValue; }
-    public void setCurrentTotalValue(Long currentTotalValue) { this.currentTotalValue = currentTotalValue; }
+    /// Returns the current improvement value, or `null` before hydration or when its input is
+    /// absent.
+    public @Nullable BigDecimal getCurrentImprovementValue() {
+        return currentImprovementValue;
+    }
 
+    /// Sets the current improvement value during hydration or complete domain mapping.
+    public void setCurrentImprovementValue(@Nullable BigDecimal currentImprovementValue) {
+        this.currentImprovementValue = currentImprovementValue;
+    }
 
-    public Integer getDetailQuestionnaireCount() { return detailQuestionnaireCount; }
-    public void setDetailQuestionnaireCount(Integer detailQuestionnaireCount) { this.detailQuestionnaireCount = detailQuestionnaireCount; }
+    /// Returns the current land value, or `null` before hydration or when its input is absent.
+    public @Nullable BigDecimal getCurrentLandValue() {
+        return currentLandValue;
+    }
 
+    /// Sets the current land value during hydration or complete domain mapping.
+    public void setCurrentLandValue(@Nullable BigDecimal currentLandValue) {
+        this.currentLandValue = currentLandValue;
+    }
 
-    public Long getFarmValue() { return farmValue; }
-    public void setFarmValue(Long farmValue) { this.farmValue = farmValue; }
+    /// Returns the current total value, or `null` before hydration or when its input is absent.
+    public @Nullable BigDecimal getCurrentTotalValue() {
+        return currentTotalValue;
+    }
 
+    /// Sets the current total value during hydration or complete domain mapping.
+    public void setCurrentTotalValue(@Nullable BigDecimal currentTotalValue) {
+        this.currentTotalValue = currentTotalValue;
+    }
 
-    public Integer getOverallClass() { return overallClass; }
-    public void setOverallClass(Integer overallClass) { this.overallClass = overallClass; }
+    /// Returns the detail and questionnaire count, or `null` before hydration or when its input is
+    /// absent.
+    public @Nullable Integer getDetailQuestionnaireCount() {
+        return detailQuestionnaireCount;
+    }
 
+    /// Sets the detail and questionnaire count during hydration or complete domain mapping.
+    public void setDetailQuestionnaireCount(@Nullable Integer detailQuestionnaireCount) {
+        this.detailQuestionnaireCount = detailQuestionnaireCount;
+    }
 
-    public Long getParcelNumber() { return parcelNumber; }
-    public void setParcelNumber(Long parcelNumber) { this.parcelNumber = parcelNumber; }
+    /// Returns the farm value, or `null` before hydration or when its input is absent.
+    public @Nullable BigDecimal getFarmValue() {
+        return farmValue;
+    }
 
+    /// Sets the farm value during hydration or complete domain mapping.
+    public void setFarmValue(@Nullable BigDecimal farmValue) {
+        this.farmValue = farmValue;
+    }
 
-    public String getParcelStatus() { return parcelStatus; }
-    public void setParcelStatus(String parcelStatus) { this.parcelStatus = parcelStatus; }
+    /// Returns the selected overall class, or `null` before hydration or when its input is absent.
+    public @Nullable Integer getOverallClass() {
+        return overallClass;
+    }
 
+    /// Sets the selected overall class during hydration or complete domain mapping.
+    public void setOverallClass(@Nullable Integer overallClass) {
+        this.overallClass = overallClass;
+    }
 
-    public Long getPriorImprovementValue() { return priorImprovementValue; }
-    public void setPriorImprovementValue(Long priorImprovementValue) { this.priorImprovementValue = priorImprovementValue; }
+    /// Returns the parcel identifier, or `null` before hydration or when its input is absent.
+    public @Nullable String getParcelNumber() {
+        return parcelNumber;
+    }
 
+    /// Sets the parcel identifier during hydration or complete domain mapping.
+    public void setParcelNumber(@Nullable String parcelNumber) {
+        this.parcelNumber = parcelNumber;
+    }
 
-    public Long getPriorLandValue() { return priorLandValue; }
-    public void setPriorLandValue(Long priorLandValue) { this.priorLandValue = priorLandValue; }
+    /// Returns the parcel status, or `null` before hydration or when its input is absent.
+    public @Nullable String getParcelStatus() {
+        return parcelStatus;
+    }
 
+    /// Sets the parcel status during hydration or complete domain mapping.
+    public void setParcelStatus(@Nullable String parcelStatus) {
+        this.parcelStatus = parcelStatus;
+    }
 
-    public Long getPriorTotalValue() { return priorTotalValue; }
-    public void setPriorTotalValue(Long priorTotalValue) { this.priorTotalValue = priorTotalValue; }
+    /// Returns the prior improvement value, or `null` before hydration or when its input is absent.
+    public @Nullable BigDecimal getPriorImprovementValue() {
+        return priorImprovementValue;
+    }
 
+    /// Sets the prior improvement value during hydration or complete domain mapping.
+    public void setPriorImprovementValue(@Nullable BigDecimal priorImprovementValue) {
+        this.priorImprovementValue = priorImprovementValue;
+    }
 
+    /// Returns the prior land value, or `null` before hydration or when its input is absent.
+    public @Nullable BigDecimal getPriorLandValue() {
+        return priorLandValue;
+    }
 
-    public Long getProposedImprovementValue() { return proposedImprovementValue; }
-    public void setProposedImprovementValue(Long proposedImprovementValue) { this.proposedImprovementValue = proposedImprovementValue; }
+    /// Sets the prior land value during hydration or complete domain mapping.
+    public void setPriorLandValue(@Nullable BigDecimal priorLandValue) {
+        this.priorLandValue = priorLandValue;
+    }
 
+    /// Returns the prior total value, or `null` before hydration or when its input is absent.
+    public @Nullable BigDecimal getPriorTotalValue() {
+        return priorTotalValue;
+    }
 
-    public Long getProposedLandValue() { return proposedLandValue; }
-    public void setProposedLandValue(Long proposedLandValue) { this.proposedLandValue = proposedLandValue; }
+    /// Sets the prior total value during hydration or complete domain mapping.
+    public void setPriorTotalValue(@Nullable BigDecimal priorTotalValue) {
+        this.priorTotalValue = priorTotalValue;
+    }
 
+    /// Returns the proposed improvement value, or `null` before hydration or when its input is
+    /// absent.
+    public @Nullable BigDecimal getProposedImprovementValue() {
+        return proposedImprovementValue;
+    }
 
-    public Long getProposedTotalValue() { return proposedTotalValue; }
-    public void setProposedTotalValue(Long proposedTotalValue) { this.proposedTotalValue = proposedTotalValue; }
+    /// Sets the proposed improvement value during hydration or complete domain mapping.
+    public void setProposedImprovementValue(@Nullable BigDecimal proposedImprovementValue) {
+        this.proposedImprovementValue = proposedImprovementValue;
+    }
 
+    /// Returns the proposed land value, or `null` before hydration or when its input is absent.
+    public @Nullable BigDecimal getProposedLandValue() {
+        return proposedLandValue;
+    }
 
-    public Integer getSalesSegmentCount() { return salesSegmentCount; }
-    public void setSalesSegmentCount(Integer salesSegmentCount) { this.salesSegmentCount = salesSegmentCount; }
+    /// Sets the proposed land value during hydration or complete domain mapping.
+    public void setProposedLandValue(@Nullable BigDecimal proposedLandValue) {
+        this.proposedLandValue = proposedLandValue;
+    }
 
+    /// Returns the proposed total value, or `null` before hydration or when its input is absent.
+    public @Nullable BigDecimal getProposedTotalValue() {
+        return proposedTotalValue;
+    }
 
-    public Integer getTaxCode() { return taxCode; }
-    public void setTaxCode(Integer taxCode) { this.taxCode = taxCode; }
+    /// Sets the proposed total value during hydration or complete domain mapping.
+    public void setProposedTotalValue(@Nullable BigDecimal proposedTotalValue) {
+        this.proposedTotalValue = proposedTotalValue;
+    }
 
+    /// Returns the embedded sale count, or `null` before hydration or when its input is absent.
+    public @Nullable Integer getSalesSegmentCount() {
+        return salesSegmentCount;
+    }
 
-    public String getTaxType() { return taxType; }
-    public void setTaxType(String taxType) { this.taxType = taxType; }
+    /// Sets the embedded sale count during hydration or complete domain mapping.
+    public void setSalesSegmentCount(@Nullable Integer salesSegmentCount) {
+        this.salesSegmentCount = salesSegmentCount;
+    }
 
+    /// Returns the tax code, or `null` before hydration or when its input is absent.
+    public @Nullable String getTaxCode() {
+        return taxCode;
+    }
 
-    public Integer getVolumeNumber() { return volumeNumber; }
-    public void setVolumeNumber(Integer volumeNumber) { this.volumeNumber = volumeNumber; }
+    /// Sets the tax code during hydration or complete domain mapping.
+    public void setTaxCode(@Nullable String taxCode) {
+        this.taxCode = taxCode;
+    }
 
+    /// Returns the tax type, or `null` before hydration or when its input is absent.
+    public @Nullable String getTaxType() {
+        return taxType;
+    }
 
+    /// Sets the tax type during hydration or complete domain mapping.
+    public void setTaxType(@Nullable String taxType) {
+        this.taxType = taxType;
+    }
 
-    // GENERATED-ACCESSORS:end
+    /// Returns the volume number, or `null` before hydration or when its input is absent.
+    public @Nullable String getVolumeNumber() {
+        return volumeNumber;
+    }
 
-    public String getPriorParcelStatus() { return priorParcelStatus; }
-    public void setPriorParcelStatus(String priorParcelStatus) { this.priorParcelStatus = priorParcelStatus; }
+    /// Sets the volume number during hydration or complete domain mapping.
+    public void setVolumeNumber(@Nullable String volumeNumber) {
+        this.volumeNumber = volumeNumber;
+    }
 
-    public Long getEifdPriorLandValue() { return eifdPriorLandValue; }
-    public Long getEifdPriorImprovementValue() { return eifdPriorImprovementValue; }
-    public Long getEifdPriorTotalValue() { return eifdPriorTotalValue; }
-    public Long getEifdCurrentLandValue() { return eifdCurrentLandValue; }
-    public Long getEifdCurrentImprovementValue() { return eifdCurrentImprovementValue; }
-    public Long getEifdCurrentTotalValue() { return eifdCurrentTotalValue; }
+    /// Returns the prior increment-input parcel status, or `null` before hydration or when its
+    /// input is absent.
+    public @Nullable String getPriorParcelStatus() {
+        return priorParcelStatus;
+    }
+
+    /// Sets the prior increment-input parcel status during hydration or complete domain mapping.
+    public void setPriorParcelStatus(@Nullable String priorParcelStatus) {
+        this.priorParcelStatus = priorParcelStatus;
+    }
+
+    /// Returns the increment-input division key, or `null` before hydration or when its input is
+    /// absent.
+    public @Nullable String getPropertyDivisionNumber() {
+        return propertyDivisionNumber;
+    }
+
+    /// Sets the increment-input division key during hydration or complete domain mapping.
+    public void setPropertyDivisionNumber(@Nullable String propertyDivisionNumber) {
+        this.propertyDivisionNumber = propertyDivisionNumber;
+    }
+
+    /// Returns the increment-input prior land value, or `null` before hydration or when its input
+    /// is absent.
+    public @Nullable BigDecimal getEifdPriorLandValue() {
+        return eifdPriorLandValue;
+    }
+
+    /// Sets the increment-input prior land value during hydration or complete domain mapping.
+    public void setEifdPriorLandValue(@Nullable BigDecimal eifdPriorLandValue) {
+        this.eifdPriorLandValue = eifdPriorLandValue;
+    }
+
+    /// Returns the increment-input prior improvement value, or `null` before hydration or when its
+    /// input is absent.
+    public @Nullable BigDecimal getEifdPriorImprovementValue() {
+        return eifdPriorImprovementValue;
+    }
+
+    /// Sets the increment-input prior improvement value during hydration or complete domain
+    /// mapping.
+    public void setEifdPriorImprovementValue(@Nullable BigDecimal eifdPriorImprovementValue) {
+        this.eifdPriorImprovementValue = eifdPriorImprovementValue;
+    }
+
+    /// Returns the increment-input prior total value, or `null` before hydration or when its input
+    /// is absent.
+    public @Nullable BigDecimal getEifdPriorTotalValue() {
+        return eifdPriorTotalValue;
+    }
+
+    /// Sets the increment-input prior total value during hydration or complete domain mapping.
+    public void setEifdPriorTotalValue(@Nullable BigDecimal eifdPriorTotalValue) {
+        this.eifdPriorTotalValue = eifdPriorTotalValue;
+    }
+
+    /// Returns the increment-input current land value, or `null` before hydration or when its input
+    /// is absent.
+    public @Nullable BigDecimal getEifdCurrentLandValue() {
+        return eifdCurrentLandValue;
+    }
+
+    /// Sets the increment-input current land value during hydration or complete domain mapping.
+    public void setEifdCurrentLandValue(@Nullable BigDecimal eifdCurrentLandValue) {
+        this.eifdCurrentLandValue = eifdCurrentLandValue;
+    }
+
+    /// Returns the increment-input current improvement value, or `null` before hydration or when
+    /// its input is absent.
+    public @Nullable BigDecimal getEifdCurrentImprovementValue() {
+        return eifdCurrentImprovementValue;
+    }
+
+    /// Sets the increment-input current improvement value during hydration or complete domain
+    /// mapping.
+    public void setEifdCurrentImprovementValue(@Nullable BigDecimal eifdCurrentImprovementValue) {
+        this.eifdCurrentImprovementValue = eifdCurrentImprovementValue;
+    }
+
+    /// Returns the increment-input current total value, or `null` before hydration or when its
+    /// input is absent.
+    public @Nullable BigDecimal getEifdCurrentTotalValue() {
+        return eifdCurrentTotalValue;
+    }
+
+    /// Sets the increment-input current total value during hydration or complete domain mapping.
+    public void setEifdCurrentTotalValue(@Nullable BigDecimal eifdCurrentTotalValue) {
+        this.eifdCurrentTotalValue = eifdCurrentTotalValue;
+    }
 }

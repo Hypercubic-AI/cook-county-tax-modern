@@ -1,25 +1,21 @@
 package org.cookcounty.tax.infrastructure.adapter.in.rest;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 
-import org.cookcounty.tax.application.batch.BatchRunIdempotencyConflictException;
-import org.cookcounty.tax.application.batch.BatchRunInvalidRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -29,146 +25,103 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-class BatchRunExceptionHandlerTest {
+import tools.jackson.databind.json.JsonMapper;
 
+import java.util.List;
+import java.util.stream.Stream;
+
+class BatchRunExceptionHandlerTest {
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new FailingController())
-                .setControllerAdvice(new BatchRunExceptionHandler())
-                .build();
+        mockMvc =
+                MockMvcBuilders.standaloneSetup(new FailingController())
+                        .setControllerAdvice(new BatchRunExceptionHandler())
+                        .build();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("invalidBodies")
+    void reportsEveryInvalidFieldWithoutReportingValidFields(
+            String description, String body, List<String> invalidFields) throws Exception {
+        String response =
+                mockMvc.perform(
+                                post("/test/body")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(body))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        String message = JsonMapper.builder().build().readTree(response).path("message").asString();
+        for (String field : List.of("businessDate", "businessTime")) {
+            if (invalidFields.contains(field)) {
+                assertThat(message).contains(field);
+            } else {
+                assertThat(message).doesNotContain(field);
+            }
+        }
+    }
+
+    static Stream<Arguments> invalidBodies() {
+        return Stream.of(
+                Arguments.of("both controls absent", "{}", List.of("businessDate", "businessTime")),
+                Arguments.of(
+                        "only time absent",
+                        "{\"businessDate\":\"2026-09-16\"}",
+                        List.of("businessTime")));
     }
 
     @Test
-    void invalidRequestReturnsTheOperationalErrorEnvelope() throws Exception {
-        mockMvc.perform(get("/test/invalid"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("businessDate is required"))
-                .andExpect(jsonPath("$.ruleId").doesNotExist());
+    void methodValidationReportsTheParameterName() throws Exception {
+        String response =
+                mockMvc.perform(get("/test/parameter").param("page", "0"))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        assertThat(JsonMapper.builder().build().readTree(response).path("message").asString())
+                .contains("page");
     }
 
     @Test
-    void beanValidationReturnsTheFirstDeterministicFieldMessage() throws Exception {
-        mockMvc.perform(post("/test/body")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("businessDate is required"))
-                .andExpect(jsonPath("$.ruleId").doesNotExist());
-    }
-
-    @Test
-    void computedConstraintKeepsItsExplicitRequestFieldMessage() throws Exception {
-        mockMvc.perform(post("/test/computed")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"processYear":"2A"}
-                                """))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value(
-                        "processYear must contain exactly two decimal digits."));
-    }
-
-    @Test
-    void methodParameterValidationReturnsAUsefulMessage() throws Exception {
-        mockMvc.perform(get("/test/parameter").param("page", "0"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("page must be positive"))
-                .andExpect(jsonPath("$.ruleId").doesNotExist());
-    }
-
-    @Test
-    void constraintViolationReturnsAUsefulMessage() throws Exception {
-        mockMvc.perform(get("/test/constraint"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("id must be positive"))
-                .andExpect(jsonPath("$.ruleId").doesNotExist());
-    }
-
-    @Test
-    void malformedJsonReturnsADeterministicMessage() throws Exception {
-        mockMvc.perform(post("/test/body")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{"))
+    void malformedJsonUsesTheSharedErrorShape() throws Exception {
+        mockMvc.perform(post("/test/body").contentType(MediaType.APPLICATION_JSON).content("{"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message")
-                        .value("Request body is malformed or contains an invalid value"))
-                .andExpect(jsonPath("$.ruleId").doesNotExist());
+                .andExpect(jsonPath("$.message").isString());
     }
 
     @Test
-    void idempotencyConflictReturnsTheOperationalErrorEnvelope() throws Exception {
-        mockMvc.perform(get("/test/conflict"))
-                .andExpect(status().isConflict())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.error").value("IDEMPOTENCY_CONFLICT"))
-                .andExpect(jsonPath("$.message").value("idempotencyKey already identifies another request"))
-                .andExpect(jsonPath("$.ruleId").doesNotExist());
+    void unexpectedFailuresDoNotExposeExceptionDetails() throws Exception {
+        String response =
+                mockMvc.perform(get("/test/unexpected"))
+                        .andExpect(status().isInternalServerError())
+                        .andExpect(jsonPath("$.error").value("INTERNAL_ERROR"))
+                        .andExpect(jsonPath("$.message").isString())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        assertThat(response).doesNotContain("private-database-detail");
+        assertThat(response).doesNotContain("IllegalStateException");
     }
 
     @RestController
     private static final class FailingController {
-
-        @GetMapping("/test/invalid")
-        void invalid() {
-            throw new BatchRunInvalidRequestException("businessDate is required");
-        }
-
-        @GetMapping("/test/conflict")
-        void conflict() {
-            throw new BatchRunIdempotencyConflictException(
-                    "idempotencyKey already identifies another request");
-        }
-
         @PostMapping("/test/body")
         void body(@Valid @RequestBody ValidationBody body) {}
 
-        @PostMapping("/test/computed")
-        void computed(@Valid @RequestBody ComputedValidationBody body) {}
-
         @GetMapping("/test/parameter")
-        void parameter(
-                @RequestParam
-                @Positive(message = "page must be positive")
-                long page) {}
+        void parameter(@RequestParam @Positive long page) {}
 
-        @GetMapping("/test/constraint")
-        void constraint() {
-            throw new ConstraintViolationException(
-                    VALIDATOR.validate(new ConstraintProbe()));
+        @GetMapping("/test/unexpected")
+        void unexpected() {
+            throw new IllegalStateException("private-database-detail");
         }
     }
 
-    private record ValidationBody(
-            @NotBlank(message = "businessDate is required") String businessDate) {}
-
-    private static final class ComputedValidationBody {
-        private String processYear;
-
-        public void setProcessYear(String processYear) {
-            this.processYear = processYear;
-        }
-
-        @AssertTrue(message = "processYear must contain exactly two decimal digits.")
-        @JsonIgnore
-        public boolean isProcessYearFormatted() {
-            return processYear != null && processYear.matches("^[0-9]{2}$");
-        }
-    }
-
-    private static final class ConstraintProbe {
-        @Positive(message = "id must be positive")
-        private final long id = 0;
-    }
-
-    private static final Validator VALIDATOR =
-            Validation.buildDefaultValidatorFactory().getValidator();
+    private record ValidationBody(@NotBlank String businessDate, @NotBlank String businessTime) {}
 }

@@ -1,18 +1,12 @@
 package org.cookcounty.tax.application.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
+import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,34 +21,121 @@ import org.cookcounty.tax.application.service.PropertyTaxExemptionsProcessor.Rul
 import org.cookcounty.tax.domain.model.AssessmentParcel;
 import org.cookcounty.tax.domain.model.HomeownerExemption;
 import org.cookcounty.tax.domain.model.HomeownerMaster;
+import org.cookcounty.tax.domain.model.PropertyTaxRenewal;
 import org.cookcounty.tax.domain.port.out.AssessmentDetailRepository;
 import org.cookcounty.tax.domain.port.out.AssessmentParcelRepository;
 import org.cookcounty.tax.domain.port.out.HomeownerExemptionRepository;
 import org.cookcounty.tax.domain.port.out.HomeownerMasterRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
 
 class PropertyTaxExemptionsFactorOutcomeProjectorTest {
 
-    private static final List<ReviewedRoot> REVIEWED_ROOTS = List.of(
-            new ReviewedRoot(1, 10011000010000L, 10001, 202, 0, "1.000000", 1, 100000L),
-            new ReviewedRoot(9, 12022000020000L, 12001, 203, 1, "1.050000", 1, 125000L),
-            new ReviewedRoot(25, 13066000060000L, 13001, 201, 3, "0.950000", 1, 175000L),
-            new ReviewedRoot(36, 14077000070000L, 14001, 212, 4, "1.150000", 1, 325000L),
-            new ReviewedRoot(63, 20033000030000L, 20001, 295, 2, "1.100000", 1, 250000L),
-            new ReviewedRoot(86, 22055000050000L, 22001, 241, 6, "1.200000", 1, 750000L),
-            new ReviewedRoot(193, 37044000040000L, 37001, 299, 5, "0.500000", 12, 50000L),
-            new ReviewedRoot(350, 71011100110000L, 71001, 278, 7, "0.800000", 1, 80000L),
-            new ReviewedRoot(508, 76022200120000L, 76001, 297, 8, "1.250000", 1, 110000L),
-            new ReviewedRoot(528, 77033300130000L, 77001, 234, 9, "0.750000", 1, 90000L));
+    private static final List<ReviewedRoot> REVIEWED_ROOTS =
+            List.of(
+                    new ReviewedRoot(
+                            "001",
+                            "010011000010000",
+                            "10001",
+                            202,
+                            0,
+                            "1.000000",
+                            1,
+                            new BigDecimal("100000")),
+                    new ReviewedRoot(
+                            "009",
+                            "012022000020000",
+                            "12001",
+                            203,
+                            1,
+                            "1.050000",
+                            1,
+                            new BigDecimal("125000")),
+                    new ReviewedRoot(
+                            "025",
+                            "013066000060000",
+                            "13001",
+                            201,
+                            3,
+                            "0.950000",
+                            1,
+                            new BigDecimal("175000")),
+                    new ReviewedRoot(
+                            "036",
+                            "014077000070000",
+                            "14001",
+                            212,
+                            4,
+                            "1.150000",
+                            1,
+                            new BigDecimal("325000")),
+                    new ReviewedRoot(
+                            "063",
+                            "020033000030000",
+                            "20001",
+                            295,
+                            2,
+                            "1.100000",
+                            1,
+                            new BigDecimal("250000")),
+                    new ReviewedRoot(
+                            "086",
+                            "022055000050000",
+                            "22001",
+                            241,
+                            6,
+                            "1.200000",
+                            1,
+                            new BigDecimal("750000")),
+                    new ReviewedRoot(
+                            "193",
+                            "037044000040000",
+                            "37001",
+                            299,
+                            5,
+                            "0.500000",
+                            12,
+                            new BigDecimal("50000")),
+                    new ReviewedRoot(
+                            "350",
+                            "071011100110000",
+                            "71001",
+                            278,
+                            7,
+                            "0.800000",
+                            1,
+                            new BigDecimal("80000")),
+                    new ReviewedRoot(
+                            "508",
+                            "076022200120000",
+                            "76001",
+                            297,
+                            8,
+                            "1.250000",
+                            1,
+                            new BigDecimal("110000")),
+                    new ReviewedRoot(
+                            "528",
+                            "077033300130000",
+                            "77001",
+                            234,
+                            9,
+                            "0.750000",
+                            1,
+                            new BigDecimal("90000")));
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final PropertyTaxExemptionsFactorOutcomeProjector projector =
             new PropertyTaxExemptionsFactorOutcomeProjector();
 
     @Test
-    void enumeratedReviewedPathProjectsByteForByteHome852Golden() throws Exception {
+    void enumeratedReviewedPathProjectsByteForByteGolden() throws Exception {
         assertReviewedPath(
                 HomeownerVariant.ENUMERATED,
                 "HOME852",
@@ -65,7 +146,7 @@ class PropertyTaxExemptionsFactorOutcomeProjectorTest {
     }
 
     @Test
-    void broadReviewedPathProjectsByteForByteHome853Golden() throws Exception {
+    void broadReviewedPathProjectsByteForByteGolden() throws Exception {
         assertReviewedPath(
                 HomeownerVariant.BROAD,
                 "HOME853",
@@ -85,65 +166,93 @@ class PropertyTaxExemptionsFactorOutcomeProjectorTest {
         assertThat(outcome.batchDisplays()).containsExactly("database unavailable");
         assertThat(outcome.datasetDiffs()).isEmpty();
         assertThat(outcome.cataloged()).isEmpty();
-        assertThat(outcome.abend().code()).isEqualTo("MODERN_PROCESSING_FAILURE");
+        assertThat(requireNonNull(outcome.abend(), "failed outcome abend").code())
+                .isEqualTo("MODERN_PROCESSING_FAILURE");
         assertThat(outcome.rolledBack()).isTrue();
     }
 
     private void assertReviewedPath(
             HomeownerVariant variant,
             String job,
-            String variantProgram,
+            String eligibilityGenerationProgram,
             String goldenFile,
             String selectedRulePrefix,
-            String excludedRulePrefix) throws Exception {
-        ProcessResult result = reviewedProcessor().process(
-                LocalDate.of(2025, 9, 15), "12:00:00", variant);
+            String excludedRulePrefix)
+            throws Exception {
+        ProcessResult result =
+                reviewedProcessor().process(LocalDate.of(2025, 9, 15), "12:00:00", variant);
         Outcome outcome = projector.project(variant, result);
 
-        JsonNode expected = objectMapper.readTree(repositoryFile("goldens", goldenFile).toFile());
+        JsonNode expected =
+                objectMapper.readTree(ReviewedFixture.string("goldens/" + goldenFile));
         assertThat(goldenObservable(job, outcome)).isEqualTo(expected);
 
         Cataloged errors = cataloged(outcome, "output/ASREA841-ERRPRINT.dat");
-        Cataloged eligibility = cataloged(
-                outcome, "output/" + variantProgram + "-PRNTOUT.dat");
-        Cataloged homeout = cataloged(
-                outcome, "output/ASREA859-HOMEOUT--ASHMOWFD01.dat");
+        Cataloged eligibility =
+                cataloged(outcome, "output/" + eligibilityGenerationProgram + "-PRNTOUT.dat");
+        Cataloged annualExemptionOutput =
+                cataloged(outcome, "output/ASREA859-HOMEOUT--ASHMOWFD01.dat");
         assertThat(errors.records()).isEqualTo(9);
         assertThat(errors.recordDataBase64()).hasSize(9);
-        assertThat(eligibility.recordData().subList(0, 10))
-                .allSatisfy(record -> assertThat(record)
-                        .hasSize(133)
-                        .contains("PARCEL IS NON-RESIDENTIAL"));
-        assertThat(homeout.records()).isZero();
-        outcome.cataloged().forEach(output -> assertThat(output.recordDataBase64())
-                .containsExactlyElementsOf(output.recordData().stream()
-                        .map(record -> Base64.getEncoder().encodeToString(
-                                record.getBytes(StandardCharsets.UTF_8)))
-                        .toList()));
-        assertThat(homeout.recordData()).isEmpty();
+        for (String record : eligibility.recordData().subList(0, 10)) {
+            assertThat(record).hasLength(133);
+            assertThat(record).contains("PARCEL IS NON-RESIDENTIAL");
+        }
+        assertThat(annualExemptionOutput.records()).isEqualTo(0);
+        outcome.cataloged()
+                .forEach(
+                        output ->
+                                assertThat(output.recordDataBase64())
+                                        .containsExactlyElementsIn(
+                                                output.recordData().stream()
+                                                        .map(
+                                                                record ->
+                                                                        Base64.getEncoder()
+                                                                                .encodeToString(
+                                                                                        record
+                                                                                                .getBytes(
+                                                                                                        StandardCharsets
+                                                                                                                .UTF_8)))
+                                                        .toList())
+                                        .inOrder());
+        assertThat(annualExemptionOutput.recordData()).isEmpty();
         assertThat(outcome.outputs()).isEmpty();
         assertThat(outcome.datasetDiffs()).isEmpty();
         assertThat(outcome.batchDisplays())
                 .containsExactly("PROGRAM ASREA841 DATE AND TIME OF RUN =  25/09/20   01200");
-        assertThat(outcome.steps()).allSatisfy(step -> {
-            assertThat(step.returnCode()).isZero();
+        for (var step : outcome.steps()) {
+            assertThat(step.returnCode()).isEqualTo(0);
             assertThat(step.skipped()).isFalse();
             assertThat(step.completionCode()).isNull();
             assertThat(step.messages()).isEmpty();
             assertThat(step.datasetOps()).isEmpty();
-        });
-        assertThat(homeout.recordDataBase64()).isEmpty();
-        assertThat(outcome.steps().get(2).program()).isEqualTo(variantProgram);
-        assertThat(result.ruleOutcomes())
-                .filteredOn(rule -> rule.ruleId().startsWith(selectedRulePrefix))
-                .hasSize(6)
-                .extracting(RuleDisposition::outcome)
-                .containsOnly("APPLIED");
-        assertThat(result.ruleOutcomes())
-                .filteredOn(rule -> rule.ruleId().startsWith(excludedRulePrefix))
-                .extracting(RuleDisposition::outcome)
-                .hasSize(6)
-                .containsOnly("NOT_APPLICABLE");
+        }
+        assertThat(annualExemptionOutput.recordDataBase64()).isEmpty();
+        assertThat(outcome.steps().get(2).program()).isEqualTo(eligibilityGenerationProgram);
+        List<String> selectedOutcomes =
+                result.ruleOutcomes().stream()
+                        .filter(rule -> rule.ruleId().startsWith(selectedRulePrefix))
+                        .map(RuleDisposition::outcome)
+                        .toList();
+        assertThat(selectedOutcomes).hasSize(6);
+        assertThat(selectedOutcomes)
+                .containsExactlyElementsIn(
+                        List.of("APPLIED", "APPLIED", "APPLIED", "APPLIED", "APPLIED", "APPLIED"));
+        List<String> excludedOutcomes =
+                result.ruleOutcomes().stream()
+                        .filter(rule -> rule.ruleId().startsWith(excludedRulePrefix))
+                        .map(RuleDisposition::outcome)
+                        .toList();
+        assertThat(excludedOutcomes).hasSize(6);
+        assertThat(excludedOutcomes)
+                .containsExactlyElementsIn(
+                        List.of(
+                                "NOT_APPLICABLE",
+                                "NOT_APPLICABLE",
+                                "NOT_APPLICABLE",
+                                "NOT_APPLICABLE",
+                                "NOT_APPLICABLE",
+                                "NOT_APPLICABLE"));
     }
 
     private JsonNode goldenObservable(String job, Outcome outcome) {
@@ -168,30 +277,21 @@ class PropertyTaxExemptionsFactorOutcomeProjectorTest {
         }
 
         ArrayNode cataloged = root.putArray("catalogedOutputs");
-        outcome.cataloged().forEach(output -> {
-            ObjectNode projected = cataloged.addObject();
-            projected.put("dsn", output.dsn());
-            projected.put("generation", output.generation());
-            projected.put("recordCount", output.records());
-            if (!output.recordData().isEmpty()) {
-                ArrayNode records = projected.putArray("records");
-                output.recordData().forEach(records::add);
-            }
-        });
+        outcome.cataloged()
+                .forEach(
+                        output -> {
+                            ObjectNode projected = cataloged.addObject();
+                            projected.put("dsn", output.dsn());
+                            projected.put("generation", output.generation());
+                            projected.put("recordCount", output.records());
+                            if (!output.recordData().isEmpty()) {
+                                ArrayNode records = projected.putArray("records");
+                                output.recordData().forEach(records::add);
+                            }
+                        });
         return root;
     }
 
-    private static Path repositoryFile(String directory, String file) {
-        Path cursor = Path.of("").toAbsolutePath();
-        while (cursor != null) {
-            Path candidate = cursor.resolve(directory).resolve(file);
-            if (Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-            cursor = cursor.getParent();
-        }
-        throw new IllegalStateException("Repository fixture not found: " + directory + "/" + file);
-    }
 
     private static Cataloged cataloged(Outcome outcome, String dsn) {
         return outcome.cataloged().stream()
@@ -210,33 +310,65 @@ class PropertyTaxExemptionsFactorOutcomeProjectorTest {
         when(homeowners.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(parcels.findAllInInputOrder()).thenReturn(parcels());
         when(details.findAllInInputOrder()).thenReturn(List.of());
-        when(exemptions.findAll(any(Pageable.class)))
-                .thenReturn(new PageImpl<>(staleExemptions()));
+        when(exemptions.findAllInPersistenceOrder()).thenReturn(staleExemptions());
         when(exemptions.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         return new PropertyTaxExemptionsProcessor(
                 homeowners,
                 exemptions,
                 parcels,
                 details,
+                PropertyTaxExemptionsFactorOutcomeProjectorTest::renewals,
                 new PropertyTaxExemptionsKernel(new AssessmentDetailValuator()));
+    }
+
+    private static List<PropertyTaxRenewal> renewals() {
+        return List.of(
+                new PropertyTaxRenewal("10011000010000", "B0001"),
+                new PropertyTaxRenewal("12022000020000", "B0002"),
+                new PropertyTaxRenewal("13066000060000", "B0003"),
+                new PropertyTaxRenewal("14077000070000", "B0004"),
+                new PropertyTaxRenewal("20033000030000", "B0005"),
+                new PropertyTaxRenewal("37044000040000", "B0007"),
+                new PropertyTaxRenewal("76022200120000", "B0009"),
+                new PropertyTaxRenewal("12022000020000", "LOW01"),
+                new PropertyTaxRenewal("12500000000000", "MISS1"),
+                new PropertyTaxRenewal("60000000000000", "MISS2"));
     }
 
     private static List<HomeownerMaster> homeowners() {
         List<HomeownerMaster> result = new ArrayList<>();
         for (int index = 0; index < REVIEWED_ROOTS.size(); index++) {
             ReviewedRoot root = REVIEWED_ROOTS.get(index);
-            HomeownerMaster homeowner = new HomeownerMaster();
-            homeowner.setId((long) index + 1);
-            homeowner.setVolumeNumber(root.volume());
-            homeowner.setPropertyNumber(root.property());
-            homeowner.setTaxCode(root.taxCode());
-            homeowner.setAssessmentClass(root.assessmentClass());
-            homeowner.setApplicationYear(root.applicationYear());
-            homeowner.setProration(new BigDecimal(root.proration()));
-            homeowner.setCooperativeQuantity(root.cooperativeQuantity());
-            homeowner.setAssessedValue(root.assessedValue());
-            homeowner.setResponseStatus(0);
-            result.add(homeowner);
+            result.add(
+                    new HomeownerMaster(
+                            (long) index + 1,
+                            0L,
+                            root.applicationYear(),
+                            root.assessedValue(),
+                            root.assessmentClass(),
+                            null,
+                            null,
+                            root.cooperativeQuantity(),
+                            BigDecimal.ONE,
+                            root.assessedValue(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            "AB",
+                            BigDecimal.ZERO,
+                            null,
+                            root.property(),
+                            new BigDecimal(root.proration()),
+                            0,
+                            0,
+                            null,
+                            root.taxCode(),
+                            0,
+                            null,
+                            0,
+                            root.volume(),
+                            null));
         }
         return result;
     }
@@ -245,14 +377,40 @@ class PropertyTaxExemptionsFactorOutcomeProjectorTest {
         List<AssessmentParcel> result = new ArrayList<>();
         for (int index = 0; index < REVIEWED_ROOTS.size(); index++) {
             ReviewedRoot root = REVIEWED_ROOTS.get(index);
-            AssessmentParcel parcel = new AssessmentParcel();
-            parcel.setId((long) index + 1);
-            parcel.setVolumeNumber(root.volume());
-            parcel.setParcelNumber(root.property());
-            parcel.setTaxCode(root.taxCode());
-            parcel.setOverallClass(root.assessmentClass());
-            parcel.setCurrentTotalValue(root.assessedValue());
-            result.add(parcel);
+            result.add(
+                    new AssessmentParcel(
+                            (long) index + 1,
+                            0L,
+                            BigDecimal.ZERO,
+                            "",
+                            "",
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            root.assessedValue(),
+                            0,
+                            BigDecimal.ZERO,
+                            root.assessmentClass(),
+                            root.property(),
+                            "",
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            0,
+                            root.taxCode(),
+                            "0",
+                            root.volume(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null));
         }
         return result;
     }
@@ -260,20 +418,48 @@ class PropertyTaxExemptionsFactorOutcomeProjectorTest {
     private static List<HomeownerExemption> staleExemptions() {
         List<HomeownerExemption> result = new ArrayList<>();
         for (long id = 1; id <= REVIEWED_ROOTS.size(); id++) {
-            HomeownerExemption exemption = new HomeownerExemption();
-            exemption.setId(id);
-            result.add(exemption);
+            result.add(
+                    new HomeownerExemption(
+                            id,
+                            0L,
+                            25,
+                            BigDecimal.ZERO,
+                            0,
+                            null,
+                            null,
+                            0,
+                            null,
+                            0,
+                            BigDecimal.ONE,
+                            BigDecimal.ZERO,
+                            null,
+                            String.format("%015d", id),
+                            null,
+                            BigDecimal.ZERO,
+                            null,
+                            String.format("%015d", id),
+                            BigDecimal.ONE,
+                            0,
+                            0,
+                            0,
+                            null,
+                            null,
+                            "00000",
+                            null,
+                            0,
+                            "001",
+                            null));
         }
         return result;
     }
 
     private record ReviewedRoot(
-            int volume,
-            long property,
-            int taxCode,
+            String volume,
+            String property,
+            String taxCode,
             int assessmentClass,
             int applicationYear,
             String proration,
             int cooperativeQuantity,
-            long assessedValue) {}
+            BigDecimal assessedValue) {}
 }

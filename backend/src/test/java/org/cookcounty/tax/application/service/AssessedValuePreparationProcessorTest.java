@@ -1,13 +1,7 @@
 package org.cookcounty.tax.application.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import org.cookcounty.tax.application.service.AssessedValuePreparationProcessor.ProcessResult;
 import org.cookcounty.tax.application.service.AssessedValuePreparationProcessor.StageOutcome;
@@ -16,9 +10,12 @@ import org.cookcounty.tax.domain.model.AssessmentParcel;
 import org.cookcounty.tax.domain.port.out.AssessmentDetailRepository;
 import org.cookcounty.tax.domain.port.out.AssessmentParcelRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 class AssessedValuePreparationProcessorTest {
 
@@ -31,76 +28,88 @@ class AssessedValuePreparationProcessorTest {
         InMemoryParcelRepository parcels = new InMemoryParcelRepository(roots);
         InMemoryDetailRepository details = new InMemoryDetailRepository(List.of());
 
-        ProcessResult result = processor(parcels, details).process(
-                LocalDate.of(2025, 9, 15), "12:00:00", "26");
+        ProcessResult result =
+                processor(parcels, details).process(LocalDate.of(2025, 9, 15), "12:00:00", "26");
 
-        assertFalse(result.failed());
-        assertEquals(0, result.returnCode());
-        assertEquals(30, result.recordsRead());
-        assertEquals(30, result.recordsWritten());
-        assertEquals(10, result.recordsUpdated());
-        assertEquals(0, result.recordsRejected());
-        assertEquals(10, result.messages().stream()
-                .filter(message -> "asrea018-002".equals(message.ruleId()))
-                .count());
+        assertThat(result.failed()).isFalse();
+        assertThat(result.returnCode()).isEqualTo(0);
+        assertThat(result.recordsRead()).isEqualTo(30);
+        assertThat(result.recordsWritten()).isEqualTo(30);
+        assertThat(result.recordsUpdated()).isEqualTo(10);
+        assertThat(result.recordsRejected()).isEqualTo(0);
+        assertThat(
+                        result.messages().stream()
+                                .filter(message -> "asrea018-002".equals(message.ruleId()))
+                                .count())
+                .isEqualTo(10);
         StageOutcome overall = result.stages().get(0);
-        assertEquals(10L, overall.metrics().get("reported"));
-        assertEquals("25/09/20",
-                result.outputs().get(0).recordData().get(0).substring(3, 11));
+        assertThat(overall.metrics().get("reported")).isEqualTo(10L);
+        assertThat(result.outputs().get(0).recordData().get(0).substring(3, 11))
+                .isEqualTo("25/09/20");
         StageOutcome bucketing = result.stages().get(1);
-        assertEquals(0L, bucketing.metrics().get("farm"));
-        assertEquals(0L, bucketing.metrics().get("homeowner"));
-        assertEquals(0L, bucketing.metrics().get("nonHomeowner"));
-        assertEquals("20250920",
-                result.outputs().get(1).recordData().get(1).substring(3, 11));
-        assertEquals(0, details.saveCalls);
+        assertThat(bucketing.metrics().get("farm")).isEqualTo(BigDecimal.ZERO);
+        assertThat(bucketing.metrics().get("homeowner")).isEqualTo(BigDecimal.ZERO);
+        assertThat(bucketing.metrics().get("nonHomeowner")).isEqualTo(BigDecimal.ZERO);
+        assertThat(result.outputs().get(1).recordData().get(1).substring(3, 11))
+                .isEqualTo("20250920");
+        assertThat(details.saveCalls).isEqualTo(0);
         StageOutcome conversion = result.stages().get(2);
-        assertEquals("COMPLETED", conversion.status());
-        assertEquals(0, conversion.recordsUpdated());
-        assertEquals(0, conversion.reportRows());
-        assertEquals(0L, conversion.metrics().get("type5Hits"));
-        assertEquals(0L, conversion.metrics().get("zeroType5"));
-        assertEquals(0L, conversion.metrics().get("convertedType5"));
+        assertThat(conversion.status()).isEqualTo("COMPLETED");
+        assertThat(conversion.recordsUpdated()).isEqualTo(0);
+        assertThat(conversion.reportRows()).isEqualTo(0);
+        assertThat(conversion.metrics().get("type5Hits")).isEqualTo(0L);
+        assertThat(conversion.metrics().get("zeroType5")).isEqualTo(0L);
+        assertThat(conversion.metrics().get("convertedType5")).isEqualTo(0L);
     }
 
     @Test
-    void asrea018_001_continuesPublishingLaterRootsButMarksPartialFailure() {
+    void overallClassSequenceFailureContinuesPublishingLaterRootsButMarksPartialFailure() {
         AssessmentParcel first = parcel(1L, 20, 1, 1L, "0");
         AssessmentParcel descending = parcel(2L, 10, 2, 2L, "0");
         AssessmentParcel later = parcel(3L, 30, 3, 3L, "0");
-        InMemoryParcelRepository parcels = new InMemoryParcelRepository(
-                List.of(first, descending, later));
+        InMemoryParcelRepository parcels =
+                new InMemoryParcelRepository(List.of(first, descending, later));
 
-        ProcessResult result = processor(parcels, new InMemoryDetailRepository(List.of())).process(
-                LocalDate.of(2025, 9, 15), "12:00:00", "26");
+        ProcessResult result =
+                processor(parcels, new InMemoryDetailRepository(List.of()))
+                        .process(LocalDate.of(2025, 9, 15), "12:00:00", "26");
 
-        assertTrue(result.failed());
-        assertTrue(result.partialOutput());
-        assertEquals(16, result.returnCode());
-        assertTrue(result.messages().stream().anyMatch(message -> "asrea018-001".equals(message.ruleId())));
-        assertTrue(parcels.savedIds.contains(later.getId()), "later overall-class root was published");
-        assertEquals("FAILED", result.stages().get(0).status());
+        assertThat(result.failed()).isTrue();
+        assertThat(result.partialOutput()).isTrue();
+        assertThat(result.returnCode()).isEqualTo(16);
+        assertThat(
+                        result.messages().stream()
+                                .anyMatch(message -> "asrea018-001".equals(message.ruleId())))
+                .isTrue();
+        assertWithMessage("later overall-class root was published")
+                .that(parcels.savedIds.contains(later.id()))
+                .isTrue();
+        assertThat(result.stages().get(0).status()).isEqualTo("FAILED");
     }
 
     @Test
-    void asrea151_001_stopsAtDescendingRootAndIsFailedDespiteLegacyZeroReturnCode() {
+    void valuationBucketingSequenceFailureStopsAtDescendingRootDespiteZeroReturnCode() {
         AssessmentParcel first = parcel(1L, 20, 1, 1L, "0");
         AssessmentParcel descending = parcel(2L, 10, 2, 2L, "0");
         AssessmentParcel later = parcel(3L, 30, 3, 3L, "0");
 
-        ProcessResult result = processor(
-                new InMemoryParcelRepository(List.of(first, descending, later)),
-                new InMemoryDetailRepository(List.of())).process(
-                        LocalDate.of(2025, 9, 15), "12:00:00", "26");
+        ProcessResult result =
+                processor(
+                                new InMemoryParcelRepository(List.of(first, descending, later)),
+                                new InMemoryDetailRepository(List.of()))
+                        .process(LocalDate.of(2025, 9, 15), "12:00:00", "26");
 
         StageOutcome bucketing = result.stages().get(1);
-        assertEquals("FAILED", bucketing.status());
-        assertEquals(0, bucketing.returnCode());
-        assertEquals(2, bucketing.recordsRead());
-        assertEquals(1, bucketing.recordsWritten());
-        assertTrue(bucketing.partialOutput());
-        assertTrue(result.failed());
-        assertTrue(result.messages().stream().anyMatch(message -> "asrea151-001".equals(message.ruleId())));
+        assertThat(bucketing.status()).isEqualTo("FAILED");
+        assertThat(bucketing.returnCode()).isEqualTo(0);
+        assertThat(bucketing.recordsRead()).isEqualTo(2);
+        assertThat(bucketing.recordsWritten()).isEqualTo(1);
+        assertThat(bucketing.partialOutput()).isTrue();
+        assertThat(result.failed()).isTrue();
+        assertThat(
+                        result.messages().stream()
+                                .anyMatch(message -> "asrea151-001".equals(message.ruleId())))
+                .isTrue();
     }
 
     private static AssessedValuePreparationProcessor processor(
@@ -115,21 +124,40 @@ class AssessedValuePreparationProcessorTest {
     }
 
     private static AssessmentParcel parcel(
-            Long id, int township, int volume, long parcelNumber, String taxType) {
-        AssessmentParcel parcel = new AssessmentParcel();
-        parcel.setId(id);
-        parcel.setTaxCode(township * 1_000 + 1);
-        parcel.setVolumeNumber(volume);
-        parcel.setParcelNumber(parcelNumber);
-        parcel.setTaxType(taxType);
-        parcel.setOverallClass(202);
-        parcel.setPriorTotalValue(1L);
-        parcel.setCurrentLandValue(1L);
-        parcel.setFarmValue(1L);
-        parcel.setCombinedHomeownerNonHomeownerValue(1L);
-        parcel.setArchivedPreConversionProposedTotal(1L);
-        parcel.setProposedTotalValue(1L);
-        return parcel;
+            long id, int township, int volume, long parcelNumber, String taxType) {
+        return new AssessmentParcel(
+                id,
+                0L,
+                BigDecimal.valueOf(1),
+                "1",
+                "0",
+                BigDecimal.valueOf(1),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(1),
+                BigDecimal.valueOf(0),
+                0,
+                BigDecimal.valueOf(1),
+                202,
+                String.format("%015d", parcelNumber),
+                "0",
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(1),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(0),
+                BigDecimal.valueOf(1),
+                0,
+                String.format("%05d", township * 1_000 + 1),
+                taxType,
+                String.format("%03d", volume),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     private static final class InMemoryParcelRepository implements AssessmentParcelRepository {
@@ -146,24 +174,28 @@ class AssessedValuePreparationProcessorTest {
         }
 
         @Override
-        public Page<AssessmentParcel> findAll(Pageable pageable) {
-            return new PageImpl<>(records);
+        public List<AssessmentParcel> findAllInPersistenceOrder() {
+            return List.copyOf(records);
         }
 
         @Override
         public Optional<AssessmentParcel> findById(Long id) {
-            return records.stream().filter(record -> id.equals(record.getId())).findFirst();
+            return records.stream().filter(record -> id.equals(record.id())).findFirst();
         }
 
         @Override
         public AssessmentParcel save(AssessmentParcel assessmentParcel) {
-            savedIds.add(assessmentParcel.getId());
+            Long id = assessmentParcel.id();
+            if (id == null) {
+                throw new IllegalStateException("A saved assessment parcel must have an identity");
+            }
+            savedIds.add(id);
             return assessmentParcel;
         }
 
         @Override
         public void deleteById(Long id) {
-            records.removeIf(record -> id.equals(record.getId()));
+            records.removeIf(record -> id.equals(record.id()));
         }
     }
 
@@ -181,13 +213,13 @@ class AssessedValuePreparationProcessorTest {
         }
 
         @Override
-        public Page<AssessmentDetail> findAll(Pageable pageable) {
-            return Page.empty();
+        public List<AssessmentDetail> findAllInPersistenceOrder() {
+            return List.copyOf(records);
         }
 
         @Override
         public Optional<AssessmentDetail> findById(Long id) {
-            return records.stream().filter(record -> id.equals(record.getId())).findFirst();
+            return records.stream().filter(record -> id.equals(record.id())).findFirst();
         }
 
         @Override
@@ -198,7 +230,7 @@ class AssessedValuePreparationProcessorTest {
 
         @Override
         public void deleteById(Long id) {
-            records.removeIf(record -> id.equals(record.getId()));
+            records.removeIf(record -> id.equals(record.id()));
         }
     }
 }

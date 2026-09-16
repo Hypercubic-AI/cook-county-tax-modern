@@ -1,18 +1,14 @@
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.repository;
 
-import java.util.List;
-
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.entity.AssessmentParcelSourceRecordEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-// GENERATED-IMPORTS:start
-// GENERATED-IMPORTS:end
+import java.util.List;
 
+/// Spring Data access to preserved fixed-width parcel prefixes.
 public interface JpaAssessmentParcelSourceRecordRepository
         extends JpaRepository<AssessmentParcelSourceRecordEntity, Long> {
 
-    // GENERATED-METHODS:start
-    // GENERATED-METHODS:end
-
+    /// Returns every preserved prefix in deterministic source publication order.
     List<AssessmentParcelSourceRecordEntity> findAllByOrderBySourceOrderAsc();
 }

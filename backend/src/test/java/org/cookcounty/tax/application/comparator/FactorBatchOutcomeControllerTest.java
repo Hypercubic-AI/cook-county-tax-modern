@@ -1,18 +1,10 @@
 package org.cookcounty.tax.application.comparator;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder.Cataloged;
 import org.cookcounty.tax.application.comparator.FactorBatchOutcomeRecorder.DatasetOp;
@@ -29,6 +21,15 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 class FactorBatchOutcomeControllerTest {
 
     private static final String SCENARIO = "valuation-preparation";
@@ -42,69 +43,75 @@ class FactorBatchOutcomeControllerTest {
         Map<String, Object> request = Map.of("z", 3);
         recorder.accepted(SCENARIO, RUN_ID, request, headers());
         recorder.completed(SCENARIO, RUN_ID, "SUCCEEDED", outcome());
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new FactorBatchOutcomeController(recorder)).build();
+        MockMvc mockMvc =
+                MockMvcBuilders.standaloneSetup(new FactorBatchOutcomeController(recorder)).build();
 
-        mockMvc.perform(get(
-                        "/internal/factor-comparator/valuation-preparation-runs/4294967296/outcome"))
+        mockMvc.perform(
+                        get(
+                                "/internal/factor-comparator/valuation-preparation-runs/4294967296/outcome"))
                 .andExpect(status().isOk())
-                .andExpect(content().json("""
-                        {
-                          "schema_version":"factor-modern-batch-outcome.v1",
-                          "projection_version":"isomorphic-job-golden-observable-v2",
-                          "run_id":4294967296,
-                          "status":"SUCCEEDED",
-                          "provenance":{
-                            "scenario_id":"valuation-preparation",
-                            "catalog_routing_id":"valuation-preparation",
-                            "reference_job_name":"VALPREP",
-                            "jcl_member":"VALPREP",
-                            "script_sha256":"1111111111111111111111111111111111111111111111111111111111111111",
-                            "golden_sha256":"2222222222222222222222222222222222222222222222222222222222222222",
-                            "approved_request_sha256":"59068e3769f66a9341b13678cc54dd69d9bbc848608d0228a1e506d729e5f7a0"
-                          },
-                          "outcome":{
-                            "return_code":0,
-                            "steps":[{
-                              "name":"S001",
-                              "program":"ASREA018",
-                              "return_code":0,
-                              "skipped":false,
-                              "completion_code":null,
-                              "messages":[],
-                              "dataset_ops":[{
-                                "op":"WRITE",
-                                "dataset":"output/EMPTY.dat",
-                                "records":0
-                              }]
-                            }],
-                            "outputs":{},
-                            "batch_displays":[],
-                            "dataset_diffs":{},
-                            "cataloged":[{
-                              "dsn":"output/EMPTY.dat",
-                              "generation":1,
-                              "records":0,
-                              "recordData":[],
-                              "recordDataBase64":[]
-                            }],
-                            "abend":null,
-                            "budget_exceeded":false,
-                            "rolled_back":false
-                          }
-                        }
-                        """, true));
+                .andExpect(
+                        content()
+                                .json(
+                                        """
+                                        {
+                                          "schema_version":"factor-modern-batch-outcome.v1",
+                                          "projection_version":"isomorphic-job-golden-observable-v2",
+                                          "run_id":4294967296,
+                                          "status":"SUCCEEDED",
+                                          "provenance":{
+                                            "scenario_id":"valuation-preparation",
+                                            "catalog_routing_id":"valuation-preparation",
+                                            "reference_job_name":"VALPREP",
+                                            "jcl_member":"VALPREP",
+                                            "script_sha256":"1111111111111111111111111111111111111111111111111111111111111111",
+                                            "golden_sha256":"2222222222222222222222222222222222222222222222222222222222222222",
+                                            "approved_request_sha256":"59068e3769f66a9341b13678cc54dd69d9bbc848608d0228a1e506d729e5f7a0"
+                                          },
+                                          "outcome":{
+                                            "return_code":0,
+                                            "steps":[{
+                                              "name":"S001",
+                                              "program":"ASREA018",
+                                              "return_code":0,
+                                              "skipped":false,
+                                              "completion_code":null,
+                                              "messages":[],
+                                              "dataset_ops":[{
+                                                "op":"WRITE",
+                                                "dataset":"output/EMPTY.dat",
+                                                "records":0
+                                              }]
+                                            }],
+                                            "outputs":{},
+                                            "batch_displays":[],
+                                            "dataset_diffs":{},
+                                            "cataloged":[{
+                                              "dsn":"output/EMPTY.dat",
+                                              "generation":1,
+                                              "records":0,
+                                              "recordData":[],
+                                              "recordDataBase64":[]
+                                            }],
+                                            "abend":null,
+                                            "budget_exceeded":false,
+                                            "rolled_back":false
+                                          }
+                                        }
+                                        """,
+                                        true));
     }
 
     @Test
     void returnsDeterministicNotFoundUntilBothHalvesExist() throws Exception {
         FactorBatchOutcomeRecorder recorder = enabledRecorder();
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new FactorBatchOutcomeController(recorder)).build();
+        MockMvc mockMvc =
+                MockMvcBuilders.standaloneSetup(new FactorBatchOutcomeController(recorder)).build();
 
         recorder.completed(SCENARIO, RUN_ID, "SUCCEEDED", outcome());
-        mockMvc.perform(get(
-                        "/internal/factor-comparator/valuation-preparation-runs/4294967296/outcome"))
+        mockMvc.perform(
+                        get(
+                                "/internal/factor-comparator/valuation-preparation-runs/4294967296/outcome"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string(""));
     }
@@ -112,15 +119,14 @@ class FactorBatchOutcomeControllerTest {
     @Test
     void routeIsAbsentWhenComparatorProfileIsDisabled() throws Exception {
         try (AnnotationConfigWebApplicationContext context =
-                     new AnnotationConfigWebApplicationContext()) {
+                new AnnotationConfigWebApplicationContext()) {
             context.setServletContext(new MockServletContext());
             context.register(DisabledProfileWebConfiguration.class);
             context.refresh();
-            assertFalse(context.containsBean("factorBatchOutcomeController"));
+            assertThat(context.containsBean("factorBatchOutcomeController")).isFalse();
 
             MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
-            mockMvc.perform(get(
-                            "/internal/factor-comparator/valuation-preparation-runs/1/outcome"))
+            mockMvc.perform(get("/internal/factor-comparator/valuation-preparation-runs/1/outcome"))
                     .andExpect(status().isNotFound());
         }
     }
@@ -134,20 +140,19 @@ class FactorBatchOutcomeControllerTest {
     private static Outcome outcome() {
         return new Outcome(
                 0,
-                List.of(new Step(
-                        "S001",
-                        "ASREA018",
-                        0,
-                        false,
-                        null,
-                        List.of(),
-                        List.of(new DatasetOp(
-                                "WRITE", "output/EMPTY.dat", 0)))),
+                List.of(
+                        new Step(
+                                "S001",
+                                "ASREA018",
+                                0,
+                                false,
+                                null,
+                                List.of(),
+                                List.of(new DatasetOp("WRITE", "output/EMPTY.dat", 0)))),
                 Map.of(),
                 List.of(),
                 Map.of(),
-                List.of(new Cataloged(
-                        "output/EMPTY.dat", 1, 0, List.of(), List.of())),
+                List.of(new Cataloged("output/EMPTY.dat", 1, 0, List.of(), List.of())),
                 null,
                 false,
                 false);
@@ -162,15 +167,13 @@ class FactorBatchOutcomeControllerTest {
         headers.put("X-Factor-Script-Sha256", "1".repeat(64));
         headers.put("X-Factor-Golden-Sha256", "2".repeat(64));
         headers.put("X-Factor-Approved-Request-Sha256", sha256("{\"z\":3}"));
-        headers.put(
-                "X-Factor-Projection-Version",
-                FactorBatchOutcomeRecorder.PROJECTION_VERSION);
+        headers.put("X-Factor-Projection-Version", FactorBatchOutcomeRecorder.PROJECTION_VERSION);
         return headers;
     }
 
     private static String sha256(String value) throws Exception {
-        byte[] digest = MessageDigest.getInstance("SHA-256")
-                .digest(value.getBytes(StandardCharsets.UTF_8));
+        byte[] digest =
+                MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
         return java.util.HexFormat.of().formatHex(digest);
     }
 

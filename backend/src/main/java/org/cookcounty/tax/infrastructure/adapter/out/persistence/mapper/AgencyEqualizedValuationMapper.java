@@ -1,202 +1,147 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.mapper;
 
 import org.cookcounty.tax.domain.model.AgencyEqualizedValuation;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.entity.AgencyEqualizedValuationEntity;
 
-public class AgencyEqualizedValuationMapper {
+import java.util.Objects;
 
-    // GENERATED-MAPPING-TO-DOMAIN:start
+/// Canonical, complete mapping between the immutable domain snapshot and its persistence entity.
+public final class AgencyEqualizedValuationMapper {
+
+    private AgencyEqualizedValuationMapper() {}
+
+    /// Hydrates every domain component, including the persistence identifier and version.
     public static AgencyEqualizedValuation toDomain(AgencyEqualizedValuationEntity entity) {
-        AgencyEqualizedValuation model = new AgencyEqualizedValuation();
-        model.setId(entity.getId());
-
-        model.setAgencyNumber(entity.getAgencyNumber());
-
-        model.setAnnexedPropertyEqualizedValue(entity.getAnnexedPropertyEqualizedValue());
-
-        model.setBurdenPercent(entity.getBurdenPercent());
-
-        model.setConnectingAgency1(entity.getConnectingAgency1());
-
-        model.setConnectingAgency2(entity.getConnectingAgency2());
-
-        model.setConnectingAgency3(entity.getConnectingAgency3());
-
-        model.setConnectingAgency4(entity.getConnectingAgency4());
-
-        model.setCookCountyAirPollutionValue(entity.getCookCountyAirPollutionValue());
-
-        model.setCookCountyRailroadValue(entity.getCookCountyRailroadValue());
-
-        model.setCookCountyRealEstateValue(entity.getCookCountyRealEstateValue());
-
-        model.setCookCountyUseTaxValue(entity.getCookCountyUseTaxValue());
-
-        model.setDeKalbCountyEqualizedValue(entity.getDeKalbCountyEqualizedValue());
-
-        model.setDisconnectedPropertyEqualizedValue(entity.getDisconnectedPropertyEqualizedValue());
-
-        model.setDisconnectedTifDifference(entity.getDisconnectedTifDifference());
-
-        model.setDuPageCountyEqualizedValue(entity.getDuPageCountyEqualizedValue());
-
-        model.setGrundyCountyEqualizedValue(entity.getGrundyCountyEqualizedValue());
-
-        model.setKaneCountyEqualizedValue(entity.getKaneCountyEqualizedValue());
-
-        model.setKankakeeCountyEqualizedValue(entity.getKankakeeCountyEqualizedValue());
-
-        model.setKendallCountyEqualizedValue(entity.getKendallCountyEqualizedValue());
-
-        model.setLaSalleCountyEqualizedValue(entity.getLaSalleCountyEqualizedValue());
-
-        model.setLakeCountyEqualizedValue(entity.getLakeCountyEqualizedValue());
-
-        model.setLimitingTaxRateOverride(entity.getLimitingTaxRateOverride());
-
-        model.setLivingstonCountyEqualizedValue(entity.getLivingstonCountyEqualizedValue());
-
-        model.setMcHenryCountyEqualizedValue(entity.getMcHenryCountyEqualizedValue());
-
-        model.setNewPropertyEqualizedValue(entity.getNewPropertyEqualizedValue());
-
-        model.setOverlapAnnexedPropertyEqualizedValue(entity.getOverlapAnnexedPropertyEqualizedValue());
-
-        model.setOverlapDisconnectedPropertyEqualizedValue(entity.getOverlapDisconnectedPropertyEqualizedValue());
-
-        model.setOverlapDisconnectedTifDifference(entity.getOverlapDisconnectedTifDifference());
-
-        model.setOverlapNewPropertyEqualizedValue(entity.getOverlapNewPropertyEqualizedValue());
-
-        model.setParentAgency1(entity.getParentAgency1());
-
-        model.setParentAgency2(entity.getParentAgency2());
-
-        model.setParentAgency3(entity.getParentAgency3());
-
-        model.setParentAgency4(entity.getParentAgency4());
-
-        model.setParentAgency5(entity.getParentAgency5());
-
-        model.setPreviousTaxYear1(entity.getPreviousTaxYear1());
-
-        model.setPreviousTaxYear1Extension(entity.getPreviousTaxYear1Extension());
-
-        model.setPreviousTaxYear2(entity.getPreviousTaxYear2());
-
-        model.setPreviousTaxYear2Extension(entity.getPreviousTaxYear2Extension());
-
-        model.setPreviousTaxYear3(entity.getPreviousTaxYear3());
-
-        model.setPreviousTaxYear3Extension(entity.getPreviousTaxYear3Extension());
-
-        model.setTaxCapIndicator(entity.getTaxCapIndicator());
-
-        model.setTaxYear(entity.getTaxYear());
-
-        model.setWillCountyEqualizedValue(entity.getWillCountyEqualizedValue());
-
-
-
-        return model;
+        return new AgencyEqualizedValuation(
+                entity.getId(),
+                entity.getVersion(),
+                Objects.requireNonNull(entity.getAgencyNumber(), "agencyNumber"),
+                Objects.requireNonNull(
+                        entity.getAnnexedPropertyEqualizedValue(), "annexedPropertyEqualizedValue"),
+                Objects.requireNonNull(entity.getBurdenPercent(), "burdenPercent"),
+                Objects.requireNonNull(entity.getConnectingAgency1(), "connectingAgency1"),
+                Objects.requireNonNull(entity.getConnectingAgency2(), "connectingAgency2"),
+                Objects.requireNonNull(entity.getConnectingAgency3(), "connectingAgency3"),
+                Objects.requireNonNull(entity.getConnectingAgency4(), "connectingAgency4"),
+                Objects.requireNonNull(
+                        entity.getCookCountyAirPollutionValue(), "cookCountyAirPollutionValue"),
+                Objects.requireNonNull(
+                        entity.getCookCountyRailroadValue(), "cookCountyRailroadValue"),
+                Objects.requireNonNull(
+                        entity.getCookCountyRealEstateValue(), "cookCountyRealEstateValue"),
+                Objects.requireNonNull(entity.getCookCountyUseTaxValue(), "cookCountyUseTaxValue"),
+                Objects.requireNonNull(
+                        entity.getDeKalbCountyEqualizedValue(), "deKalbCountyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getDisconnectedPropertyEqualizedValue(),
+                        "disconnectedPropertyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getDisconnectedTifDifference(), "disconnectedTifDifference"),
+                Objects.requireNonNull(
+                        entity.getDuPageCountyEqualizedValue(), "duPageCountyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getGrundyCountyEqualizedValue(), "grundyCountyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getKaneCountyEqualizedValue(), "kaneCountyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getKankakeeCountyEqualizedValue(), "kankakeeCountyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getKendallCountyEqualizedValue(), "kendallCountyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getLaSalleCountyEqualizedValue(), "laSalleCountyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getLakeCountyEqualizedValue(), "lakeCountyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getLimitingTaxRateOverride(), "limitingTaxRateOverride"),
+                Objects.requireNonNull(
+                        entity.getLivingstonCountyEqualizedValue(),
+                        "livingstonCountyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getMcHenryCountyEqualizedValue(), "mcHenryCountyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getNewPropertyEqualizedValue(), "newPropertyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getOverlapAnnexedPropertyEqualizedValue(),
+                        "overlapAnnexedPropertyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getOverlapDisconnectedPropertyEqualizedValue(),
+                        "overlapDisconnectedPropertyEqualizedValue"),
+                Objects.requireNonNull(
+                        entity.getOverlapDisconnectedTifDifference(),
+                        "overlapDisconnectedTifDifference"),
+                Objects.requireNonNull(
+                        entity.getOverlapNewPropertyEqualizedValue(),
+                        "overlapNewPropertyEqualizedValue"),
+                Objects.requireNonNull(entity.getParentAgency1(), "parentAgency1"),
+                Objects.requireNonNull(entity.getParentAgency2(), "parentAgency2"),
+                Objects.requireNonNull(entity.getParentAgency3(), "parentAgency3"),
+                Objects.requireNonNull(entity.getParentAgency4(), "parentAgency4"),
+                Objects.requireNonNull(entity.getParentAgency5(), "parentAgency5"),
+                Objects.requireNonNull(entity.getPreviousTaxYear1(), "previousTaxYear1"),
+                Objects.requireNonNull(
+                        entity.getPreviousTaxYear1Extension(), "previousTaxYear1Extension"),
+                Objects.requireNonNull(entity.getPreviousTaxYear2(), "previousTaxYear2"),
+                Objects.requireNonNull(
+                        entity.getPreviousTaxYear2Extension(), "previousTaxYear2Extension"),
+                Objects.requireNonNull(entity.getPreviousTaxYear3(), "previousTaxYear3"),
+                Objects.requireNonNull(
+                        entity.getPreviousTaxYear3Extension(), "previousTaxYear3Extension"),
+                Objects.requireNonNull(entity.getTaxCapIndicator(), "taxCapIndicator"),
+                Objects.requireNonNull(entity.getTaxYear(), "taxYear"),
+                Objects.requireNonNull(
+                        entity.getWillCountyEqualizedValue(), "willCountyEqualizedValue"));
     }
-    // GENERATED-MAPPING-TO-DOMAIN:end
 
-    // GENERATED-MAPPING-TO-ENTITY:start
+    /// Copies every domain component to a mutable entity for persistence.
     public static AgencyEqualizedValuationEntity toEntity(AgencyEqualizedValuation model) {
         AgencyEqualizedValuationEntity entity = new AgencyEqualizedValuationEntity();
-        entity.setId(model.getId());
-
-        entity.setAgencyNumber(model.getAgencyNumber());
-
-        entity.setAnnexedPropertyEqualizedValue(model.getAnnexedPropertyEqualizedValue());
-
-        entity.setBurdenPercent(model.getBurdenPercent());
-
-        entity.setConnectingAgency1(model.getConnectingAgency1());
-
-        entity.setConnectingAgency2(model.getConnectingAgency2());
-
-        entity.setConnectingAgency3(model.getConnectingAgency3());
-
-        entity.setConnectingAgency4(model.getConnectingAgency4());
-
-        entity.setCookCountyAirPollutionValue(model.getCookCountyAirPollutionValue());
-
-        entity.setCookCountyRailroadValue(model.getCookCountyRailroadValue());
-
-        entity.setCookCountyRealEstateValue(model.getCookCountyRealEstateValue());
-
-        entity.setCookCountyUseTaxValue(model.getCookCountyUseTaxValue());
-
-        entity.setDeKalbCountyEqualizedValue(model.getDeKalbCountyEqualizedValue());
-
-        entity.setDisconnectedPropertyEqualizedValue(model.getDisconnectedPropertyEqualizedValue());
-
-        entity.setDisconnectedTifDifference(model.getDisconnectedTifDifference());
-
-        entity.setDuPageCountyEqualizedValue(model.getDuPageCountyEqualizedValue());
-
-        entity.setGrundyCountyEqualizedValue(model.getGrundyCountyEqualizedValue());
-
-        entity.setKaneCountyEqualizedValue(model.getKaneCountyEqualizedValue());
-
-        entity.setKankakeeCountyEqualizedValue(model.getKankakeeCountyEqualizedValue());
-
-        entity.setKendallCountyEqualizedValue(model.getKendallCountyEqualizedValue());
-
-        entity.setLaSalleCountyEqualizedValue(model.getLaSalleCountyEqualizedValue());
-
-        entity.setLakeCountyEqualizedValue(model.getLakeCountyEqualizedValue());
-
-        entity.setLimitingTaxRateOverride(model.getLimitingTaxRateOverride());
-
-        entity.setLivingstonCountyEqualizedValue(model.getLivingstonCountyEqualizedValue());
-
-        entity.setMcHenryCountyEqualizedValue(model.getMcHenryCountyEqualizedValue());
-
-        entity.setNewPropertyEqualizedValue(model.getNewPropertyEqualizedValue());
-
-        entity.setOverlapAnnexedPropertyEqualizedValue(model.getOverlapAnnexedPropertyEqualizedValue());
-
-        entity.setOverlapDisconnectedPropertyEqualizedValue(model.getOverlapDisconnectedPropertyEqualizedValue());
-
-        entity.setOverlapDisconnectedTifDifference(model.getOverlapDisconnectedTifDifference());
-
-        entity.setOverlapNewPropertyEqualizedValue(model.getOverlapNewPropertyEqualizedValue());
-
-        entity.setParentAgency1(model.getParentAgency1());
-
-        entity.setParentAgency2(model.getParentAgency2());
-
-        entity.setParentAgency3(model.getParentAgency3());
-
-        entity.setParentAgency4(model.getParentAgency4());
-
-        entity.setParentAgency5(model.getParentAgency5());
-
-        entity.setPreviousTaxYear1(model.getPreviousTaxYear1());
-
-        entity.setPreviousTaxYear1Extension(model.getPreviousTaxYear1Extension());
-
-        entity.setPreviousTaxYear2(model.getPreviousTaxYear2());
-
-        entity.setPreviousTaxYear2Extension(model.getPreviousTaxYear2Extension());
-
-        entity.setPreviousTaxYear3(model.getPreviousTaxYear3());
-
-        entity.setPreviousTaxYear3Extension(model.getPreviousTaxYear3Extension());
-
-        entity.setTaxCapIndicator(model.getTaxCapIndicator());
-
-        entity.setTaxYear(model.getTaxYear());
-
-        entity.setWillCountyEqualizedValue(model.getWillCountyEqualizedValue());
-
-
-
+        entity.setId(model.id());
+        entity.setVersion(model.version());
+        entity.setAgencyNumber(model.agencyNumber());
+        entity.setAnnexedPropertyEqualizedValue(model.annexedPropertyEqualizedValue());
+        entity.setBurdenPercent(model.burdenPercent());
+        entity.setConnectingAgency1(model.connectingAgency1());
+        entity.setConnectingAgency2(model.connectingAgency2());
+        entity.setConnectingAgency3(model.connectingAgency3());
+        entity.setConnectingAgency4(model.connectingAgency4());
+        entity.setCookCountyAirPollutionValue(model.cookCountyAirPollutionValue());
+        entity.setCookCountyRailroadValue(model.cookCountyRailroadValue());
+        entity.setCookCountyRealEstateValue(model.cookCountyRealEstateValue());
+        entity.setCookCountyUseTaxValue(model.cookCountyUseTaxValue());
+        entity.setDeKalbCountyEqualizedValue(model.deKalbCountyEqualizedValue());
+        entity.setDisconnectedPropertyEqualizedValue(model.disconnectedPropertyEqualizedValue());
+        entity.setDisconnectedTifDifference(model.disconnectedTifDifference());
+        entity.setDuPageCountyEqualizedValue(model.duPageCountyEqualizedValue());
+        entity.setGrundyCountyEqualizedValue(model.grundyCountyEqualizedValue());
+        entity.setKaneCountyEqualizedValue(model.kaneCountyEqualizedValue());
+        entity.setKankakeeCountyEqualizedValue(model.kankakeeCountyEqualizedValue());
+        entity.setKendallCountyEqualizedValue(model.kendallCountyEqualizedValue());
+        entity.setLaSalleCountyEqualizedValue(model.laSalleCountyEqualizedValue());
+        entity.setLakeCountyEqualizedValue(model.lakeCountyEqualizedValue());
+        entity.setLimitingTaxRateOverride(model.limitingTaxRateOverride());
+        entity.setLivingstonCountyEqualizedValue(model.livingstonCountyEqualizedValue());
+        entity.setMcHenryCountyEqualizedValue(model.mcHenryCountyEqualizedValue());
+        entity.setNewPropertyEqualizedValue(model.newPropertyEqualizedValue());
+        entity.setOverlapAnnexedPropertyEqualizedValue(
+                model.overlapAnnexedPropertyEqualizedValue());
+        entity.setOverlapDisconnectedPropertyEqualizedValue(
+                model.overlapDisconnectedPropertyEqualizedValue());
+        entity.setOverlapDisconnectedTifDifference(model.overlapDisconnectedTifDifference());
+        entity.setOverlapNewPropertyEqualizedValue(model.overlapNewPropertyEqualizedValue());
+        entity.setParentAgency1(model.parentAgency1());
+        entity.setParentAgency2(model.parentAgency2());
+        entity.setParentAgency3(model.parentAgency3());
+        entity.setParentAgency4(model.parentAgency4());
+        entity.setParentAgency5(model.parentAgency5());
+        entity.setPreviousTaxYear1(model.previousTaxYear1());
+        entity.setPreviousTaxYear1Extension(model.previousTaxYear1Extension());
+        entity.setPreviousTaxYear2(model.previousTaxYear2());
+        entity.setPreviousTaxYear2Extension(model.previousTaxYear2Extension());
+        entity.setPreviousTaxYear3(model.previousTaxYear3());
+        entity.setPreviousTaxYear3Extension(model.previousTaxYear3Extension());
+        entity.setTaxCapIndicator(model.taxCapIndicator());
+        entity.setTaxYear(model.taxYear());
+        entity.setWillCountyEqualizedValue(model.willCountyEqualizedValue());
         return entity;
     }
-    // GENERATED-MAPPING-TO-ENTITY:end
 }

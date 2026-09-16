@@ -1,18 +1,25 @@
-
 package org.cookcounty.tax.domain.port.out;
 
 import org.cookcounty.tax.domain.model.AssessmentParcel;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import java.util.Optional;
-import java.util.List;
 
+import java.util.List;
+import java.util.Optional;
+
+/// Persists complete immutable assessment parcels with optimistic locking.
 public interface AssessmentParcelRepository {
-    // GENERATED-METHODS:start
-    Page<AssessmentParcel> findAll(Pageable pageable);
+
+    /// Returns every parcel in ascending generated-identity order.
+    List<AssessmentParcel> findAllInPersistenceOrder();
+
+    /// Returns a parcel by generated identity when it exists.
     Optional<AssessmentParcel> findById(Long id);
+
+    /// Saves every parcel field and returns assigned identity and version state.
     AssessmentParcel save(AssessmentParcel assessmentParcel);
+
+    /// Deletes the parcel with the supplied generated identity.
     void deleteById(Long id);
-    // GENERATED-METHODS:end
+
+    /// Returns every parcel in deterministic source ingestion order.
     List<AssessmentParcel> findAllInInputOrder();
 }

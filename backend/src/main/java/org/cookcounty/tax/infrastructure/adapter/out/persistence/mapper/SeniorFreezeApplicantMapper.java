@@ -1,250 +1,134 @@
-
 package org.cookcounty.tax.infrastructure.adapter.out.persistence.mapper;
 
 import org.cookcounty.tax.domain.model.SeniorFreezeApplicant;
 import org.cookcounty.tax.infrastructure.adapter.out.persistence.entity.SeniorFreezeApplicantEntity;
 
-public class SeniorFreezeApplicantMapper {
+/// Preserves every Senior Freeze applicant field, identity, and version across persistence.
+public final class SeniorFreezeApplicantMapper {
+    private SeniorFreezeApplicantMapper() {}
 
-    // GENERATED-MAPPING-TO-DOMAIN:start
+    /// Creates an immutable domain snapshot from one hydrated persistence entity.
     public static SeniorFreezeApplicant toDomain(SeniorFreezeApplicantEntity entity) {
-        SeniorFreezeApplicant model = new SeniorFreezeApplicant();
-        model.setId(entity.getId());
-
-        model.setAge(entity.getAge());
-
-        model.setApplicantAddress(entity.getApplicantAddress());
-
-        model.setApplicantCity(entity.getApplicantCity());
-
-        model.setApplicantFirstName(entity.getApplicantFirstName());
-
-        model.setApplicantLastName(entity.getApplicantLastName());
-
-        model.setApplicantMiddleInitial(entity.getApplicantMiddleInitial());
-
-        model.setApplicantOldName(entity.getApplicantOldName());
-
-        model.setApplicantState(entity.getApplicantState());
-
-        model.setApplicantTitle(entity.getApplicantTitle());
-
-        model.setApplicantZipCode(entity.getApplicantZipCode());
-
-        model.setBaseYear(entity.getBaseYear());
-
-        model.setBaseYearEligibleEqualizedValue(entity.getBaseYearEligibleEqualizedValue());
-
-        model.setBaseYearIndicator(entity.getBaseYearIndicator());
-
-        model.setBatchNumber(entity.getBatchNumber());
-
-        model.setBirthDate(entity.getBirthDate());
-
-        model.setCivilServiceBenefits(entity.getCivilServiceBenefits());
-
-        model.setCooperativeSeniorShares(entity.getCooperativeSeniorShares());
-
-        model.setDenialDate(entity.getDenialDate());
-
-        model.setFirstApplicationDate(entity.getFirstApplicationDate());
-
-        model.setHomeownerBaseYear(entity.getHomeownerBaseYear());
-
-        model.setHomeownerBaseYearAssessedValue(entity.getHomeownerBaseYearAssessedValue());
-
-        model.setHomeownerBaseYearEqualizationFactor(entity.getHomeownerBaseYearEqualizationFactor());
-
-        model.setHomeownerBaseYearEqualizedValue(entity.getHomeownerBaseYearEqualizedValue());
-
-        model.setHomeownerEligibilityIndicator(entity.getHomeownerEligibilityIndicator());
-
-        model.setHomeownerStatus(entity.getHomeownerStatus());
-
-        model.setHomesteadBatchNumber(entity.getHomesteadBatchNumber());
-
-        model.setHomesteadPercentShares(entity.getHomesteadPercentShares());
-
-        model.setHomesteadShares(entity.getHomesteadShares());
-
-        model.setHomesteadStatus(entity.getHomesteadStatus());
-
-        model.setHomesteadYearApplied(entity.getHomesteadYearApplied());
-
-        model.setInterestIncome(entity.getInterestIncome());
-
-        model.setLastApplicationDate(entity.getLastApplicationDate());
-
-        model.setLifeCareFacilityIndicator(entity.getLifeCareFacilityIndicator());
-
-        model.setMaintenanceIndicator(entity.getMaintenanceIndicator());
-
-        model.setNameMaintenanceIndicator(entity.getNameMaintenanceIndicator());
-
-        model.setNetCapitalGain(entity.getNetCapitalGain());
-
-        model.setNetRentalIncome(entity.getNetRentalIncome());
-
-        model.setNoIncomeIndicator(entity.getNoIncomeIndicator());
-
-        model.setNotarizedIndicator(entity.getNotarizedIndicator());
-
-        model.setOtherBenefits(entity.getOtherBenefits());
-
-        model.setOtherIncome(entity.getOtherIncome());
-
-        model.setPercentSeniorShares(entity.getPercentSeniorShares());
-
-        model.setPhoneNumber(entity.getPhoneNumber());
-
-        model.setPublicAid(entity.getPublicAid());
-
-        model.setQualificationDate(entity.getQualificationDate());
-
-        model.setRailroadBenefits(entity.getRailroadBenefits());
-
-        model.setReturnedDate(entity.getReturnedDate());
-
-        model.setSeniorFreezePercent(entity.getSeniorFreezePercent());
-
-        model.setSeniorFreezeStatus(entity.getSeniorFreezeStatus());
-
-        model.setSignedIndicator(entity.getSignedIndicator());
-
-        model.setSocialSecurityIncome(entity.getSocialSecurityIncome());
-
-        model.setSocialSecurityNumber(entity.getSocialSecurityNumber());
-
-        model.setTotalIncome(entity.getTotalIncome());
-
-        model.setVeteransBenefits(entity.getVeteransBenefits());
-
-        model.setWages(entity.getWages());
-
-
-
-        return model;
+        return new SeniorFreezeApplicant(
+                entity.getId(),
+                entity.getVersion(),
+                entity.getAge(),
+                entity.getApplicantAddress(),
+                entity.getApplicantCity(),
+                entity.getApplicantFirstName(),
+                entity.getApplicantLastName(),
+                entity.getApplicantMiddleInitial(),
+                entity.getApplicantOldName(),
+                entity.getApplicantState(),
+                entity.getApplicantTitle(),
+                entity.getApplicantZipCode(),
+                entity.getBaseYear(),
+                entity.getBaseYearEligibleEqualizedValue(),
+                entity.getBaseYearIndicator(),
+                entity.getBatchNumber(),
+                entity.getBirthDate(),
+                entity.getCivilServiceBenefits(),
+                entity.getCooperativeSeniorShares(),
+                entity.getDenialDate(),
+                entity.getFirstApplicationDate(),
+                entity.getHomeownerBaseYear(),
+                entity.getHomeownerBaseYearAssessedValue(),
+                entity.getHomeownerBaseYearEqualizationFactor(),
+                entity.getHomeownerBaseYearEqualizedValue(),
+                entity.getHomeownerEligibilityIndicator(),
+                entity.getHomeownerStatus(),
+                entity.getHomesteadBatchNumber(),
+                entity.getHomesteadPercentShares(),
+                entity.getHomesteadShares(),
+                entity.getHomesteadStatus(),
+                entity.getHomesteadYearApplied(),
+                entity.getInterestIncome(),
+                entity.getLastApplicationDate(),
+                entity.getLifeCareFacilityIndicator(),
+                entity.getMaintenanceIndicator(),
+                entity.getNameMaintenanceIndicator(),
+                entity.getNetCapitalGain(),
+                entity.getNetRentalIncome(),
+                entity.getNoIncomeIndicator(),
+                entity.getNotarizedIndicator(),
+                entity.getOtherBenefits(),
+                entity.getOtherIncome(),
+                entity.getPercentSeniorShares(),
+                entity.getPhoneNumber(),
+                entity.getPublicAid(),
+                entity.getQualificationDate(),
+                entity.getRailroadBenefits(),
+                entity.getReturnedDate(),
+                entity.getSeniorFreezePercent(),
+                entity.getSeniorFreezeStatus(),
+                entity.getSignedIndicator(),
+                entity.getSocialSecurityIncome(),
+                entity.getSocialSecurityNumber(),
+                entity.getTotalIncome(),
+                entity.getVeteransBenefits(),
+                entity.getWages());
     }
-    // GENERATED-MAPPING-TO-DOMAIN:end
 
-    // GENERATED-MAPPING-TO-ENTITY:start
+    /// Creates a mutable persistence entity without dropping identity or version state.
     public static SeniorFreezeApplicantEntity toEntity(SeniorFreezeApplicant model) {
         SeniorFreezeApplicantEntity entity = new SeniorFreezeApplicantEntity();
-        entity.setId(model.getId());
-
-        entity.setAge(model.getAge());
-
-        entity.setApplicantAddress(model.getApplicantAddress());
-
-        entity.setApplicantCity(model.getApplicantCity());
-
-        entity.setApplicantFirstName(model.getApplicantFirstName());
-
-        entity.setApplicantLastName(model.getApplicantLastName());
-
-        entity.setApplicantMiddleInitial(model.getApplicantMiddleInitial());
-
-        entity.setApplicantOldName(model.getApplicantOldName());
-
-        entity.setApplicantState(model.getApplicantState());
-
-        entity.setApplicantTitle(model.getApplicantTitle());
-
-        entity.setApplicantZipCode(model.getApplicantZipCode());
-
-        entity.setBaseYear(model.getBaseYear());
-
-        entity.setBaseYearEligibleEqualizedValue(model.getBaseYearEligibleEqualizedValue());
-
-        entity.setBaseYearIndicator(model.getBaseYearIndicator());
-
-        entity.setBatchNumber(model.getBatchNumber());
-
-        entity.setBirthDate(model.getBirthDate());
-
-        entity.setCivilServiceBenefits(model.getCivilServiceBenefits());
-
-        entity.setCooperativeSeniorShares(model.getCooperativeSeniorShares());
-
-        entity.setDenialDate(model.getDenialDate());
-
-        entity.setFirstApplicationDate(model.getFirstApplicationDate());
-
-        entity.setHomeownerBaseYear(model.getHomeownerBaseYear());
-
-        entity.setHomeownerBaseYearAssessedValue(model.getHomeownerBaseYearAssessedValue());
-
-        entity.setHomeownerBaseYearEqualizationFactor(model.getHomeownerBaseYearEqualizationFactor());
-
-        entity.setHomeownerBaseYearEqualizedValue(model.getHomeownerBaseYearEqualizedValue());
-
-        entity.setHomeownerEligibilityIndicator(model.getHomeownerEligibilityIndicator());
-
-        entity.setHomeownerStatus(model.getHomeownerStatus());
-
-        entity.setHomesteadBatchNumber(model.getHomesteadBatchNumber());
-
-        entity.setHomesteadPercentShares(model.getHomesteadPercentShares());
-
-        entity.setHomesteadShares(model.getHomesteadShares());
-
-        entity.setHomesteadStatus(model.getHomesteadStatus());
-
-        entity.setHomesteadYearApplied(model.getHomesteadYearApplied());
-
-        entity.setInterestIncome(model.getInterestIncome());
-
-        entity.setLastApplicationDate(model.getLastApplicationDate());
-
-        entity.setLifeCareFacilityIndicator(model.getLifeCareFacilityIndicator());
-
-        entity.setMaintenanceIndicator(model.getMaintenanceIndicator());
-
-        entity.setNameMaintenanceIndicator(model.getNameMaintenanceIndicator());
-
-        entity.setNetCapitalGain(model.getNetCapitalGain());
-
-        entity.setNetRentalIncome(model.getNetRentalIncome());
-
-        entity.setNoIncomeIndicator(model.getNoIncomeIndicator());
-
-        entity.setNotarizedIndicator(model.getNotarizedIndicator());
-
-        entity.setOtherBenefits(model.getOtherBenefits());
-
-        entity.setOtherIncome(model.getOtherIncome());
-
-        entity.setPercentSeniorShares(model.getPercentSeniorShares());
-
-        entity.setPhoneNumber(model.getPhoneNumber());
-
-        entity.setPublicAid(model.getPublicAid());
-
-        entity.setQualificationDate(model.getQualificationDate());
-
-        entity.setRailroadBenefits(model.getRailroadBenefits());
-
-        entity.setReturnedDate(model.getReturnedDate());
-
-        entity.setSeniorFreezePercent(model.getSeniorFreezePercent());
-
-        entity.setSeniorFreezeStatus(model.getSeniorFreezeStatus());
-
-        entity.setSignedIndicator(model.getSignedIndicator());
-
-        entity.setSocialSecurityIncome(model.getSocialSecurityIncome());
-
-        entity.setSocialSecurityNumber(model.getSocialSecurityNumber());
-
-        entity.setTotalIncome(model.getTotalIncome());
-
-        entity.setVeteransBenefits(model.getVeteransBenefits());
-
-        entity.setWages(model.getWages());
-
-
-
+        entity.setId(model.id());
+        entity.setVersion(model.version());
+        entity.setAge(model.age());
+        entity.setApplicantAddress(model.applicantAddress());
+        entity.setApplicantCity(model.applicantCity());
+        entity.setApplicantFirstName(model.applicantFirstName());
+        entity.setApplicantLastName(model.applicantLastName());
+        entity.setApplicantMiddleInitial(model.applicantMiddleInitial());
+        entity.setApplicantOldName(model.applicantOldName());
+        entity.setApplicantState(model.applicantState());
+        entity.setApplicantTitle(model.applicantTitle());
+        entity.setApplicantZipCode(model.applicantZipCode());
+        entity.setBaseYear(model.baseYear());
+        entity.setBaseYearEligibleEqualizedValue(model.baseYearEligibleEqualizedValue());
+        entity.setBaseYearIndicator(model.baseYearIndicator());
+        entity.setBatchNumber(model.batchNumber());
+        entity.setBirthDate(model.birthDate());
+        entity.setCivilServiceBenefits(model.civilServiceBenefits());
+        entity.setCooperativeSeniorShares(model.cooperativeSeniorShares());
+        entity.setDenialDate(model.denialDate());
+        entity.setFirstApplicationDate(model.firstApplicationDate());
+        entity.setHomeownerBaseYear(model.homeownerBaseYear());
+        entity.setHomeownerBaseYearAssessedValue(model.homeownerBaseYearAssessedValue());
+        entity.setHomeownerBaseYearEqualizationFactor(model.homeownerBaseYearEqualizationFactor());
+        entity.setHomeownerBaseYearEqualizedValue(model.homeownerBaseYearEqualizedValue());
+        entity.setHomeownerEligibilityIndicator(model.homeownerEligibilityIndicator());
+        entity.setHomeownerStatus(model.homeownerStatus());
+        entity.setHomesteadBatchNumber(model.homesteadBatchNumber());
+        entity.setHomesteadPercentShares(model.homesteadPercentShares());
+        entity.setHomesteadShares(model.homesteadShares());
+        entity.setHomesteadStatus(model.homesteadStatus());
+        entity.setHomesteadYearApplied(model.homesteadYearApplied());
+        entity.setInterestIncome(model.interestIncome());
+        entity.setLastApplicationDate(model.lastApplicationDate());
+        entity.setLifeCareFacilityIndicator(model.lifeCareFacilityIndicator());
+        entity.setMaintenanceIndicator(model.maintenanceIndicator());
+        entity.setNameMaintenanceIndicator(model.nameMaintenanceIndicator());
+        entity.setNetCapitalGain(model.netCapitalGain());
+        entity.setNetRentalIncome(model.netRentalIncome());
+        entity.setNoIncomeIndicator(model.noIncomeIndicator());
+        entity.setNotarizedIndicator(model.notarizedIndicator());
+        entity.setOtherBenefits(model.otherBenefits());
+        entity.setOtherIncome(model.otherIncome());
+        entity.setPercentSeniorShares(model.percentSeniorShares());
+        entity.setPhoneNumber(model.phoneNumber());
+        entity.setPublicAid(model.publicAid());
+        entity.setQualificationDate(model.qualificationDate());
+        entity.setRailroadBenefits(model.railroadBenefits());
+        entity.setReturnedDate(model.returnedDate());
+        entity.setSeniorFreezePercent(model.seniorFreezePercent());
+        entity.setSeniorFreezeStatus(model.seniorFreezeStatus());
+        entity.setSignedIndicator(model.signedIndicator());
+        entity.setSocialSecurityIncome(model.socialSecurityIncome());
+        entity.setSocialSecurityNumber(model.socialSecurityNumber());
+        entity.setTotalIncome(model.totalIncome());
+        entity.setVeteransBenefits(model.veteransBenefits());
+        entity.setWages(model.wages());
         return entity;
     }
-    // GENERATED-MAPPING-TO-ENTITY:end
 }

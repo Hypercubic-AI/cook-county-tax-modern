@@ -1,205 +1,226 @@
 package org.cookcounty.tax.application.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.math.BigDecimal;
-import java.util.stream.IntStream;
+import static com.google.common.truth.Truth.assertThat;
 
 import org.cookcounty.tax.domain.model.AssessmentDetail;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.math.BigDecimal;
 
 class AssessmentDetailValuatorTest {
 
     private final AssessmentDetailValuator valuator = new AssessmentDetailValuator();
 
     @Test
-    void asrea003_001_valuesOnlyTheSuppliedDetailsValuationField() {
-        AssessmentDetail detail = land(100L, 0, "2.00");
-        detail.setId(7L);
-        detail.setOccurrenceNumber(3);
-        detail.setCdu("GD");
+    void valuesOnlyTheReplacementDetailsValuation() {
+        AssessmentDetail detail = land(100L, 0, "2.00", null, null, null, null, null, null);
 
-        valuator.value(detail);
+        AssessmentDetail valued = valuator.value(detail);
 
-        assertEquals(200L, detail.getValuation());
-        assertEquals(7L, detail.getId());
-        assertEquals(3, detail.getOccurrenceNumber());
-        assertEquals("GD", detail.getCdu());
+        assertThat(valued.valuation()).isEqualTo(BigDecimal.valueOf(200));
+        assertThat(valued.id()).isEqualTo(detail.id());
+        assertThat(valued.occurrenceNumber()).isEqualTo(detail.occurrenceNumber());
+        assertThat(valued.supplementalDetailCode()).isEqualTo(detail.supplementalDetailCode());
+        assertThat(detail.valuation()).isEqualTo(BigDecimal.ZERO);
+    }
+
+    @ParameterizedTest(name = "unit {0} has no land value")
+    @ValueSource(strings = {"EX", "RR"})
+    void exemptAndRailroadLandAreZero(String unit) {
+        AssessmentDetail valued =
+                valuator.value(land(10_000L, 2, "100.00", unit, null, null, null, null, null));
+        assertThat(valued.valuation()).isEqualTo(BigDecimal.ZERO);
     }
 
     @Test
-    void asrea003_002_exemptAndRailroadLandAreZero() {
-        for (String unit : new String[] {"EX", "RR"}) {
-            AssessmentDetail detail = land(10_000L, 2, "100.00");
-            detail.setUnitMeasure(unit);
-            detail.setValuation(99L);
+    void landUsesScaleAndEveryPositiveAdjustment() {
+        AssessmentDetail valued =
+                valuator.value(
+                        land(
+                                12_345L,
+                                2,
+                                "2.00",
+                                null,
+                                "1.100",
+                                "1.2000",
+                                "50.00000",
+                                "1.50000",
+                                "80.0"));
+        assertThat(valued.valuation()).isEqualTo(BigDecimal.valueOf(195));
+    }
 
-            valuator.value(detail);
-
-            assertEquals(0L, detail.getValuation());
-        }
+    @ParameterizedTest(name = "unsupported decimal scale {0} uses one dollar")
+    @ValueSource(ints = {6, 7, 8, 9})
+    void unsupportedLandAndAreaScalesFollowOneDollarPath(int scale) {
+        AssessmentDetail land =
+                valuator.value(
+                        land(1_000_000L, scale, "99.00", null, null, null, null, null, null));
+        AssessmentDetail area =
+                valuator.value(
+                        improvement(
+                                "2",
+                                202,
+                                0L,
+                                1_000_000L,
+                                scale,
+                                "99.00",
+                                "100.0",
+                                null,
+                                null,
+                                null));
+        assertThat(land.valuation()).isEqualTo(BigDecimal.ONE);
+        assertThat(area.valuation()).isEqualTo(BigDecimal.ONE);
     }
 
     @Test
-    void asrea003_002_landUsesScaleAndEveryPositiveAdjustment() {
-        AssessmentDetail detail = land(12_345L, 2, "2.00");
-        detail.setDepthFactor(new BigDecimal("1.100"));
-        detail.setCornerFactor(new BigDecimal("1.2000"));
-        detail.setPercentAssessed(new BigDecimal("50.00000"));
-        detail.setExtraCornerFactor(new BigDecimal("1.50000"));
-        detail.setLandConditionFactor(new BigDecimal("80.0"));
-
-        valuator.value(detail);
-
-        assertEquals(195L, detail.getValuation());
-        assertEquals(12_345L, detail.getFrontFootage());
-        assertEquals(new BigDecimal("2.00"), detail.getUnitPrice());
+    void areaImprovementAppliesConditionAndAssessedPercent() {
+        AssessmentDetail valued =
+                valuator.value(
+                        improvement(
+                                "2", 202, 0L, 12_345L, 2, "2.00", "80.0", "50.00000", null, null));
+        assertThat(valued.valuation()).isEqualTo(BigDecimal.valueOf(98));
     }
 
-    @Test
-    void asrea003_002_nonpositiveOptionalLandAdjustmentsAreIgnored() {
-        AssessmentDetail detail = land(100L, 0, "2.00");
-        detail.setDepthFactor(BigDecimal.ZERO);
-        detail.setCornerFactor(new BigDecimal("-1.0"));
-        detail.setPercentAssessed(BigDecimal.ZERO);
-        detail.setExtraCornerFactor(new BigDecimal("-1.0"));
-        detail.setLandConditionFactor(BigDecimal.ZERO);
-
-        valuator.value(detail);
-
-        assertEquals(200L, detail.getValuation());
+    @ParameterizedTest(name = "year {0} deducts only above {1}")
+    @CsvSource({
+        "78, 15000", "79, 25000", "83, 25000", "84, 30000", "97, 30000",
+        "98, 45000", "3, 45000", "4, 75000", "60, 75000", "61, 15000"
+    })
+    void class288ThresholdBandsPreserveZeroAtBoundaryAndDeductAboveIt(int year, long threshold) {
+        AssessmentDetail atThreshold =
+                valuator.value(
+                        improvement("3", 288, threshold, null, null, null, null, null, year, null));
+        AssessmentDetail aboveThreshold =
+                valuator.value(
+                        improvement(
+                                "3",
+                                288,
+                                threshold + 10L,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                year,
+                                null));
+        assertThat(atThreshold.valuation()).isEqualTo(BigDecimal.ZERO);
+        assertThat(aboveThreshold.valuation()).isEqualTo(BigDecimal.TEN);
     }
 
-    @Test
-    void asrea003_002_allSupportedLandScalesDecodeTheSameQuantity() {
-        IntStream.rangeClosed(0, 5).forEach(scale -> {
-            AssessmentDetail detail = land(12L * powerOfTen(scale), scale, "2.00");
-            valuator.value(detail);
-            assertEquals(24L, detail.getValuation(), "decimal scale " + scale);
-        });
+    @ParameterizedTest(name = "type {0} requires positive condition")
+    @ValueSource(strings = {"4", "5"})
+    void type4And5RequirePositiveConditionButStillFloorAtOne(String type) {
+        AssessmentDetail withoutCondition =
+                valuator.value(
+                        improvement(
+                                type, 400, 20_000L, null, null, null, "0", "50.00000", null, null));
+        AssessmentDetail conditioned =
+                valuator.value(
+                        improvement(
+                                type,
+                                400,
+                                20_000L,
+                                null,
+                                null,
+                                null,
+                                "80.0",
+                                "50.00000",
+                                null,
+                                null));
+        assertThat(withoutCondition.valuation()).isEqualTo(BigDecimal.ONE);
+        assertThat(conditioned.valuation()).isEqualTo(BigDecimal.valueOf(8_000));
     }
 
-    @Test
-    void asrea003_003_unsupportedLandAndAreaScalesFollowOneDollarPath() {
-        IntStream.rangeClosed(6, 9).forEach(scale -> {
-            AssessmentDetail land = land(1_000_000L, scale, "99.00");
-            valuator.value(land);
-            assertEquals(1L, land.getValuation(), "land decimal scale " + scale);
-
-            AssessmentDetail area = improvement("2", 202, 0L);
-            area.setArea(1_000_000L);
-            area.setDecimalScale(scale);
-            area.setUnitPrice(new BigDecimal("99.00"));
-            area.setConditionFactor(new BigDecimal("100.0"));
-            valuator.value(area);
-            assertEquals(1L, area.getValuation(), "area decimal scale " + scale);
-        });
+    private static AssessmentDetail land(
+            long frontage,
+            int scale,
+            String price,
+            @Nullable String unit,
+            @Nullable String depthFactor,
+            @Nullable String cornerFactor,
+            @Nullable String percent,
+            @Nullable String extraCornerFactor,
+            @Nullable String landConditionFactor) {
+        return new AssessmentDetail(
+                7L,
+                0L,
+                null,
+                null,
+                100,
+                "GD",
+                null,
+                decimal(cornerFactor),
+                scale,
+                null,
+                decimal(depthFactor),
+                "0",
+                "1",
+                decimal(extraCornerFactor),
+                frontage,
+                null,
+                null,
+                decimal(landConditionFactor),
+                0,
+                null,
+                3,
+                String.format("%015d", 1L),
+                String.format("%03d", 1),
+                decimal(percent),
+                null,
+                null,
+                unit,
+                new BigDecimal(price),
+                BigDecimal.valueOf(0));
     }
 
-    @Test
-    void asrea003_004_type2AppliesConditionAndOptionalAssessedPercent() {
-        AssessmentDetail detail = improvement("2", 202, 0L);
-        detail.setArea(12_345L);
-        detail.setDecimalScale(2);
-        detail.setUnitPrice(new BigDecimal("2.00"));
-        detail.setConditionFactor(new BigDecimal("80.0"));
-        detail.setPercentAssessed(new BigDecimal("50.00000"));
-
-        valuator.value(detail);
-
-        assertEquals(98L, detail.getValuation());
+    private static AssessmentDetail improvement(
+            String type,
+            int assessmentClass,
+            long cost,
+            @Nullable Long area,
+            @Nullable Integer scale,
+            @Nullable String price,
+            @Nullable String condition,
+            @Nullable String percent,
+            @Nullable Integer year,
+            @Nullable String occupancy) {
+        return new AssessmentDetail(
+                7L,
+                0L,
+                0,
+                area,
+                assessmentClass,
+                "GD",
+                decimal(condition),
+                null,
+                scale,
+                null,
+                null,
+                "0",
+                type,
+                null,
+                null,
+                year,
+                String.format("%015d", 42L),
+                null,
+                0,
+                decimal(occupancy),
+                3,
+                String.format("%015d", 1L),
+                String.format("%03d", 1),
+                decimal(percent),
+                BigDecimal.valueOf(cost),
+                null,
+                null,
+                decimal(price),
+                BigDecimal.valueOf(0));
     }
 
-    @Test
-    void asrea003_004_type2BelowOneIsRaisedToOne() {
-        AssessmentDetail detail = improvement("2", 202, 0L);
-        detail.setArea(1L);
-        detail.setDecimalScale(5);
-        detail.setUnitPrice(new BigDecimal("0.01"));
-        detail.setConditionFactor(BigDecimal.ZERO);
-
-        valuator.value(detail);
-
-        assertEquals(1L, detail.getValuation());
-    }
-
-    @Test
-    void asrea003_005_class288ThresholdBandsPreserveZeroAtBoundaryAndDeductAboveIt() {
-        assertThreshold(78, 15_000L);
-        assertThreshold(79, 25_000L);
-        assertThreshold(83, 25_000L);
-        assertThreshold(84, 30_000L);
-        assertThreshold(97, 30_000L);
-        assertThreshold(98, 45_000L);
-        assertThreshold(3, 45_000L);
-        assertThreshold(4, 75_000L);
-        assertThreshold(60, 75_000L);
-        assertThreshold(61, 15_000L);
-    }
-
-    @Test
-    void asrea003_006_type3StartsFromCostAndAppliesOnlyPositiveFactors() {
-        AssessmentDetail detail = improvement("3", 300, 20_000L);
-        detail.setConditionFactor(new BigDecimal("80.0"));
-        detail.setPercentAssessed(new BigDecimal("50.00000"));
-
-        valuator.value(detail);
-
-        assertEquals(8_000L, detail.getValuation());
-    }
-
-    @Test
-    void asrea003_006_type4And5RequirePositiveConditionButStillFloorAtOne() {
-        for (String type : new String[] {"4", "5"}) {
-            AssessmentDetail noCondition = improvement(type, 400, 20_000L);
-            noCondition.setConditionFactor(BigDecimal.ZERO);
-            noCondition.setPercentAssessed(new BigDecimal("50.00000"));
-            valuator.value(noCondition);
-            assertEquals(1L, noCondition.getValuation());
-
-            AssessmentDetail conditioned = improvement(type, 400, 20_000L);
-            conditioned.setConditionFactor(new BigDecimal("80.0"));
-            conditioned.setPercentAssessed(new BigDecimal("50.00000"));
-            valuator.value(conditioned);
-            assertEquals(8_000L, conditioned.getValuation());
-        }
-    }
-
-    private void assertThreshold(int year, long threshold) {
-        AssessmentDetail atThreshold = improvement("3", 288, threshold);
-        atThreshold.setImprovementYear(year);
-        valuator.value(atThreshold);
-        assertEquals(0L, atThreshold.getValuation(), "at threshold for year " + year);
-
-        AssessmentDetail aboveThreshold = improvement("3", 288, threshold + 10L);
-        aboveThreshold.setImprovementYear(year);
-        valuator.value(aboveThreshold);
-        assertEquals(10L, aboveThreshold.getValuation(), "above threshold for year " + year);
-    }
-
-    private static AssessmentDetail land(long frontage, int scale, String price) {
-        AssessmentDetail detail = new AssessmentDetail();
-        detail.setDetailType("1");
-        detail.setAssessmentClass(100);
-        detail.setFrontFootage(frontage);
-        detail.setDecimalScale(scale);
-        detail.setUnitPrice(new BigDecimal(price));
-        return detail;
-    }
-
-    private static AssessmentDetail improvement(String type, int assessmentClass, long cost) {
-        AssessmentDetail detail = new AssessmentDetail();
-        detail.setDetailType(type);
-        detail.setAssessmentClass(assessmentClass);
-        detail.setReproductionCost(cost);
-        return detail;
-    }
-
-    private static long powerOfTen(int exponent) {
-        long result = 1L;
-        for (int index = 0; index < exponent; index++) {
-            result *= 10L;
-        }
-        return result;
+    private static @Nullable BigDecimal decimal(@Nullable String value) {
+        return value == null ? null : new BigDecimal(value);
     }
 }

@@ -1,0 +1,46 @@
+{
+  "sourceRepository": "Hypercubic-AI/cook-county-tax-modernization",
+  "sourceRevision": "9a8b2ca",
+  "fixtures": [
+    {
+      "sourcePath": "goldens/valuation-preparation.golden.json",
+      "resourcePath": "reviewed/goldens/valuation-preparation.golden.json",
+      "sha256": "8b79f1ed0b37754cbed6a498c3d9836abc3ede1fdf39a80f7686aca21624c9a8"
+    },
+    {
+      "sourcePath": "goldens/eifd-tif-increment.golden.json",
+      "resourcePath": "reviewed/goldens/eifd-tif-increment.golden.json",
+      "sha256": "789b0cfccb85eeeb6ef65633a79f439a13a53bdce5de0d07eb79cbbb22789353"
+    },
+    {
+      "sourcePath": "goldens/homeowner-enumerated-variant.golden.json",
+      "resourcePath": "reviewed/goldens/homeowner-enumerated-variant.golden.json",
+      "sha256": "a1fb1ec91f6f40b98bc1c9aa85281529258da794f5bb4bf76f2792fdeacacf4d"
+    },
+    {
+      "sourcePath": "goldens/homeowner-broad-variant.golden.json",
+      "resourcePath": "reviewed/goldens/homeowner-broad-variant.golden.json",
+      "sha256": "894a86cc8801ce04b24963dc9b971c03bb4d018c56a9bb989a09b708ec33e321"
+    },
+    {
+      "sourcePath": "goldens/clerk-agency-attachment.golden.json",
+      "resourcePath": "reviewed/goldens/clerk-agency-attachment.golden.json",
+      "sha256": "ff5a7831defdc20cdd5bd8f434cf8d6e7f5a747def51c396a46e2e1c4e67dfd9"
+    },
+    {
+      "sourcePath": "data/cobol-fixtures/mastin--asreasfd01.bin",
+      "resourcePath": "reviewed/data/cobol-fixtures/mastin--asreasfd01.bin",
+      "sha256": "6ebdac674bf972a3ef1d295b2eec6e3656176595a2f6d63483dd23210098c2a9"
+    },
+    {
+      "sourcePath": "data/cobol-fixtures/equalval.bin",
+      "resourcePath": "reviewed/data/cobol-fixtures/equalval.bin",
+      "sha256": "f4b28f27ba73fb26e50e7b9ec8f6b8d01d3b263ad28878081b15ec1799e49ebf"
+    },
+    {
+      "sourcePath": "data/cobol-fixtures/divsion.bin",
+      "resourcePath": "reviewed/data/cobol-fixtures/divsion.bin",
+      "sha256": "894eb9d0ef38a255de21bd0f0f71ea5326119d93d9921150abd39482a903af7c"
+    }
+  ]
+}

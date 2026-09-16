@@ -1,13 +1,6 @@
 package org.cookcounty.tax.application.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import static com.google.common.truth.Truth.assertThat;
 
 import org.cookcounty.tax.application.service.TaxRateInputKernel.AgencyAssessment;
 import org.cookcounty.tax.application.service.TaxRateInputKernel.Comparison;
@@ -20,282 +13,414 @@ import org.cookcounty.tax.application.service.TaxRateInputKernel.Segment;
 import org.cookcounty.tax.application.service.TaxRateInputKernel.TaxCode;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 class TaxRateInputKernelTest {
 
     private final TaxRateInputKernel kernel = new TaxRateInputKernel();
 
     @Test
-    void clrtm751StampsMatchedDivisionAndDefaultsUnmatchedPropertyWithoutChangingValues() {
+    void divisionStampingMatchesDivisionAndDefaultsUnmatchedPropertyWithoutChangingValues() {
         // Synthetic rule example, not captured parity.
-        Input input = new Input(
-                List.of(eq(10, 1, 100, "10001", 90), eq(10, 1, 101, "10002", 91)),
-                List.of(new Division(1, 100, 700)),
-                Map.of(),
-                List.of());
+        Input input =
+                new Input(
+                        List.of(
+                                eq(10, 1, 100, "10001", BigDecimal.valueOf(90)),
+                                eq(10, 1, 101, "10002", BigDecimal.valueOf(91))),
+                        List.of(new Division(1, 100, 700)),
+                        Map.of(),
+                        List.of());
 
         Result result = kernel.process(input, insertingStore());
 
-        assertEquals(0, result.returnCode());
-        assertEquals(700, result.dividedValues().get(0).divisionNumber());
-        assertEquals(100, result.dividedValues().get(0).assessedValue());
-        assertEquals(90, result.dividedValues().get(0).equalizedValue());
-        assertEquals(101, result.dividedValues().get(1).divisionNumber());
-        assertEquals(2, result.divisionStamping().outputRecordsWritten());
-        assertEquals(2, result.divisionStamping().recordsStamped());
-        assertEquals(0, result.divisionStamping().divisionRecordsUnmatched());
+        assertThat(result.returnCode()).isEqualTo(0);
+        assertThat(result.dividedValues().get(0).divisionNumber()).isEqualTo(700);
+        assertThat(result.dividedValues().get(0).assessedValue()).isEqualTo(new BigDecimal("100"));
+        assertThat(result.dividedValues().get(0).equalizedValue()).isEqualTo(new BigDecimal("90"));
+        assertThat(result.dividedValues().get(1).divisionNumber()).isEqualTo(101);
+        assertThat(result.divisionStamping().outputRecordsWritten()).isEqualTo(2);
+        assertThat(result.divisionStamping().recordsStamped()).isEqualTo(2);
+        assertThat(result.divisionStamping().divisionRecordsUnmatched()).isEqualTo(0);
     }
 
     @Test
-    void clrtm751AcceptsEqualizedDuplicateButRejectsDuplicateDivisionKey() {
+    void divisionStampingAcceptsEqualizedDuplicateButRejectsDuplicateDivisionKey() {
         // Synthetic boundary example, not captured parity.
-        EqualizedValue duplicate = eq(10, 1, 100, "10001", 90);
-        Result equalizedDuplicate = kernel.process(
-                new Input(List.of(duplicate, duplicate), List.of(), Map.of(), List.of()),
-                insertingStore());
-        Result divisionDuplicate = kernel.process(
-                new Input(
-                        List.of(duplicate),
-                        List.of(new Division(1, 100, 7), new Division(1, 100, 8)),
-                        Map.of(),
-                        List.of()),
-                insertingStore());
+        EqualizedValue duplicate = eq(10, 1, 100, "10001", BigDecimal.valueOf(90));
+        Result equalizedDuplicate =
+                kernel.process(
+                        new Input(List.of(duplicate, duplicate), List.of(), Map.of(), List.of()),
+                        insertingStore());
+        Result divisionDuplicate =
+                kernel.process(
+                        new Input(
+                                List.of(duplicate),
+                                List.of(new Division(1, 100, 7), new Division(1, 100, 8)),
+                                Map.of(),
+                                List.of()),
+                        insertingStore());
 
-        assertEquals(2, equalizedDuplicate.dividedValues().size());
-        assertEquals(
-                "clrtm752-001",
-                equalizedDuplicate.messages().get(equalizedDuplicate.messages().size() - 1).ruleId());
-        assertEquals(TaxRateInputKernel.ERROR_RETURN_CODE, divisionDuplicate.returnCode());
-        assertEquals("clrtm751-001", divisionDuplicate.messages().get(0).ruleId());
+        assertThat(equalizedDuplicate.dividedValues().size()).isEqualTo(2);
+        assertThat(
+                        equalizedDuplicate
+                                .messages()
+                                .get(equalizedDuplicate.messages().size() - 1)
+                                .ruleId())
+                .isEqualTo("clrtm752-001");
+        assertThat(divisionDuplicate.returnCode()).isEqualTo(TaxRateInputKernel.ERROR_RETURN_CODE);
+        assertThat(divisionDuplicate.messages().get(0).ruleId()).isEqualTo("clrtm751-001");
     }
 
     @Test
-    void clrtm751RetainsEarlierOutputWhenEqualizedInputDescendsAndRejectsWideDefault() {
+    void divisionStampingRetainsEarlierOutputForDescendingInputAndRejectsWideDefault() {
         // Synthetic boundary examples, not captured parity.
-        Result descending = kernel.process(
-                new Input(
-                        List.of(eq(10, 2, 200, "10001", 10), eq(10, 1, 100, "10001", 20)),
-                        List.of(), Map.of(), List.of()),
-                insertingStore());
-        Result tooWide = kernel.process(
-                new Input(
-                        List.of(eq(10, 1, 100_000_000_000_000L, "10001", 10)),
-                        List.of(), Map.of(), List.of()),
-                insertingStore());
+        Result descending =
+                kernel.process(
+                        new Input(
+                                List.of(
+                                        eq(10, 2, 200, "10001", BigDecimal.valueOf(10)),
+                                        eq(10, 1, 100, "10001", BigDecimal.valueOf(20))),
+                                List.of(),
+                                Map.of(),
+                                List.of()),
+                        insertingStore());
+        Result tooWide =
+                kernel.process(
+                        new Input(
+                                List.of(
+                                        eq(
+                                                10,
+                                                1,
+                                                100_000_000_000_000L,
+                                                "10001",
+                                                BigDecimal.valueOf(10))),
+                                List.of(),
+                                Map.of(),
+                                List.of()),
+                        insertingStore());
 
-        assertEquals(1, descending.dividedValues().size());
-        assertEquals(TaxRateInputKernel.ERROR_RETURN_CODE, descending.returnCode());
-        assertEquals("DIVISION_NUMBER_TOO_WIDE", tooWide.messages().get(0).code());
+        assertThat(descending.dividedValues().size()).isEqualTo(1);
+        assertThat(descending.returnCode()).isEqualTo(TaxRateInputKernel.ERROR_RETURN_CODE);
+        assertThat(tooWide.messages().get(0).code()).isEqualTo("DIVISION_NUMBER_TOO_WIDE");
     }
 
     @Test
-    void clrtm752CarriesRateFortyAgenciesAndParcelValuesWithoutCalculatingRate() {
+    void agencyAttachmentCarriesRateFortyAgenciesAndValuesWithoutCalculatingRate() {
         // Synthetic matched example, not captured parity.
         List<String> agencies = agencyNames("A", 45);
         TaxCode taxCode = new TaxCode("10001", new BigDecimal("12.345"), agencies);
-        Result result = kernel.process(
-                new Input(
-                        List.of(eq(10, 1, 100, "10001", 900)),
-                        List.of(),
-                        Map.of("10001", taxCode),
-                        List.of()),
-                insertingStore());
+        Result result =
+                kernel.process(
+                        new Input(
+                                List.of(eq(10, 1, 100, "10001", BigDecimal.valueOf(900))),
+                                List.of(),
+                                Map.of("10001", taxCode),
+                                List.of()),
+                        insertingStore());
 
         AgencyAssessment output = result.agencyAssessments().get(0);
-        assertEquals(new BigDecimal("12.345"), output.rate());
-        assertEquals(100, output.assessedValue());
-        assertEquals(900, output.equalizedValue());
-        assertEquals(40, output.agencies().size());
-        assertEquals("A040", output.agencies().get(39));
+        assertThat(output.rate()).isEqualTo(new BigDecimal("12.345"));
+        assertThat(output.assessedValue()).isEqualTo(new BigDecimal("100"));
+        assertThat(output.equalizedValue()).isEqualTo(new BigDecimal("900"));
+        assertThat(output.agencies().size()).isEqualTo(40);
+        assertThat(output.agencies().get(39)).isEqualTo("A040");
     }
 
     @Test
-    void clrtm752ReportsEveryMissingTaxCodeContinuesAndBalancesNormalCompletion() {
+    void agencyAttachmentReportsEachMissingTaxCodeAndBalancesNormalCompletion() {
         // Synthetic missing-master example, not captured parity.
-        Result result = kernel.process(
-                new Input(
-                        List.of(eq(10, 1, 100, "10001", 90), eq(10, 1, 101, "10002", 91)),
-                        List.of(), Map.of(), List.of()),
-                insertingStore());
+        Result result =
+                kernel.process(
+                        new Input(
+                                List.of(
+                                        eq(10, 1, 100, "10001", BigDecimal.valueOf(90)),
+                                        eq(10, 1, 101, "10002", BigDecimal.valueOf(91))),
+                                List.of(),
+                                Map.of(),
+                                List.of()),
+                        insertingStore());
 
-        assertEquals(0, result.returnCode());
-        assertEquals(2, result.agencyAttachment().assessmentRecordsRead());
-        assertEquals(0, result.agencyAttachment().assessmentRecordsWritten());
-        assertEquals(2, result.agencyAttachment().assessmentRecordsUnmatched());
-        assertTrue(result.agencyAttachment().normalCompletionBalanced());
-        assertTrue(result.messages().get(0).text().contains("property 100"));
+        assertThat(result.returnCode()).isEqualTo(0);
+        assertThat(result.agencyAttachment().assessmentRecordsRead()).isEqualTo(2);
+        assertThat(result.agencyAttachment().assessmentRecordsWritten()).isEqualTo(0);
+        assertThat(result.agencyAttachment().assessmentRecordsUnmatched()).isEqualTo(2);
+        assertThat(result.agencyAttachment().normalCompletionBalanced()).isTrue();
+        assertThat(result.messages().get(0).text().contains("property 100")).isTrue();
     }
 
     @Test
-    void clrtm753TotalsDeduplicatesAndClassifiesMatchedDivision() {
+    void agencyComparisonTotalsDeduplicatesAndClassifiesMatchedDivision() {
         // Synthetic matched-year example, not captured parity.
-        AgencyAssessment prior = agency(700, 99, "10000", 40, List.of("000000001", "000000002", "000000002"));
-        TaxCode currentTaxCode = new TaxCode(
-                "10001", BigDecimal.ONE, List.of("000000002", "000000003"));
-        Result result = kernel.process(
-                new Input(
-                        List.of(eq(10, 1, 100, "10001", 60)),
-                        List.of(new Division(1, 100, 700)),
-                        Map.of("10001", currentTaxCode),
-                        List.of(prior)),
-                insertingStore());
+        AgencyAssessment prior =
+                agency(
+                        700,
+                        99,
+                        "10000",
+                        BigDecimal.valueOf(40),
+                        List.of("000000001", "000000002", "000000002"));
+        TaxCode currentTaxCode =
+                new TaxCode("10001", BigDecimal.ONE, List.of("000000002", "000000003"));
+        Result result =
+                kernel.process(
+                        new Input(
+                                List.of(eq(10, 1, 100, "10001", BigDecimal.valueOf(60))),
+                                List.of(new Division(1, 100, 700)),
+                                Map.of("10001", currentTaxCode),
+                                List.of(prior)),
+                        insertingStore());
 
         Comparison comparison = result.comparisons().get(0);
-        assertEquals(40, comparison.priorTotalEqualizedValue());
-        assertEquals(60, comparison.currentTotalEqualizedValue());
-        assertEquals(new BigDecimal("100.0"), comparison.percentChange());
-        assertEquals(List.of(new Segment("000000001", 'D'), new Segment("000000003", 'A')),
-                comparison.segments());
-        assertEquals(1, result.agencyComparison().disconnectSegments());
-        assertEquals(1, result.agencyComparison().annexSegments());
+        assertThat(comparison.priorTotalEqualizedValue()).isEqualTo(new BigDecimal("40"));
+        assertThat(comparison.currentTotalEqualizedValue()).isEqualTo(new BigDecimal("60"));
+        assertThat(comparison.percentChange()).isEqualTo(new BigDecimal("100.0"));
+        assertThat(comparison.segments())
+                .isEqualTo(List.of(new Segment("000000001", 'D'), new Segment("000000003", 'A')));
+        assertThat(result.agencyComparison().disconnectSegments()).isEqualTo(1);
+        assertThat(result.agencyComparison().annexSegments()).isEqualTo(1);
     }
 
     @Test
-    void clrtm753WritesZeroDifferenceAndReportsUnmatchedDivisions() {
+    void agencyComparisonWritesZeroDifferenceAndReportsUnmatchedDivisions() {
         // Synthetic grouping example, not captured parity.
-        TaxCode currentTaxCode = new TaxCode(
-                "10001", BigDecimal.ONE, List.of("000000001"));
-        Result matched = kernel.process(
-                new Input(
-                        List.of(eq(10, 1, 100, "10001", 60)),
-                        List.of(new Division(1, 100, 700)),
-                        Map.of("10001", currentTaxCode),
-                        List.of(agency(700, 99, "10000", 40, List.of("000000001")))),
-                insertingStore());
-        Result unmatched = kernel.process(
-                new Input(
-                        List.of(eq(10, 1, 100, "10001", 60)),
-                        List.of(),
-                        Map.of("10001", currentTaxCode),
-                        List.of(agency(99, 99, "10000", 40, List.of("000000001")))),
-                insertingStore());
+        TaxCode currentTaxCode = new TaxCode("10001", BigDecimal.ONE, List.of("000000001"));
+        Result matched =
+                kernel.process(
+                        new Input(
+                                List.of(eq(10, 1, 100, "10001", BigDecimal.valueOf(60))),
+                                List.of(new Division(1, 100, 700)),
+                                Map.of("10001", currentTaxCode),
+                                List.of(
+                                        agency(
+                                                700,
+                                                99,
+                                                "10000",
+                                                BigDecimal.valueOf(40),
+                                                List.of("000000001")))),
+                        insertingStore());
+        Result unmatched =
+                kernel.process(
+                        new Input(
+                                List.of(eq(10, 1, 100, "10001", BigDecimal.valueOf(60))),
+                                List.of(),
+                                Map.of("10001", currentTaxCode),
+                                List.of(
+                                        agency(
+                                                99,
+                                                99,
+                                                "10000",
+                                                BigDecimal.valueOf(40),
+                                                List.of("000000001")))),
+                        insertingStore());
 
-        assertEquals(1, matched.comparisons().size());
-        assertTrue(matched.comparisons().get(0).segments().isEmpty());
-        assertEquals(1, unmatched.agencyComparison().priorOnlyDivisions());
-        assertEquals(1, unmatched.agencyComparison().currentOnlyDivisions());
-        assertTrue(unmatched.comparisons().isEmpty());
+        assertThat(matched.comparisons().size()).isEqualTo(1);
+        assertThat(matched.comparisons().get(0).segments().isEmpty()).isTrue();
+        assertThat(unmatched.agencyComparison().priorOnlyDivisions()).isEqualTo(1);
+        assertThat(unmatched.agencyComparison().currentOnlyDivisions()).isEqualTo(1);
+        assertThat(unmatched.comparisons().isEmpty()).isTrue();
     }
 
     @Test
-    void clrtm753RetainsMatchedComparisonAfterLateDescendingGroupRead() {
+    void agencyComparisonRetainsMatchedOutputAfterLateDescendingGroupRead() {
         // Synthetic partial-output ordering example, not captured parity.
-        TaxCode currentTaxCode = new TaxCode(
-                "10001", BigDecimal.ONE, List.of("000000001"));
-        List<AgencyAssessment> prior = List.of(
-                agency(700, 90, "10000", 20, List.of("000000001")),
-                agency(700, 91, "10000", 30, List.of("000000001")),
-                agency(600, 92, "10000", 40, List.of("000000001")));
-        Result result = kernel.process(
-                new Input(
-                        List.of(eq(10, 1, 100, "10001", 60)),
-                        List.of(new Division(1, 100, 700)),
-                        Map.of("10001", currentTaxCode),
-                        prior),
-                insertingStore());
+        TaxCode currentTaxCode = new TaxCode("10001", BigDecimal.ONE, List.of("000000001"));
+        List<AgencyAssessment> prior =
+                List.of(
+                        agency(700, 90, "10000", BigDecimal.valueOf(20), List.of("000000001")),
+                        agency(700, 91, "10000", BigDecimal.valueOf(30), List.of("000000001")),
+                        agency(600, 92, "10000", BigDecimal.valueOf(40), List.of("000000001")));
+        Result result =
+                kernel.process(
+                        new Input(
+                                List.of(eq(10, 1, 100, "10001", BigDecimal.valueOf(60))),
+                                List.of(new Division(1, 100, 700)),
+                                Map.of("10001", currentTaxCode),
+                                prior),
+                        insertingStore());
 
-        assertEquals(TaxRateInputKernel.ERROR_RETURN_CODE, result.returnCode());
-        assertEquals(1, result.comparisons().size());
-        assertEquals(50, result.comparisons().get(0).priorTotalEqualizedValue());
-        assertEquals(3, result.agencyComparison().priorRecordsRead());
+        assertThat(result.returnCode()).isEqualTo(TaxRateInputKernel.ERROR_RETURN_CODE);
+        assertThat(result.comparisons().size()).isEqualTo(1);
+        assertThat(result.comparisons().get(0).priorTotalEqualizedValue())
+                .isEqualTo(new BigDecimal("50"));
+        assertThat(result.agencyComparison().priorRecordsRead()).isEqualTo(3);
     }
 
     @Test
-    void clrtm753CapsEachUniqueTableAtFortyAndReportsCombinedSegmentOverflow() {
+    void agencyComparisonCapsUniqueTablesAndReportsCombinedSegmentOverflow() {
         // Synthetic capacity boundary example, not captured parity.
         List<String> priorAgencies = agencyNames("P", 40);
         List<String> currentAgencies = agencyNames("C", 40);
-        Result result = kernel.process(
-                new Input(
-                        List.of(eq(10, 1, 100, "10001", 60)),
-                        List.of(new Division(1, 100, 700)),
-                        Map.of("10001", new TaxCode("10001", BigDecimal.ONE, currentAgencies)),
-                        List.of(agency(700, 99, "10000", 40, priorAgencies))),
-                insertingStore());
+        Result result =
+                kernel.process(
+                        new Input(
+                                List.of(eq(10, 1, 100, "10001", BigDecimal.valueOf(60))),
+                                List.of(new Division(1, 100, 700)),
+                                Map.of(
+                                        "10001",
+                                        new TaxCode("10001", BigDecimal.ONE, currentAgencies)),
+                                List.of(
+                                        agency(
+                                                700,
+                                                99,
+                                                "10000",
+                                                BigDecimal.valueOf(40),
+                                                priorAgencies))),
+                        insertingStore());
 
-        assertEquals(TaxRateInputKernel.ERROR_RETURN_CODE, result.returnCode());
-        assertTrue(result.comparisons().isEmpty());
-        assertEquals("ANNEX_DISCONNECT_CAPACITY_EXCEEDED", result.messages().get(0).code());
+        assertThat(result.returnCode()).isEqualTo(TaxRateInputKernel.ERROR_RETURN_CODE);
+        assertThat(result.comparisons().isEmpty()).isTrue();
+        assertThat(result.messages().get(0).code()).isEqualTo("ANNEX_DISCONNECT_CAPACITY_EXCEEDED");
     }
 
     @Test
-    void clrtm755SearchesOnlyFirstFortyClassifiedEntriesAndIgnoresUnknownTypes() {
+    void frozenAgencyPostingSearchesFortyClassifiedEntriesAndIgnoresUnknownTypes() {
         // Synthetic declared-segment boundary example, not captured parity.
         List<Segment> segments = new ArrayList<>();
         for (int index = 1; index <= 49; index++) {
             segments.add(new Segment(String.format("A%03d", index), 'A'));
         }
         segments.add(new Segment("UNKNOWN", 'X'));
-        Comparison comparison = new Comparison(700, 0, 30, BigDecimal.valueOf(100), segments);
-        List<AgencyAssessment> current = List.of(
-                agency(700, 1, "10001", 10, List.of("A040")),
-                agency(700, 2, "10001", 20, List.of("A041")));
+        Comparison comparison =
+                new Comparison(
+                        700,
+                        BigDecimal.valueOf(0),
+                        BigDecimal.valueOf(30),
+                        BigDecimal.valueOf(100),
+                        segments);
+        List<AgencyAssessment> current =
+                List.of(
+                        agency(700, 1, "10001", BigDecimal.valueOf(10), List.of("A040")),
+                        agency(700, 2, "10001", BigDecimal.valueOf(20), List.of("A041")));
 
-        Result result = kernel.postPrepared(List.of(), current, List.of(comparison), insertingStore());
+        Result result =
+                kernel.postPrepared(List.of(), current, List.of(comparison), insertingStore());
 
-        assertEquals(1, result.postings().size());
-        assertEquals("A040", result.postings().get(0).agencyNumber());
+        assertThat(result.postings().size()).isEqualTo(1);
+        assertThat(result.postings().get(0).agencyNumber()).isEqualTo("A040");
     }
 
     @Test
-    void clrtm755PostsDuplicateParcelSlotsRoundsAndCountsEveryOperation() {
+    void frozenAgencyPostingRoundsDuplicateParcelSlotsAndCountsEachOperation() {
         // Synthetic posting and rounding example, not captured parity.
-        Comparison comparison = new Comparison(
-                700, 0, 10, new BigDecimal("33.3"), List.of(new Segment("000000001", 'A')));
-        AgencyAssessment current = agency(
-                700, 1, "10001", 10, List.of("000000001", "000000001"));
+        Comparison comparison =
+                new Comparison(
+                        700,
+                        BigDecimal.valueOf(0),
+                        BigDecimal.valueOf(10),
+                        new BigDecimal("33.3"),
+                        List.of(new Segment("000000001", 'A')));
+        AgencyAssessment current =
+                agency(700, 1, "10001", BigDecimal.valueOf(10), List.of("000000001", "000000001"));
         AccumulatingStore store = new AccumulatingStore();
 
-        Result result = kernel.postPrepared(List.of(), List.of(current), List.of(comparison), store);
+        Result result =
+                kernel.postPrepared(List.of(), List.of(current), List.of(comparison), store);
 
-        assertEquals(2, result.postings().size());
-        assertEquals(3, result.postings().get(0).annexedValue());
-        assertEquals(6, store.values.get("10001|000000001"));
-        assertEquals(1, result.frozenAgencyPosting().insertOperations());
-        assertEquals(1, result.frozenAgencyPosting().rewriteOperations());
+        assertThat(result.postings().size()).isEqualTo(2);
+        assertThat(result.postings().get(0).annexedValue()).isEqualTo(new BigDecimal("3"));
+        assertThat(store.values.get("10001|000000001")).isEqualTo(new BigDecimal("6"));
+        assertThat(result.frozenAgencyPosting().insertOperations()).isEqualTo(1);
+        assertThat(result.frozenAgencyPosting().rewriteOperations()).isEqualTo(1);
     }
 
     @Test
-    void clrtm755RetainsSuccessfulMutationsAndContinuesActiveRecordAfterFailure() {
+    void frozenAgencyPostingRetainsMutationsAndContinuesActiveRecordAfterFailure() {
         // Synthetic partial-error example, not captured parity.
-        Comparison comparison = new Comparison(
-                700, 0, 10, new BigDecimal("100.0"), List.of(new Segment("000000001", 'A')));
-        AgencyAssessment current = agency(
-                700, 1, "10001", 10,
-                List.of("000000001", "000000001", "000000001"));
+        Comparison comparison =
+                new Comparison(
+                        700,
+                        BigDecimal.valueOf(0),
+                        BigDecimal.valueOf(10),
+                        new BigDecimal("100.0"),
+                        List.of(new Segment("000000001", 'A')));
+        AgencyAssessment current =
+                agency(
+                        700,
+                        1,
+                        "10001",
+                        BigDecimal.valueOf(10),
+                        List.of("000000001", "000000001", "000000001"));
         FailingSecondStore store = new FailingSecondStore();
 
-        Result result = kernel.postPrepared(List.of(), List.of(current), List.of(comparison), store);
+        Result result =
+                kernel.postPrepared(List.of(), List.of(current), List.of(comparison), store);
 
-        assertEquals(TaxRateInputKernel.ERROR_RETURN_CODE, result.returnCode());
-        assertEquals(2, result.postings().size());
-        assertEquals(2, result.frozenAgencyPosting().insertOperations());
-        assertEquals(3, store.attempts);
+        assertThat(result.returnCode()).isEqualTo(TaxRateInputKernel.ERROR_RETURN_CODE);
+        assertThat(result.postings().size()).isEqualTo(2);
+        assertThat(result.frozenAgencyPosting().insertOperations()).isEqualTo(2);
+        assertThat(store.attempts).isEqualTo(3);
+        assertThat(store.successfulValue).isEqualTo(new BigDecimal("20"));
     }
 
     @Test
-    void clrtm755RetainsActiveDivisionPostingWhenDescendingInputSetsReturnCode16() {
+    void frozenAgencyPostingRetainsActiveDivisionWhenDescendingInputFails() {
         // Synthetic ordering-error example, not captured parity.
-        Comparison comparison = new Comparison(
-                700, 20, 0, new BigDecimal("100.0"), List.of(new Segment("000000001", 'D')));
-        List<AgencyAssessment> prior = List.of(
-                agency(700, 1, "10001", 20, List.of("000000001")),
-                agency(600, 2, "10001", 30, List.of("000000001")));
+        Comparison comparison =
+                new Comparison(
+                        700,
+                        BigDecimal.valueOf(20),
+                        BigDecimal.valueOf(0),
+                        new BigDecimal("100.0"),
+                        List.of(new Segment("000000001", 'D')));
+        List<AgencyAssessment> prior =
+                List.of(
+                        agency(700, 1, "10001", BigDecimal.valueOf(20), List.of("000000001")),
+                        agency(600, 2, "10001", BigDecimal.valueOf(30), List.of("000000001")));
 
-        Result result = kernel.postPrepared(prior, List.of(), List.of(comparison), insertingStore());
+        Result result =
+                kernel.postPrepared(prior, List.of(), List.of(comparison), insertingStore());
 
-        assertEquals(TaxRateInputKernel.ERROR_RETURN_CODE, result.returnCode());
-        assertEquals(1, result.postings().size());
-        assertEquals(2, result.frozenAgencyPosting().priorRecordsRead());
+        assertThat(result.returnCode()).isEqualTo(TaxRateInputKernel.ERROR_RETURN_CODE);
+        assertThat(result.postings().size()).isEqualTo(1);
+        assertThat(result.frozenAgencyPosting().priorRecordsRead()).isEqualTo(2);
     }
 
-    private static EqualizedValue eq(int town, int volume, long property, String taxCode, long eav) {
-        return new EqualizedValue(town, volume, property, "0", taxCode, 100, eav);
+    @Test
+    void frozenAgencyPostingKeepsWholeUnitValuesBeyondPrimitiveRangeExact() {
+        BigDecimal sourceValue = new BigDecimal("9223372036854775808");
+        Comparison comparison =
+                new Comparison(
+                        700,
+                        BigDecimal.ZERO,
+                        sourceValue,
+                        new BigDecimal("100.0"),
+                        List.of(new Segment("000000001", 'A')));
+        AgencyAssessment current = agency(700, 1, "10001", sourceValue, List.of("000000001"));
+        AccumulatingStore store = new AccumulatingStore();
+
+        Result result =
+                kernel.postPrepared(List.of(), List.of(current), List.of(comparison), store);
+
+        assertThat(result.postings().get(0).annexedValue()).isEqualTo(sourceValue);
+        assertThat(store.values.get("10001|000000001")).isEqualTo(sourceValue);
+    }
+
+    private static EqualizedValue eq(
+            int town, int volume, long property, String taxCode, BigDecimal equalizedValue) {
+        return new EqualizedValue(
+                town, volume, property, "0", taxCode, new BigDecimal("100"), equalizedValue);
     }
 
     private static AgencyAssessment agency(
-            long division, long property, String taxCode, long eav, List<String> agencies) {
+            long division,
+            long property,
+            String taxCode,
+            BigDecimal equalizedValue,
+            List<String> agencies) {
         return new AgencyAssessment(
-                division, 10, 1, property, "0", taxCode, 100, eav, BigDecimal.ONE, agencies);
+                division,
+                10,
+                1,
+                property,
+                "0",
+                taxCode,
+                new BigDecimal("100"),
+                equalizedValue,
+                BigDecimal.ONE,
+                agencies);
     }
 
     private static List<String> agencyNames(String prefix, int count) {
@@ -311,26 +436,28 @@ class TaxRateInputKernelTest {
     }
 
     private static final class AccumulatingStore implements TaxRateInputKernel.FrozenAgencyStore {
-        private final Map<String, Long> values = new HashMap<>();
+        private final Map<String, BigDecimal> values = new HashMap<>();
 
         @Override
-        public Operation post(String taxCode, String agency, long value, boolean annex) {
+        public Operation post(String taxCode, String agency, BigDecimal value, boolean annex) {
             String key = taxCode + "|" + agency;
             boolean exists = values.containsKey(key);
-            values.merge(key, value, Long::sum);
+            values.merge(key, value, BigDecimal::add);
             return exists ? Operation.REWRITE : Operation.INSERT;
         }
     }
 
     private static final class FailingSecondStore implements TaxRateInputKernel.FrozenAgencyStore {
         private int attempts;
+        private BigDecimal successfulValue = BigDecimal.ZERO;
 
         @Override
-        public Operation post(String taxCode, String agency, long value, boolean annex) {
+        public Operation post(String taxCode, String agency, BigDecimal value, boolean annex) {
             attempts++;
             if (attempts == 2) {
                 throw new IllegalStateException("synthetic persistence failure");
             }
+            successfulValue = successfulValue.add(value);
             return Operation.INSERT;
         }
     }
