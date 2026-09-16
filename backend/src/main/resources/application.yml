@@ -1,0 +1,26 @@
+
+spring:
+  application:
+    name: cook-county-tax-rate-making
+  jackson:
+    default-property-inclusion: non_null
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cook-county-tax-rate-making
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
+
+
+server:
+  port: 8080

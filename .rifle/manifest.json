@@ -1,0 +1,47 @@
+{
+  "app": "cook-county-tax-rate-making",
+  "fired_bullets": [
+    {
+      "name": "assessed-value-preparation",
+      "spec_checksum": "sha256:c5c193c08738df9c6c0f75093ba04482508693bdd817a8f337ce53110d78c3d2",
+      "fired_at": "2026-09-14T21:31:47Z",
+      "mode": "dev",
+      "emitted_migrations": [
+        "V1__assessed_value_preparation_schema.sql",
+        "V2__assessed_value_preparation_seed.sql"
+      ]
+    },
+    {
+      "name": "tax-rate-input-preparation",
+      "spec_checksum": "sha256:b75a54fcace485bb1a57ec143e6cc75e63722723fa251fa11828ee655b0a98c0",
+      "fired_at": "2026-09-14T21:03:32Z",
+      "mode": "dev",
+      "emitted_migrations": [
+        "V3__tax_rate_input_preparation_schema.sql",
+        "V4__tax_rate_input_preparation_seed.sql"
+      ]
+    },
+    {
+      "name": "property-tax-exemptions",
+      "spec_checksum": "sha256:1a5db78a9465ce8a054b3f7ef038310b352cae54191d40c59a11b28bd4f2b607",
+      "fired_at": "2026-09-14T21:03:34Z",
+      "mode": "dev",
+      "emitted_migrations": [
+        "V5__property_tax_exemptions_schema.sql",
+        "V6__property_tax_exemptions_seed.sql"
+      ]
+    },
+    {
+      "name": "eifd-tif-increment",
+      "spec_checksum": "sha256:0bde0fd7db3d65800db8d003840ef04ffe80f9a196caac3435940848cfe3c388",
+      "fired_at": "2026-09-14T21:03:36Z",
+      "mode": "dev",
+      "emitted_migrations": [
+        "V7__eifd_tif_increment_schema.sql",
+        "V8__eifd_tif_increment_seed.sql"
+      ]
+    }
+  ],
+  "highest_migration_version": 8,
+  "infrastructure_generated": true
+}

@@ -1,0 +1,2784 @@
+openapi: 3.1.0
+info:
+  title: EIFD/TIF Increment Batch API
+  version: 1.0.0
+  description: |
+    Starts and observes the nine-step EIFD/TIF increment batch. The service uses
+    preloaded shared-live assessment, tax-code, agency-reference, frozen-valuation,
+    and agency-equalized-valuation data. Requests never identify local files.
+    Every launch pins the business clock for the complete chain. Runs share the
+    live indexed stores and are not isolated snapshots.
+servers:
+- url: http://localhost:8080
+  description: Local development
+tags:
+- name: EifdTifIncrementRuns
+  description: Asynchronous EIFD/TIF increment batch runs.
+security: []
+paths:
+  /api/assessed-value-preparation-runs:
+    post:
+      tags:
+      - Assessed Value Preparation Runs
+      summary: Start an assessed value preparation run
+      operationId: startAssessedValuePreparationRun
+      description: |
+        Creates an asynchronous run over the assessment data already preloaded
+        on the server. The supplied business date and time are pinned for every
+        stage, and `processYear` supplies the evidenced two-character ASREA178
+        parameter. The accepted business rules below all apply at this endpoint.
+        Their final batch outcome, counts, outputs, and messages are observed by
+        reading the returned resource through
+        `GET /api/assessed-value-preparation-runs/{id}`.
+
+        Failure and partial-output semantics are explicit. A descending key in
+        overall-class preparation produces a `FAILED` run, return code 16, an
+        `asrea018-001` error message, and `partialOutput: true` when records were
+        published. A descending key in valuation bucketing also produces a
+        `FAILED` run and `partialOutput: true`, even though the legacy stage can
+        report return code zero; its message names `asrea151-001`. Outputs made
+        before either failure remain listed with `partial: true` and are never
+        represented as a clean successful result. Source defects such as invalid
+        decimal selectors, major-9 switch contamination, and nonpositive Type-5
+        occupancy are likewise surfaced in rule-addressed messages.
+      x-business-rules:
+      - id: asrea003-001
+        behavior: Value one supplied supported land or improvement detail without independently reading or publishing a batch dataset.
+      - id: asrea003-002
+        behavior: Zero EX/RR land; otherwise apply supported decimal scaling, unit price, positive adjustment factors, and the one-dollar minimum.
+      - id: asrea003-003
+        behavior: Preserve the observed one-dollar result for decimal selectors 6 through 9 and emit a defect message naming this rule.
+      - id: asrea003-004
+        behavior: Value Type-2 area improvements from scaled area, unit price, condition, optional positive assessed percentage, and the one-dollar minimum.
+      - id: asrea003-005
+        behavior: Apply class-288 reproduction-cost relief using the accepted year bands and thresholds.
+      - id: asrea003-006
+        behavior: Start Type-3 valuation from reproduction cost; start Type-4/5 only for positive condition, while preserving the documented zero and one-dollar boundaries.
+      - id: asrea018-001
+        behavior: Require nondecreasing township, volume, parcel, and tax-type order and expose failed partial publication explicitly.
+      - id: asrea018-002
+        behavior: Use the highest land class for land-only parcels and report parcels that contain no land detail.
+      - id: asrea018-003
+        behavior: Resolve named improvement classes by the fixed first-match major-class precedence.
+      - id: asrea018-004
+        behavior: Resolve other recognized improvement classes by major class, tier priority, valuation, and minor class, neutralizing minor class 88.
+      - id: asrea018-005
+        behavior: Preserve the prior overall class and report the record when improvement classification cannot be resolved.
+      - id: asrea018-006
+        behavior: Exclude attached questionnaire occurrences from overall-class selection.
+      - id: asrea018-007
+        behavior: Identify observed major-9 tier-2 contamination of the major-8 switch as a reported source defect, not an endorsed classification policy.
+      - id: asrea151-001
+        behavior: Require nondecreasing township, volume, and parcel order and expose the legacy zero-return-code partial output as a failed run.
+      - id: asrea151-002
+        behavior: Map overall Assessor class through the 242-entry table; report nonzero misses and use the accepted major-digit fallback.
+      - id: asrea151-003
+        behavior: Establish parcel bucket eligibility using class-239/class-200 land and the strict residential and class-299 value thresholds.
+      - id: asrea151-004
+        behavior: Accumulate class-239 land and class-224 improvements into farm value when class-239 land is present.
+      - id: asrea151-005
+        behavior: Accumulate eligible major-class-2 non-farm detail into homeowner value and all remaining detail into non-homeowner value.
+      - id: asrea151-006
+        behavior: Publish three distinct report buckets while persisting farm separately, homeowner plus non-homeowner combined, and the documented cleared slots.
+      - id: asrea151-007
+        behavior: Exclude questionnaire occurrences from both valuation-bucket passes.
+      - id: asrea178-001
+        behavior: Require a numeric two-character process year and use the accepted pivot only for report-century display.
+      - id: asrea178-002
+        behavior: Clear Type-2 CDU year and exclude attached questionnaires from conversion scanning.
+      - id: asrea178-003
+        behavior: Report nonpositive Type-5 occupancy as a source defect while recording the observed conversion without cost gross-up.
+      - id: asrea178-004
+        behavior: Normalize positive-occupancy Type-5 reproduction cost and map the detail to Type 3, code 2, and year zero.
+      - id: asrea178-005
+        behavior: Revalue every non-questionnaire detail under ASREA003 policy when any Type-5 detail is found.
+      - id: asrea178-006
+        behavior: Separate recomputed proposed land and improvement totals by detail type while skipping questionnaires.
+      - id: asrea178-007
+        behavior: Archive the prior proposed total in slot 12 and replace proposed land, improvement, and total values.
+      - id: asrea178-008
+        behavior: Do not apply the unreachable legacy township lookup as an active validation guard.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessedValuePreparationRunRequest'
+            examples:
+              standardRun:
+                value:
+                  businessDate: 2025-09-15
+                  businessTime: 12:00:00
+                  idempotencyKey: avp-2025-09-15-noon
+                  processYear: '26'
+      responses:
+        '201':
+          description: Run created and queued or already running asynchronously.
+          headers:
+            Location:
+              description: URI of the created run resource.
+              schema:
+                type: string
+                example: /api/assessed-value-preparation-runs/841732905
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessedValuePreparationRunResponse'
+              examples:
+                queued:
+                  value:
+                    id: 841732905
+                    status: QUEUED
+                    businessDate: 2025-09-15
+                    businessTime: 12:00:00
+                    processYear: '26'
+                    outputs: []
+                    messages: []
+        '400':
+          description: The run request is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessedValuePreparationErrorResponse'
+              examples:
+                invalidProcessYear:
+                  value:
+                    error: INVALID_PROCESS_YEAR
+                    message: processYear must contain exactly two decimal digits.
+                    ruleId: asrea178-001
+        '409':
+          description: The idempotency key is already associated with a different assessed-value preparation request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessedValuePreparationErrorResponse'
+              examples:
+                idempotencyConflict:
+                  value:
+                    error: IDEMPOTENCY_CONFLICT
+                    message: The idempotencyKey is already associated with different request parameters.
+  /api/assessed-value-preparation-runs/{id}:
+    get:
+      tags:
+      - Assessed Value Preparation Runs
+      summary: Read an assessed value preparation run
+      operationId: getAssessedValuePreparationRun
+      description: |
+        Returns operational status and the latest observable batch result. This
+        endpoint does not define business decisions; all business rules attach to
+        `POST /api/assessed-value-preparation-runs`. When processing has ended,
+        this response is where callers observe the final return code, record
+        counts, output artifacts, stage results, partial-output flag, and
+        rule-addressed messages.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Positive run identifier returned when the run was created.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+        example: 841732905
+      responses:
+        '200':
+          description: Current status and result of the run.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessedValuePreparationRunResponse'
+              examples:
+                completed:
+                  value:
+                    id: 841732905
+                    status: COMPLETED
+                    businessDate: 2025-09-15
+                    businessTime: 12:00:00
+                    processYear: '26'
+                    returnCode: 0
+                    recordsRead: 30
+                    recordsWritten: 30
+                    recordsUpdated: 10
+                    recordsRejected: 0
+                    partialOutput: false
+                    outputs:
+                    - artifactId: avpout_01K5A8C2V7M4R9N6T3Q0W1X8YZ
+                      kind: OVERALL_CLASS_REPORT
+                      mediaType: text/plain
+                      recordCount: 14
+                      partial: false
+                    - artifactId: avpout_01K5A8D4B2H7P9S6F3J0L1M5NC
+                      kind: VALUATION_BREAKDOWN_REPORT
+                      mediaType: text/plain
+                      recordCount: 17
+                      partial: false
+                    - artifactId: avpout_01K5A8F6D3N9R2T7V4X0Z1B8GH
+                      kind: ASSESSMENT_MASTER
+                      mediaType: application/octet-stream
+                      recordCount: 10
+                      partial: false
+                    messages: []
+                    stages:
+                    - stage: OVERALL_CLASS
+                      status: COMPLETED
+                      returnCode: 0
+                      recordsRead: 10
+                      recordsWritten: 10
+                      recordsUpdated: 10
+                      recordsRejected: 0
+                      outputPublished: true
+                      partialOutput: false
+                    - stage: VALUATION_BUCKETING
+                      status: COMPLETED
+                      returnCode: 0
+                      recordsRead: 10
+                      recordsWritten: 10
+                      recordsUpdated: 10
+                      recordsRejected: 0
+                      outputPublished: true
+                      partialOutput: false
+                    - stage: TYPE5_CONVERSION
+                      status: COMPLETED
+                      returnCode: 0
+                      recordsRead: 10
+                      recordsWritten: 10
+                      recordsUpdated: 0
+                      recordsRejected: 0
+                      outputPublished: true
+                      partialOutput: false
+        '404':
+          description: No run exists for the supplied identifier.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessedValuePreparationErrorResponse'
+              examples:
+                runNotFound:
+                  value:
+                    error: RUN_NOT_FOUND
+                    message: No assessed-value preparation run exists for the supplied id.
+  /api/tax-rate-input-preparation-runs:
+    post:
+      tags:
+      - TaxRateInputPreparationRuns
+      summary: Start a tax-rate input preparation run
+      description: |
+        Creates an asynchronous run against the server's preloaded shared data.
+        The response describes the accepted run resource; poll the GET endpoint
+        for status, reconciliation counts, messages, outputs, and the final return
+        code. Idempotency applies to this start request, not to an isolated copy of
+        mutable batch data.
+      operationId: startTaxRateInputPreparationRun
+      x-business-rules:
+      - id: clrtm751-001
+        summary: Equalized-value input is nondecreasing and division input is strictly increasing by volume and property; violations set return code 16.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes FAILED status, returnCode, and rule-linked messages.
+      - id: clrtm751-002
+        summary: A matching division-master row stamps its division number while preserving other equalized-value fields.
+      - id: clrtm751-003
+        summary: An unmatched parcel uses its property number as division number, subject to the unchecked 15-to-14 digit narrowing boundary.
+      - id: clrtm751-004
+        summary: Division stamping reports read, written, stamped, and unmatched counts; the legacy unmatched-division counter remains zero because it is never incremented.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes divisionStamping reconciliation counts.
+      - id: clrtm752-001
+        summary: Divided equalized-value input is strictly increasing by town, volume, property, and tax type, with an unchecked 15-to-14 digit property-key narrowing boundary.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes FAILED status, returnCode, and rule-linked messages.
+      - id: clrtm752-002
+        summary: A matched tax code carries its existing composite rate and all 40 agency slots into the parcel assessment record; no rate is calculated.
+      - id: clrtm752-003
+        summary: A missing tax code increments the unmatched count, emits a report message, writes no agency-assessment record for that parcel, and does not fail the run.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes assessmentRecordsUnmatched, zero-or-more agency-assessment output records, and rule-linked messages.
+      - id: clrtm752-004
+        summary: Attachment reconciliation reports assessment records read, written, and unmatched; written plus unmatched equals read only on normal non-error processing.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes agencyAttachment reconciliation, including retained partial output.
+      - id: clrtm753-001
+        summary: Prior- and current-year masters are nondecreasing by division; a descending record sets return code 16 but an active group can still produce partial output.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes FAILED status, returnCode, counts, and retained outputs.
+      - id: clrtm753-002
+        summary: A matched division totals each year's EAV and deduplicates nonzero agencies into separate 40-entry tables, silently dropping additional unique agencies.
+      - id: clrtm753-003
+        summary: Prior-only agencies become D segments, current-only agencies become A segments, and unchanged agencies produce no segment.
+      - id: clrtm753-004
+        summary: A division present in only one year is reported and skipped without producing a comparison record for that occurrence.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes priorOnlyDivisions, currentOnlyDivisions, and rule-linked messages.
+      - id: clrtm753-005
+        summary: Every matched division carries 100.0 percent because the ratio calculation is inactive; this is a known legacy defect, not an approved proportional allocation formula.
+      - id: clrtm753-006
+        summary: Each matched division attempts one comparison record, including zero-segment records; the 50-segment output capacity is unguarded despite an 80-segment theoretical difference.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes comparison records and segment counts, including retained partial output.
+      - id: clrtm755-001
+        summary: D segments load the disconnect table, A segments load the annex table, unknown types load neither, and the declared input contains at most 50 total segments.
+      - id: clrtm755-002
+        summary: Disconnects match prior-year parcels and annexations match current-year parcels, but only classified slots 1 through 40 are searched and duplicate parcel slots post repeatedly.
+      - id: clrtm755-003
+        summary: Each posting is source parcel EAV times percentage divided by 100 and rounded to an integer; the current 100.0 field posts the full parcel EAV.
+      - id: clrtm755-004
+        summary: An existing frozen-agency key accumulates disconnected or annexed EAV and is rewritten; later failure does not roll back earlier mutations.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes rewriteOperations, partial outputs, and final returnCode.
+      - id: clrtm755-005
+        summary: A missing frozen-agency key is inserted with the selected EAV and listed fields zeroed, while FA-EXPINCTX remains unspecified and prior mutations are not rolled back.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes insertOperations, partial outputs, and final returnCode.
+      - id: clrtm755-006
+        summary: Prior- and current-year posting inputs are nondecreasing by division; descending input sets return code 16 but active nested loops may continue.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes FAILED status, partial operation counts, and retained outputs.
+      - id: clrtm755-007
+        summary: The posting report lists each posted value and operation totals; rewrite and insert totals count operations rather than unique keys and remain visible after partial failure.
+        observedThrough: GET /api/tax-rate-input-preparation-runs/{id} exposes frozenAgencyPosting reconciliation and report output metadata.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaxRateInputPreparationRunRequest'
+            example:
+              businessDate: 2025-09-15
+              businessTime: 12:00:00
+              idempotencyKey: clerk-agency-attachment-20250915-120000
+      responses:
+        '201':
+          description: Run accepted and queued.
+          headers:
+            Location:
+              description: URI of the asynchronous run resource.
+              required: true
+              schema:
+                type: string
+                example: /api/tax-rate-input-preparation-runs/900719925474099
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxRateInputPreparationRunResponse'
+              example:
+                id: 900719925474099
+                status: QUEUED
+                businessDate: 2025-09-15
+                businessTime: 12:00:00
+                outputs: []
+                messages: []
+        '400':
+          description: The start request is malformed or incomplete.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxRateInputPreparationErrorResponse'
+              example:
+                error: INVALID_REQUEST
+                message: businessDate is required
+        '409':
+          description: The idempotency key was already used with different request values.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxRateInputPreparationErrorResponse'
+              example:
+                error: IDEMPOTENCY_CONFLICT
+                message: The idempotency key already identifies a run with different request values
+  /api/tax-rate-input-preparation-runs/{id}:
+    get:
+      tags:
+      - TaxRateInputPreparationRuns
+      summary: Get a tax-rate input preparation run
+      description: |
+        Returns operational status and, as processing advances, the run's counts,
+        outputs, messages, and final return code. Business rules are defined by the
+        POST operation; this operation only observes their outcome.
+      operationId: getTaxRateInputPreparationRun
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Positive server-generated surrogate run identifier.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      responses:
+        '200':
+          description: Current run state and any available result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxRateInputPreparationRunResponse'
+              examples:
+                reviewedUnmatchedTaxCodes:
+                  summary: Reviewed evidence; error-path reconciliation, not positive-path parity
+                  value:
+                    id: 900719925474099
+                    status: COMPLETED
+                    businessDate: 2025-09-15
+                    businessTime: 12:00:00
+                    returnCode: 0
+                    recordsRead: 30
+                    recordsWritten: 10
+                    recordsUpdated: 10
+                    recordsRejected: 10
+                    outputs:
+                    - name: agencyAssessment
+                      kind: AGENCY_ASSESSMENT
+                      recordCount: 0
+                      available: true
+                    - name: attachmentReport
+                      kind: REPORT
+                      recordCount: 19
+                      available: true
+                    messages:
+                    - severity: WARNING
+                      code: UNMATCHED_TAX_CODE
+                      text: Ten assessment records had no matching tax-code master record; no agency-assessment records were produced.
+                      ruleId: clrtm752-003
+                    reconciliation:
+                      divisionStamping:
+                        equalizedValueRecordsRead: 10
+                        divisionRecordsRead: 10
+                        outputRecordsWritten: 10
+                        recordsStamped: 10
+                        divisionRecordsUnmatched: 0
+                      agencyAttachment:
+                        assessmentRecordsRead: 10
+                        assessmentRecordsWritten: 0
+                        assessmentRecordsUnmatched: 10
+                        normalCompletionBalanced: true
+        '404':
+          description: No run exists for the supplied surrogate identifier.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxRateInputPreparationErrorResponse'
+              example:
+                error: RUN_NOT_FOUND
+                message: No run exists for the supplied identifier
+  /api/property-tax-exemptions-runs:
+    post:
+      tags:
+      - PropertyTaxExemptionsRuns
+      summary: Start a property-tax-exemptions batch run
+      description: Creates one asynchronous run against preloaded shared live data. homeownerProcessingVariant ENUMERATED executes the reviewed HOME852 batch, and BROAD executes the reviewed HOME853 batch. The rejected ASHMA850 direct-update path and the unreviewed Senior Freeze paths are not executable through this endpoint and are not selected server-side. Their entries in x-business-rules preserve attached source-rule coverage only; attachment does not claim that those source programs execute. Business-rule failures, record rejections, warnings, partial application, reconciliation counts, logical publications, and return codes are recorded on the run and observed with GET.
+      operationId: startPropertyTaxExemptionsRun
+      x-business-rules:
+      - id: ashma825-001
+        summary: Homeowner and Senior Homestead application records are matched in ascending town, volume, property, and tax-type key order; an application below the homeowner key is reported as unmatched, an equal key produces a combined Senior Freeze load record, and a homeowner below the application key advances without consuming the application
+      - id: ashma825-002
+        summary: A Senior Freeze load record may contain at most 410 variable applicant details; attempting to append detail 411 sets return code 16 and stops processing
+      - id: ashma825-003
+        summary: Both sequential inputs are expected in nondecreasing match-key order, but the observed Senior Homestead reader updates the homeowner previous-key field instead of the homestead previous-key field, so its intended ordering rejection is not reliable
+      - id: ashma825-004
+        summary: Each matched applicant detail carries birth date, name, address, locality, application year, and batch, while the nine-digit application ZIP code is reduced to its first five digits in the Senior Freeze load record
+      - id: ashma827-001
+        summary: The IMS load requires a control card beginning CICV with a numeric checkpoint interval, followed by YEAR and a numeric processing year
+      - id: ashma827-002
+        summary: Senior Freeze load records must be nondecreasing by town, volume, property, tax type, and record code; a decreasing key stops the load with return code 16
+      - id: ashma827-003
+        summary: For an existing Senior Freeze master with the same record code, applicant fields are refreshed and the master is replaced; for a different record code, the existing master is deleted and a replacement master and details are inserted; when no master exists, a master and its details are inserted
+      - id: ashma827-004
+        summary: Fixed and variable Senior Freeze details use distinct keys, defaults, and the observed birth-century pivot
+      - id: ashma827-005
+        summary: Checkpoint eligibility is evaluated when the IMS-operation counter exceeds the supplied interval; record code 2 forces the counter to 999 before evaluation, and a checkpoint failure issues ROLL and stops processing
+      - id: ashma840-001
+        summary: The prior-year roll-forward requires CICV, a numeric checkpoint interval, PROCYEAR, and a numeric processing year, and rejects a driver extract whose key decreases
+      - id: ashma840-002
+        summary: A prior-year record is selected when its detail is qualified or its base-year indicator is 1; selected master base-year, class, building-unit, building-share, and valuation fields replace the current-year master values, and master Senior Freeze shares are reset to zero
+      - id: ashma840-003
+        summary: For each selected prior-year applicant, an existing current-year detail receives the prior base year, base-year indicator 1, and base-year EAV; a missing detail is inserted from the prior segment with those values and application-maintenance fields cleared
+      - id: ashma840-004
+        summary: Master replacement contributes one checkpoint unit, detail insertion contributes three, and detail replacement contributes four; a checkpoint is requested only after the counter exceeds the configured interval, and failure terminates through ROLL
+      - id: ashma845-001
+        summary: The share aggregation requires CICV, a numeric checkpoint interval, PROCYEAR, and a numeric processing year, and rejects a driver extract whose key decreases
+      - id: ashma845-002
+        summary: Only qualified prior-year details contribute cooperative Senior Freeze shares; shares reset to zero at the first record for a property and then accumulate for subsequent adjacent records with the same property number
+      - id: ashma845-003
+        summary: When accumulated Senior Freeze shares exceed building shares, the oversized total is still written and a nonfatal error report is produced; as observed, the comparison runs only on repeated-property records and omits a property represented by a single qualified record
+      - id: ashma845-004
+        summary: Each successful master replacement contributes two checkpoint units; checkpoint is attempted only after the counter exceeds the interval, and failure issues ROLL and stops processing
+      - id: ashma850-001
+        summary: ASHMA850 is a direct IMS-updating variant of the Senior Freeze base-value calculation, not a sequential step before ASHMA857; it independently reads current, prior, and expired assessments and applies the same broad calculation family before replacing the IMS master
+      - id: ashma850-002
+        summary: The calculation run requires CICV with a nonzero numeric interval, a nonzero numeric processing year and equalization factor, and numeric ascending ordinary-year and base-year windows
+      - id: ashma850-003
+        summary: Current and prior assessments are matched by parcel key and classified through the source calc-type table using residential improvement, residential land, farm land, mixed use, Class 288 improvement, and nonresidential components; an unaccounted or mixed cooperative class prevents calculation
+      - id: ashma850-004
+        summary: When a stored base year lies within the configured base-year window and its stored total eligible comparison EAV is nonzero, that stored base value is reused; otherwise base eligible AV is equalized by the factor keyed to the base year, while expired Class 288 and current-year values use the control-card factor
+      - id: ashma850-005
+        summary: Non-cooperative differences clamp at zero, while cooperative differences require positive applicant gains and a nonzero share denominator
+      - id: ashma850-006
+        summary: Successful direct master replacements contribute two units toward a checkpoint, which is issued only after the counter exceeds the configured interval; the program emits four calculation and exception reports plus run totals
+      - id: ashma857-001
+        summary: 'ASHMA857 is the read-only calculation and staging variant of ASHMA850: it reads IMS with GU and GNP, performs no IMS replacement, and writes one ASHMASFR01 Senior Freeze staging record for downstream ASHMA859 processing'
+      - id: ashma857-002
+        summary: The staging run requires CICV with a nonzero numeric interval, nonzero numeric prior and current processing years, a nonzero numeric equalization factor, and numeric ascending ordinary-year and base-year windows
+      - id: ashma857-003
+        summary: Current and prior assessments are matched by parcel key and classified through calc types A through R using residential improvement, residential land, farm land, mixed use, Class 288 improvement, and nonresidential components; unaccounted or mixed cooperative classes are staged as no-calculation outcomes
+      - id: ashma857-004
+        summary: When a stored base year lies within the configured window and stored total eligible comparison EAV is nonzero, the staging result reuses that stored base value; otherwise it reads the base-year equalization factor, and it separately uses the control-card factor for expired Class 288 and current-year values
+      - id: ashma857-005
+        summary: The non-cooperative final eligible-EAV difference is clamped at zero; cooperative results sum only positive qualified-applicant differences using cooperative Senior Freeze shares divided by building shares, and a zero building-share denominator marks the record no-calculation
+      - id: ashma857-006
+        summary: Each staging record carries parcel, year, record-code, base/current valuation, Class 288, no-calculation, manual-calculation, cooperative-share, applicant, and final-difference fields in the ASHMASFR01 handoff, and the run produces four reports and totals
+      - id: ashma859-001
+        summary: The staged commit requires CICV with a nonzero numeric interval, a nonzero numeric processing year and equalization factor, and type C or L; any invalid control stops before staging input is processed
+      - id: ashma859-002
+        summary: ASHMASFR01 staging records must be nondecreasing by town, volume, and property; a decreasing key sets the error switch and stops the commit run
+      - id: ashma859-003
+        summary: A staged property is eligible for consideration only when at least one live detail is qualified, the staging record is calculable, and its staged total eligible comparison EAV is lower than the stored master value; equal or higher values do not update the master
+      - id: ashma859-004
+        summary: Type C recomputes pending totals and cooperative applicant differences from the staged value and live master/detail state, while type L copies staged base fields directly into the held update; these are alternate modes, not successive steps
+      - id: ashma859-005
+        summary: A live master marked with manual calculation indicator X is not automatically replaced even after a lower staged value is selected
+      - id: ashma859-006
+        summary: Pending updates are committed once per completed property group by rereading the master through the update PCB, preserving original values in audit fields, replacing the selected base and final-difference fields, and writing an update report
+      - id: ashma859-007
+        summary: The commit invokes XRST at startup, issues an initial checkpoint, and thereafter checkpoints only when successful replacements make the counter exceed the supplied interval; checkpoint failure issues ROLL and stops the run
+      - id: asrea841-001
+        summary: Renewal input requires a numeric positive property number
+      - id: asrea841-002
+        summary: A matched renewal marks homeowner response status 2 and preserves the complete homeowner record in the next generation
+      - id: asrea841-003
+        summary: Renewals cannot create homeowner exemptions
+      - id: asrea841-004
+        summary: Renewal matching requires strictly ordered homeowner input and nondecreasing renewal input
+      - id: asrea847-001
+        summary: Owner refresh matches Property Master to homeowner records by property number only
+      - id: asrea847-002
+        summary: A homeowner refresh uses the first N1 owner segment and the next two physical segments without type checks
+      - id: asrea847-003
+        summary: Missing owner detail preserves the existing homeowner contact information
+      - id: asrea847-004
+        summary: Owner refresh makes its external ordering and duplicate policy explicit
+      - id: asrea852-001
+        summary: Enumerated-class eligibility is a governed alternative to broad-class eligibility, not a sequential stage
+      - id: asrea852-002
+        summary: The enumerated variant applies its literal residential-class, value-floor, and class-299 garage rules
+      - id: asrea852-003
+        summary: Type 4 and 5 homeowner eligibility uses ASREA003 valuation and retains source occupancy semantics
+      - id: asrea852-004
+        summary: Homeowner proration follows class-299, zero-count, single-detail, and rounded-average boundaries
+      - id: asrea852-005
+        summary: The enumerated variant recomputes proration for existing eligible homeowners and applies explicit new-year status normalization
+      - id: asrea852-006
+        summary: Enumerated eligibility defines and enforces merge ordering and duplicate policy
+      - id: asrea853-001
+        summary: Broad-class eligibility is a governed alternative to enumerated-class eligibility, not a sequential stage
+      - id: asrea853-002
+        summary: The broad variant accepts improvement classes 100 through 899 without the enumerated variant carve-outs
+      - id: asrea853-003
+        summary: Broad-variant valuation uses ASREA003 and retains the maximum positive occupancy factor
+      - id: asrea853-004
+        summary: Existing broad-variant matches must not retain stale proration
+      - id: asrea853-005
+        summary: Broad-variant proration follows valuation-class, zero-count, single-detail, and rounded-average boundaries
+      - id: asrea853-006
+        summary: Broad eligibility defines and enforces merge ordering and duplicate policy
+      - id: asrea859-001
+        summary: The roll-forward performs a complete current-eligibility refresh
+      - id: asrea859-002
+        summary: Roll-forward proration uses current qualifying details without the retired property-suffix gate
+      - id: asrea859-003
+        summary: Roll-forward valuation and ambiguity warnings preserve observable detail behavior
+      - id: asrea859-004
+        summary: Roll-forward fields require explicit mapping and a deterministic response code
+      - id: asrea859-005
+        summary: Roll-forward defines and enforces merge ordering and duplicate policy
+      - id: asrea863-001
+        summary: Manual exemption maintenance requires a valid action and parcel identity within the governed volume range
+      - id: asrea863-002
+        summary: Sunset-exemption township eligibility must be effective-dated policy
+      - id: asrea863-003
+        summary: A delete validates transaction identity but does not require add/change value fields
+      - id: asrea863-004
+        summary: A manual add enforces the live required checks but not the commented occupancy or positive-EQVAL checks
+      - id: asrea863-005
+        summary: A manual change validates only supplied fields under the live checks
+      - id: asrea863-006
+        summary: Manual transactions require strict key ordering and deterministic duplicate handling
+      - id: asrea864-001
+        summary: Matched maintenance applies delete and change while rejecting duplicate add
+      - id: asrea864-002
+        summary: An unmatched add remains rejected because the only add-path invocation is dormant
+      - id: asrea864-003
+        summary: Landmark maintenance overrides non-co-op NPHE but not CP co-op treatment
+      - id: asrea864-004
+        summary: Change fields follow the observed assessed-value, EQVAL, and NPHE base-year guards
+      - id: asrea864-005
+        summary: Missing equalization factors report an error after partial change fields have already been applied
+      - id: asrea864-006
+        summary: The 320-entry equalization-factor table has an observed 321st-store defect
+      - id: asrea864-007
+        summary: Maintenance application requires nondecreasing homeowner and transaction keys
+      - id: asrea872-001
+        summary: Homeowner mail responses use six report buckets
+      - id: asrea872-002
+        summary: Response reporting produces township and county totals
+      - id: asrea872-003
+        summary: Response reporting requires nondecreasing composite input and permits duplicate keys
+      - id: asrea872-004
+        summary: Township response reporting is batch-only
+      - id: asrea874-001
+        summary: Disabled and veteran exemptions require a valid Cook County parcel range
+      - id: asrea874-002
+        summary: Disabled and veteran exemption amounts are effective-dated statutory policy
+      - id: asrea874-003
+        summary: Disabled-person and disabled-veteran categories are mutually exclusive
+      - id: asrea874-004
+        summary: A row with no selected exemption produces no disabled-exemption extract
+      - id: asrea874-005
+        summary: The source output classifier contains an unreachable duplicate combined-exemption branch
+      - id: asrea874-006
+        summary: Disabled/veteran processing publishes DISEXMPT, not EQVAL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropertyTaxExemptionsRunRequest'
+            examples:
+              enumerated:
+                summary: Enumerated-class homeowner processing
+                value:
+                  businessDate: 2025-09-15
+                  businessTime: 12:00:00
+                  idempotencyKey: property-tax-exemptions-2025-09-15-enumerated
+                  homeownerProcessingVariant: ENUMERATED
+              broad:
+                summary: Broad-class homeowner processing
+                value:
+                  businessDate: 2025-09-15
+                  businessTime: 12:00:00
+                  idempotencyKey: property-tax-exemptions-2025-09-15-broad
+                  homeownerProcessingVariant: BROAD
+      responses:
+        '201':
+          description: Run created and queued for asynchronous processing. Replaying the same idempotency key with identical businessDate, businessTime, and homeownerProcessingVariant returns the original run id, its original Location, and its current status without re-executing the batch.
+          headers:
+            Location:
+              description: Canonical URL of the created run.
+              required: true
+              schema:
+                type: string
+              example: /api/property-tax-exemptions-runs/1000000000001
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyTaxExemptionsRunResponse'
+        '400':
+          description: The run request is structurally invalid or selects no evidenced homeowner variant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyTaxExemptionsErrorResponse'
+              examples:
+                invalidHomeownerVariant:
+                  value:
+                    error: INVALID_HOMEOWNER_PROCESSING_VARIANT
+                    message: homeownerProcessingVariant must be ENUMERATED or BROAD
+                    ruleId: asrea852-001
+        '409':
+          description: The idempotency key was already used with different businessDate, businessTime, or homeownerProcessingVariant controls.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyTaxExemptionsErrorResponse'
+              examples:
+                idempotencyConflict:
+                  value:
+                    error: IDEMPOTENCY_CONFLICT
+                    message: The idempotency key is already associated with different request controls
+  /api/property-tax-exemptions-runs/{id}:
+    get:
+      tags:
+      - PropertyTaxExemptionsRuns
+      summary: Observe a property-tax-exemptions batch run
+      description: Returns operational status and the accumulated final result for a run. This endpoint does not define or execute business rules; every accepted business rule is attached to the POST operation that created the run.
+      operationId: getPropertyTaxExemptionsRun
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Long surrogate identifier assigned when the run is created.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      responses:
+        '200':
+          description: Current run status and available result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyTaxExemptionsRunResponse'
+        '404':
+          description: No property-tax-exemptions run has the supplied surrogate identifier.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyTaxExemptionsErrorResponse'
+              examples:
+                runNotFound:
+                  value:
+                    error: RUN_NOT_FOUND
+                    message: No property-tax-exemptions run was found for id 1000000000001
+  /api/eifd-tif-increment-runs:
+    post:
+      tags:
+      - EifdTifIncrementRuns
+      operationId: startEifdTifIncrementRun
+      summary: Start an EIFD/TIF increment batch run
+      description: |
+        Creates one asynchronous run over server-preloaded shared-live data. The
+        pinned businessDate and businessTime apply to every step. The batch updates
+        frozen valuations, calculates and reports tax-code and agency increments,
+        and posts matched agency equalized valuations. A 201 response means that
+        the run was accepted, not that processing completed. Read the returned
+        resource with GET /api/eifd-tif-increment-runs/{id} to observe the final
+        status, return code, record counts, logical outputs, and messages.
+
+        Validation, ordered-merge behavior, arithmetic, partial-output behavior,
+        omission rules, reporting, and shared-live persistence are governed by the
+        accepted rules listed in x-business-rules.
+      x-business-rules:
+      - id: asrea740-001
+        description: Require a complete twelve-character reassessment control whose two-character current year is numeric; reject it before assessment processing otherwise.
+      - id: asrea740-002
+        description: Require numeric ascending improvement-age and Class 288 year ranges; interpret two-digit years 61-99 as 1961-1999 and 00-60 as 2000-2060.
+      - id: asrea740-003
+        description: Report each division whose improvement components do not reconcile to its improvement total, without preventing frozen-value storage.
+      - id: asrea740-004
+        description: Classify reassessment-township improvement value by age, Class 288 status, improvement year, and permit status before forming frozen-value categories.
+      - id: asrea740-005
+        description: Truncate fractional prior-improvement amounts at every occupancy, condition, and assessment percentage stage; a missing positive factor leaves the preceding stage unchanged.
+      - id: asrea740-006
+        description: Select change-action totals for qualifying new value, current Class 288 activity, permit change, or the zero township prefix; otherwise select no-change totals, including the fully-exempt-to-nonexempt exception.
+      - id: asrea740-007
+        description: Add prior, current, proposed, change-action, and no-change division totals to an existing frozen valuation and replace the stored division.
+      - id: asrea740-008
+        description: Insert a missing frozen-valuation division only when at least one proposed or action value is nonzero.
+      - id: asrea742-001
+        description: Include every current-assessment property in the selection population and initialize uncalculated allocation amounts and percentages to zero.
+      - id: asrea742-002
+        description: Include current Class 288 assessed value only for category 3, class 288, the processing year, and material-permit-with-building properties.
+      - id: asrea742-003
+        description: Include first-year non-frozen assessed value only for categories 2-5, age one, and a class other than 288.
+      - id: asrea742-004
+        description: Exclude a paired questionnaire response from valuation calculations for a questionnaire-designated improvement.
+      - id: asrea742-005
+        description: Require processingYear to contain exactly two characters before selection begins.
+      - id: asrea742-006
+        description: Require the two-character processingYear to contain digits only before selection begins.
+      - id: asrea743-001
+        description: Require selections to be nondecreasing by division and tax code; exclude an offending lower key, fail the run, and retain eligible earlier and trailing partial products.
+      - id: asrea743-002
+        description: Accumulate consecutive duplicate division-and-tax-code keys into one group without increasing the division tax-code group count.
+      - id: asrea743-003
+        description: Sum current-288 and first-time assessed values for each division-and-tax-code group, excluding expired-288 value from both totals.
+      - id: asrea743-004
+        description: On a tax-code change within a division, emit only the prior tax-code rollup and continue the division rollup with its group count incremented.
+      - id: asrea743-005
+        description: On a division change, emit the prior tax-code and division rollups, including the division count and last tax code, then start both new groups.
+      - id: asrea743-006
+        description: At end of input or ordering failure, independently emit each trailing tax-code and division rollup only when its first-time total is positive.
+      - id: asrea743-007
+        description: Suppress a trailing rollup whose first-time total is zero even when current-288 value is nonzero; empty input emits no rollups.
+      - id: asrea744-001
+        description: Require both total streams to be strictly ascending by division and tax code; duplicate or descending keys fail before later percentages or completion totals.
+      - id: asrea744-002
+        description: Pair each tax-code total with the division total having the same division, preserving tax-code identity and count and initializing later monetary allocations to zero.
+      - id: asrea744-003
+        description: Calculate current-288 and first-time shares only when the matching division total is positive; otherwise use zero without division.
+      - id: asrea744-004
+        description: Truncate current-288 and first-time shares toward zero at seven fractional decimal places.
+      - id: asrea744-005
+        description: Advance a lower division total; report and omit a lower unmatched tax-code total; emit a percentage row only for equal divisions.
+      - id: asrea745-001
+        description: Give a sole tax code the division's full proposed first-time, current-288, and expired-288 values, with expired incentive initialized to zero.
+      - id: asrea745-002
+        description: For multiple tax codes, multiply first-time and current-288 values by each positive percentage; a nonpositive percentage yields zero with no even-share fallback.
+      - id: asrea745-003
+        description: For multiple tax codes, divide expired-288 value evenly by tax-code count and discard the remainder, while initializing expired incentive to zero.
+      - id: asrea745-004
+        description: Silently omit an allocation whose division lacks a valuation record, continue processing, and expose the omission only in the aggregate unmatched count.
+      - id: asrea748-001
+        description: Require annualEqualizationFactor to be exactly five numeric characters and greater than zero before reading any frozen-agency input.
+      - id: asrea748-002
+        description: Multiply grouped current-288, expired-288, and first-time frozen assessed value by the annual factor and round half away from zero to whole dollars.
+      - id: asrea748-003
+        description: Calculate frozen tax from frozen assessed value times the tax-code rate divided by 100, rounding half away from zero to two decimals; do not use equalized value as the base.
+      - id: asrea748-004
+        description: Examine all 40 tax-code agency positions in order and emit one frozen-agency record for each positive agency number, skipping zero and negative entries.
+      - id: asrea748-005
+        description: For a missing tax-code master, report the tax code, retain earlier records, emit none for that tax code, skip later tax codes, and fail the run.
+      - id: clrtm749-001
+        description: Require agency-detail input to be nondecreasing by agency; a lower agency stops processing and prevents publication of later groups.
+      - id: clrtm749-002
+        description: Sum all nine assessed and equalized increment categories once for each consecutive agency group without rounding.
+      - id: clrtm749-003
+        description: Require an agency-reference description before publishing a summarized agency; a missing reference fails instead of publishing or skipping the group.
+      - id: clrtm749-004
+        description: Keep new-property and expired-incentive equalized values separate in agency summaries so the posting step can combine them.
+      - id: clrtm749-005
+        description: Produce one agency-keyed machine-readable summary for each completed referenced agency group and pass it to agency valuation posting.
+      - id: clrtm750-001
+        description: Require agency-town report input to be nondecreasing by agency and town; a lower key ends reporting with an error.
+      - id: clrtm750-002
+        description: Sum five equalized-value categories per agency-town group and sum town totals into each agency total without rounding.
+      - id: clrtm750-003
+        description: Resolve suburban town codes 10-39 at town minus 9 and city codes 70-77 at town minus 39 in the shared name table; values outside those ranges are not separately rejected before applying the city offset.
+      - id: clrtm750-004
+        description: Emit a paged agency-and-town report and agency-year append records containing headings, town details, and totals for all five categories.
+      - id: clrtm756-001
+        description: Require posting inputs to be strictly increasing by agency; a duplicate or lower agency stops before its values are applied.
+      - id: clrtm756-002
+        description: Replace persistent new-property EAV with the sum of input new-property EAV and expired-incentive EAV without rounding.
+      - id: clrtm756-003
+        description: Carry input annexed-property EAV, disconnected-property EAV, and disconnected TIF difference directly into their persistent fields.
+      - id: clrtm756-004
+        description: Replace the four posting fields on each matched persistent agency record while retaining all other stored values.
+      - id: clrtm756-005
+        description: Report and skip an input agency with no persistent valuation record, insert nothing, and continue with the next agency.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EifdTifIncrementRunRequest'
+            examples:
+              capturedTrace:
+                summary: Pinned controls corresponding to the captured successful trace
+                value:
+                  businessDate: 2025-09-15
+                  businessTime: 12:00:00
+                  idempotencyKey: eifd-2025-09-15-noon
+                  reassessmentControl: '260181202526'
+                  processingYear: '26'
+                  reportingYear: '2026'
+                  annualEqualizationFactor: '10000'
+      responses:
+        '201':
+          description: Run created and queued or started. Observe its final outcome through the returned resource URL.
+          headers:
+            Location:
+              description: URL of the asynchronous run resource.
+              required: true
+              schema:
+                type: string
+              example: /api/eifd-tif-increment-runs/9000000000000001
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EifdTifIncrementRunResponse'
+              example:
+                id: 9000000000000001
+                status: QUEUED
+                businessDate: 2025-09-15
+                businessTime: 12:00:00
+                outputs: []
+                messages: []
+        '400':
+          description: A launch control violates a business rule, so no run is created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EifdTifIncrementErrorResponse'
+              examples:
+                invalidReassessmentControl:
+                  value:
+                    error: INVALID_REASSESSMENT_CONTROL
+                    message: reassessmentControl must be a complete twelve-character value with a numeric current year.
+                    ruleId: asrea740-001
+                invalidReassessmentRanges:
+                  value:
+                    error: INVALID_REASSESSMENT_RANGES
+                    message: Improvement-age and Class 288 year bounds must be numeric and ascending.
+                    ruleId: asrea740-002
+                invalidProcessingYear:
+                  value:
+                    error: INVALID_PROCESSING_YEAR
+                    message: processingYear must contain exactly two characters.
+                    ruleId: asrea742-005
+                nonnumericProcessingYear:
+                  value:
+                    error: INVALID_PROCESSING_YEAR
+                    message: processingYear must contain digits only.
+                    ruleId: asrea742-006
+                invalidEqualizationFactor:
+                  value:
+                    error: INVALID_EQUALIZATION_FACTOR
+                    message: annualEqualizationFactor must be five numeric characters and greater than zero.
+                    ruleId: asrea748-001
+        '409':
+          description: The idempotency key is already bound to a different EIFD/TIF increment launch request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EifdTifIncrementErrorResponse'
+              example:
+                error: IDEMPOTENCY_CONFLICT
+                message: idempotencyKey is already associated with different launch controls.
+  /api/eifd-tif-increment-runs/{id}:
+    get:
+      tags:
+      - EifdTifIncrementRuns
+      operationId: getEifdTifIncrementRun
+      summary: Observe an EIFD/TIF increment batch run
+      description: |
+        Returns the current state of the asynchronous run. This operation only
+        observes execution; all EIFD business rules apply to the POST launch.
+        COMPLETED and FAILED are terminal. A terminal response carries the final
+        return code, aggregate record activity, logical output metadata, and
+        rule-linked messages. Earlier shared-live updates and outputs can remain
+        visible after a later step fails when the applicable POST rule specifies
+        partial products or continued processing.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Positive 64-bit surrogate identifier returned by the POST operation.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      responses:
+        '200':
+          description: Current run status and, when terminal, its final observed result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EifdTifIncrementRunResponse'
+              examples:
+                completedCapturedTrace:
+                  summary: Successful observation consistent with the captured nine-step trace
+                  value:
+                    id: 9000000000000001
+                    status: COMPLETED
+                    businessDate: 2025-09-15
+                    businessTime: 12:00:00
+                    returnCode: 0
+                    outputs:
+                    - name: frozenValuationReconciliationReport
+                      recordCount: 239
+                    - name: agencySummaryReport
+                      recordCount: 14
+                    - name: townWithinAgencyReport
+                      recordCount: 75
+                    - name: agencyYearAppendRecords
+                      recordCount: 117
+                    messages:
+                    - severity: INFO
+                      text: EIFD/TIF increment batch completed successfully.
+        '404':
+          description: No EIFD/TIF increment run exists for the supplied surrogate identifier.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EifdTifIncrementErrorResponse'
+              example:
+                error: RUN_NOT_FOUND
+                message: No EIFD/TIF increment run was found for id 9000000000000001.
+components:
+  schemas:
+    AssessedValuePreparationRunRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - businessDate
+      - businessTime
+      - idempotencyKey
+      - processYear
+      properties:
+        businessDate:
+          type: string
+          format: date
+          description: Business date pinned for the entire run.
+        businessTime:
+          type: string
+          pattern: ^(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$
+          description: Business time pinned for the entire run in HH:mm:ss form.
+        idempotencyKey:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Caller key that prevents duplicate creation of the same batch request.
+        processYear:
+          type: string
+          pattern: ^[0-9]{2}$
+          description: Numeric two-character Type-5 conversion process year (asrea178-001).
+    AssessedValuePreparationRunResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - status
+      - businessDate
+      - businessTime
+      - processYear
+      - outputs
+      - messages
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Positive server-generated run identifier.
+        status:
+          type: string
+          enum:
+          - QUEUED
+          - RUNNING
+          - COMPLETED
+          - FAILED
+        businessDate:
+          type: string
+          format: date
+        businessTime:
+          type: string
+          pattern: ^(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$
+        processYear:
+          type: string
+          pattern: ^[0-9]{2}$
+        returnCode:
+          type: integer
+          description: Final or latest legacy return code when one is available. Status remains FAILED for a detected rule failure even when a legacy stage left this value at zero.
+        recordsRead:
+          type: integer
+          minimum: 0
+        recordsWritten:
+          type: integer
+          minimum: 0
+        recordsUpdated:
+          type: integer
+          minimum: 0
+        recordsRejected:
+          type: integer
+          minimum: 0
+        partialOutput:
+          type: boolean
+          description: True when any listed output was published from an incomplete or failed transformation, including asrea018-001 and asrea151-001.
+        outputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessedValuePreparationOutput'
+        messages:
+          type: array
+          description: Business warnings and failures, including preserved legacy defects, addressed by exact accepted rule ID.
+          items:
+            $ref: '#/components/schemas/AssessedValuePreparationMessage'
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessedValuePreparationStageResult'
+    AssessedValuePreparationOutput:
+      type: object
+      additionalProperties: false
+      required:
+      - artifactId
+      - kind
+      - mediaType
+      - recordCount
+      - partial
+      properties:
+        artifactId:
+          type: string
+          minLength: 20
+          maxLength: 128
+          pattern: ^[A-Za-z0-9_-]+$
+          description: Server-managed artifact identifier; never a local filesystem path.
+        kind:
+          type: string
+          enum:
+          - OVERALL_CLASS_REPORT
+          - VALUATION_BREAKDOWN_REPORT
+          - ASSESSMENT_MASTER
+          - TYPE5_ERROR_REPORT
+        mediaType:
+          type: string
+        recordCount:
+          type: integer
+          minimum: 0
+        partial:
+          type: boolean
+          description: True when this artifact was published despite an incomplete or failed run.
+    AssessedValuePreparationMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - severity
+      - code
+      - message
+      properties:
+        severity:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - ERROR
+        code:
+          type: string
+          minLength: 1
+        ruleId:
+          type: string
+          pattern: ^asrea(?:003|018|151|178)-[0-9]{3}$
+          description: Exact accepted rule ID required for a business-rule message; omitted for an operational worker or input failure.
+        message:
+          type: string
+          minLength: 1
+        recordKey:
+          type: string
+          description: Server-rendered parcel key when the message concerns one record.
+    AssessedValuePreparationStageResult:
+      type: object
+      additionalProperties: false
+      required:
+      - stage
+      - status
+      - recordsRead
+      - recordsWritten
+      - recordsUpdated
+      - recordsRejected
+      - outputPublished
+      - partialOutput
+      properties:
+        stage:
+          type: string
+          enum:
+          - OVERALL_CLASS
+          - VALUATION_BUCKETING
+          - TYPE5_CONVERSION
+        status:
+          type: string
+          enum:
+          - NOT_STARTED
+          - RUNNING
+          - COMPLETED
+          - FAILED
+        returnCode:
+          type: integer
+          description: Stage return code when available; may be zero on failed ASREA151 ordering semantics.
+        recordsRead:
+          type: integer
+          minimum: 0
+        recordsWritten:
+          type: integer
+          minimum: 0
+        recordsUpdated:
+          type: integer
+          minimum: 0
+        recordsRejected:
+          type: integer
+          minimum: 0
+        outputPublished:
+          type: boolean
+        partialOutput:
+          type: boolean
+          description: Explicit stage-level partial publication indicator.
+    AssessedValuePreparationErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      - message
+      properties:
+        error:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+        ruleId:
+          type: string
+          description: Exact accepted rule ID when a request error is governed by a business rule; omitted for operational errors.
+    TaxRateInputPreparationRunRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - businessDate
+      - businessTime
+      - idempotencyKey
+      properties:
+        businessDate:
+          type: string
+          format: date
+          description: Business date pinned for every step of this run.
+        businessTime:
+          type: string
+          pattern: ^(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$
+          description: Business time pinned for every step of this run.
+        idempotencyKey:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Caller-selected key for safely retrying the same start request.
+    TaxRateInputPreparationRunResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - status
+      - businessDate
+      - businessTime
+      - outputs
+      - messages
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Positive server-generated surrogate run identifier.
+        status:
+          type: string
+          enum:
+          - QUEUED
+          - RUNNING
+          - COMPLETED
+          - FAILED
+        businessDate:
+          type: string
+          format: date
+        businessTime:
+          type: string
+          pattern: ^(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$
+        returnCode:
+          type: integer
+          minimum: 0
+          description: Final batch return code; omitted until one is available.
+        recordsRead:
+          type: integer
+          minimum: 0
+          description: Sum of read operations reported by completed batch steps; stage counts remain authoritative for reconciliation.
+        recordsWritten:
+          type: integer
+          minimum: 0
+          description: Sum of successful write and insert operations reported by completed batch steps, including retained partial output.
+        recordsUpdated:
+          type: integer
+          minimum: 0
+          description: Sum of successful stamp and rewrite operations reported by completed batch steps.
+        recordsRejected:
+          type: integer
+          minimum: 0
+          description: Count of reported unmatched or otherwise omitted input records; these need not fail the run.
+        outputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxRateInputPreparationOutput'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxRateInputPreparationMessage'
+        reconciliation:
+          $ref: '#/components/schemas/TaxRateInputPreparationReconciliation'
+    TaxRateInputPreparationOutput:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - kind
+      - recordCount
+      - available
+      properties:
+        name:
+          type: string
+          description: Stable logical output name; never a local filesystem path.
+        kind:
+          type: string
+          enum:
+          - DIVIDED_VALUE
+          - AGENCY_ASSESSMENT
+          - ANNEX_DISCONNECT
+          - FROZEN_AGENCY
+          - REPORT
+        recordCount:
+          type: integer
+          minimum: 0
+        available:
+          type: boolean
+          description: Whether this server-managed output can currently be retrieved by the deployment's output facility.
+    TaxRateInputPreparationMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - severity
+      - code
+      - text
+      properties:
+        severity:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - ERROR
+        code:
+          type: string
+        text:
+          type: string
+        ruleId:
+          type: string
+          description: Exact accepted rule ID; required for business-rule messages and omitted for operational worker or file I/O messages.
+          enum:
+          - clrtm751-001
+          - clrtm751-002
+          - clrtm751-003
+          - clrtm751-004
+          - clrtm752-001
+          - clrtm752-002
+          - clrtm752-003
+          - clrtm752-004
+          - clrtm753-001
+          - clrtm753-002
+          - clrtm753-003
+          - clrtm753-004
+          - clrtm753-005
+          - clrtm753-006
+          - clrtm755-001
+          - clrtm755-002
+          - clrtm755-003
+          - clrtm755-004
+          - clrtm755-005
+          - clrtm755-006
+          - clrtm755-007
+    TaxRateInputPreparationReconciliation:
+      type: object
+      additionalProperties: false
+      properties:
+        divisionStamping:
+          $ref: '#/components/schemas/TaxRateInputPreparationDivisionStampingCounts'
+        agencyAttachment:
+          $ref: '#/components/schemas/TaxRateInputPreparationAgencyAttachmentCounts'
+        agencyComparison:
+          $ref: '#/components/schemas/TaxRateInputPreparationAgencyComparisonCounts'
+        frozenAgencyPosting:
+          $ref: '#/components/schemas/TaxRateInputPreparationFrozenAgencyPostingCounts'
+    TaxRateInputPreparationDivisionStampingCounts:
+      type: object
+      additionalProperties: false
+      required:
+      - equalizedValueRecordsRead
+      - divisionRecordsRead
+      - outputRecordsWritten
+      - recordsStamped
+      - divisionRecordsUnmatched
+      properties:
+        equalizedValueRecordsRead:
+          type: integer
+          minimum: 0
+        divisionRecordsRead:
+          type: integer
+          minimum: 0
+        outputRecordsWritten:
+          type: integer
+          minimum: 0
+        recordsStamped:
+          type: integer
+          minimum: 0
+        divisionRecordsUnmatched:
+          type: integer
+          minimum: 0
+          description: Legacy displayed counter; source evidence shows it is never incremented and therefore is not proof that all division rows matched.
+    TaxRateInputPreparationAgencyAttachmentCounts:
+      type: object
+      additionalProperties: false
+      required:
+      - assessmentRecordsRead
+      - assessmentRecordsWritten
+      - assessmentRecordsUnmatched
+      - normalCompletionBalanced
+      properties:
+        assessmentRecordsRead:
+          type: integer
+          minimum: 0
+        assessmentRecordsWritten:
+          type: integer
+          minimum: 0
+          description: Agency-assessment records produced; the reviewed evidence value is zero.
+        assessmentRecordsUnmatched:
+          type: integer
+          minimum: 0
+          description: Tax-code misses omitted from agency-assessment output; the reviewed evidence value is ten.
+        normalCompletionBalanced:
+          type: boolean
+          description: Whether written plus unmatched equals read; guaranteed only for normal non-error processing.
+    TaxRateInputPreparationAgencyComparisonCounts:
+      type: object
+      additionalProperties: false
+      required:
+      - priorRecordsRead
+      - currentRecordsRead
+      - comparisonRecordsWritten
+      - disconnectSegments
+      - annexSegments
+      - priorOnlyDivisions
+      - currentOnlyDivisions
+      properties:
+        priorRecordsRead:
+          type: integer
+          minimum: 0
+        currentRecordsRead:
+          type: integer
+          minimum: 0
+        comparisonRecordsWritten:
+          type: integer
+          minimum: 0
+        disconnectSegments:
+          type: integer
+          minimum: 0
+        annexSegments:
+          type: integer
+          minimum: 0
+        priorOnlyDivisions:
+          type: integer
+          minimum: 0
+          description: Prior-year division occurrences reported without a current-year match.
+        currentOnlyDivisions:
+          type: integer
+          minimum: 0
+          description: Current-year division occurrences reported without a prior-year match.
+    TaxRateInputPreparationFrozenAgencyPostingCounts:
+      type: object
+      additionalProperties: false
+      required:
+      - priorRecordsRead
+      - currentRecordsRead
+      - comparisonRecordsRead
+      - rewriteOperations
+      - insertOperations
+      properties:
+        priorRecordsRead:
+          type: integer
+          minimum: 0
+        currentRecordsRead:
+          type: integer
+          minimum: 0
+        comparisonRecordsRead:
+          type: integer
+          minimum: 0
+        rewriteOperations:
+          type: integer
+          minimum: 0
+          description: Successful rewrite operations, not unique frozen-agency keys.
+        insertOperations:
+          type: integer
+          minimum: 0
+          description: Successful insert operations, not unique frozen-agency keys.
+    TaxRateInputPreparationErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        ruleId:
+          type: string
+          description: Exact accepted business-rule identifier associated with the error context.
+    PropertyTaxExemptionsRunRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - businessDate
+      - businessTime
+      - idempotencyKey
+      - homeownerProcessingVariant
+      properties:
+        businessDate:
+          type: string
+          format: date
+          description: Business date pinned for every program in this run.
+        businessTime:
+          type: string
+          pattern: ^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$
+          description: Business time pinned for every program in this run.
+        idempotencyKey:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Client key that prevents duplicate creation of the same requested run.
+        homeownerProcessingVariant:
+          type: string
+          enum:
+          - ENUMERATED
+          - BROAD
+          description: Selects ASREA852 enumerated-class or ASREA853 broad-class homeowner eligibility when that stage applies. These are alternatives, not successive stages. Reviewed runs of both variants classified all ten assessment records as non-residential and published zero ASREA859 HOMEOUT records; no positive-path parity is claimed.
+    PropertyTaxExemptionsRunResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - status
+      - businessDate
+      - businessTime
+      - homeownerProcessingVariant
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Long surrogate run identifier.
+        status:
+          type: string
+          enum:
+          - QUEUED
+          - RUNNING
+          - COMPLETED
+          - FAILED
+        businessDate:
+          type: string
+          format: date
+        businessTime:
+          type: string
+          pattern: ^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$
+        homeownerProcessingVariant:
+          type: string
+          enum:
+          - ENUMERATED
+          - BROAD
+          description: Evidenced homeowner-processing variant selected for the run.
+        returnCode:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Final batch return code; absent until the run reaches a terminal status.
+        recordsRead:
+          type: integer
+          format: int64
+          minimum: 0
+        recordsWritten:
+          type: integer
+          format: int64
+          minimum: 0
+        recordsUpdated:
+          type: integer
+          format: int64
+          minimum: 0
+        recordsRejected:
+          type: integer
+          format: int64
+          minimum: 0
+        outputs:
+          type: array
+          description: Logical batch publications and reports; never local filesystem paths.
+          items:
+            $ref: '#/components/schemas/PropertyTaxExemptionsOutput'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/PropertyTaxExemptionsMessage'
+        rejections:
+          type: array
+          description: Record-level rejected, bypassed, warning, and partial-application outcomes.
+          items:
+            $ref: '#/components/schemas/PropertyTaxExemptionsRejectionOutcome'
+        reconciliations:
+          type: array
+          description: Stage and publication reconciliation outcomes, including empty publications.
+          items:
+            $ref: '#/components/schemas/PropertyTaxExemptionsReconciliationOutcome'
+        ruleOutcomes:
+          type: array
+          description: Final disposition of every accepted rule for this run.
+          items:
+            $ref: '#/components/schemas/PropertyTaxExemptionsRuleOutcome'
+    PropertyTaxExemptionsOutput:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - kind
+      - recordCount
+      - publicationStatus
+      properties:
+        name:
+          type: string
+          description: Logical output name, such as ASREA859 HOMEOUT or a named report.
+        kind:
+          type: string
+          enum:
+          - DATASET
+          - REPORT
+          - STAGING
+        recordCount:
+          type: integer
+          format: int64
+          minimum: 0
+        publicationStatus:
+          type: string
+          enum:
+          - PUBLISHED
+          - EMPTY
+          - WITHHELD
+          description: EMPTY explicitly represents a reviewed zero-record publication.
+        ruleIds:
+          type: array
+          items:
+            type: string
+    PropertyTaxExemptionsMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - severity
+      - message
+      properties:
+        severity:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - ERROR
+        message:
+          type: string
+        ruleId:
+          type: string
+          description: Accepted rule responsible for the message when applicable.
+    PropertyTaxExemptionsRejectionOutcome:
+      type: object
+      additionalProperties: false
+      required:
+      - source
+      - outcome
+      - message
+      - ruleId
+      properties:
+        source:
+          type: string
+          description: Logical preloaded input or processing stage; never a client filesystem path.
+        recordKey:
+          type: string
+          description: Business key when the rejected or warned record has one.
+        outcome:
+          type: string
+          enum:
+          - REJECTED
+          - BYPASSED
+          - PARTIALLY_APPLIED
+          - WARNING
+        message:
+          type: string
+        ruleId:
+          type: string
+    PropertyTaxExemptionsReconciliationOutcome:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - status
+      - recordsRead
+      - recordsMatched
+      - recordsWritten
+      - recordsRejected
+      - ruleIds
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+          - RECONCILED
+          - RECONCILED_WITH_REJECTIONS
+          - PARTIALLY_APPLIED
+          - FAILED
+        recordsRead:
+          type: integer
+          format: int64
+          minimum: 0
+        recordsMatched:
+          type: integer
+          format: int64
+          minimum: 0
+        recordsWritten:
+          type: integer
+          format: int64
+          minimum: 0
+        recordsRejected:
+          type: integer
+          format: int64
+          minimum: 0
+        ruleIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        message:
+          type: string
+    PropertyTaxExemptionsRuleOutcome:
+      type: object
+      additionalProperties: false
+      required:
+      - ruleId
+      - outcome
+      - recordsAffected
+      properties:
+        ruleId:
+          type: string
+        outcome:
+          type: string
+          enum:
+          - APPLIED
+          - NOT_APPLICABLE
+          - REJECTED
+          - WARNING
+          - FAILED
+        recordsAffected:
+          type: integer
+          format: int64
+          minimum: 0
+        message:
+          type: string
+    PropertyTaxExemptionsErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        ruleId:
+          type: string
+    EifdTifIncrementRunRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - businessDate
+      - businessTime
+      - idempotencyKey
+      - reassessmentControl
+      - processingYear
+      - reportingYear
+      - annualEqualizationFactor
+      properties:
+        businessDate:
+          type: string
+          format: date
+          description: Pinned business date applied to every program in the run.
+          example: 2025-09-15
+        businessTime:
+          type: string
+          pattern: ^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$
+          description: Pinned 24-hour business time applied to every program in the run.
+          example: 12:00:00
+        idempotencyKey:
+          type: string
+          minLength: 1
+          description: Caller-selected key for deduplicating equivalent launch attempts.
+        reassessmentControl:
+          type: string
+          minLength: 12
+          maxLength: 12
+          pattern: ^[0-9]{12}$
+          description: |
+            Complete ASREA740 reassessment control containing the current year,
+            improvement-age range, and Class 288 year range. The service enforces
+            ascending ranges and the century pivot in asrea740-002.
+          example: '260181202526'
+        processingYear:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: ^[0-9]{2}$
+          description: Two-digit ASREA742 processing year used for Class 288 selection.
+          example: '26'
+        reportingYear:
+          type: string
+          minLength: 4
+          maxLength: 4
+          pattern: ^[0-9]{4}$
+          description: Four-digit reporting year used by the agency summary and town-within-agency report.
+          example: '2026'
+        annualEqualizationFactor:
+          type: string
+          minLength: 5
+          maxLength: 5
+          pattern: ^[0-9]{5}$
+          description: Five-character positive factor with one integer and four fractional digits; 00000 is rejected by asrea748-001.
+          example: '10000'
+    EifdTifIncrementRunResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - status
+      - businessDate
+      - businessTime
+      - outputs
+      - messages
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Positive 64-bit surrogate run identifier.
+          example: 9000000000000001
+        status:
+          type: string
+          enum:
+          - QUEUED
+          - RUNNING
+          - COMPLETED
+          - FAILED
+        businessDate:
+          type: string
+          format: date
+          description: Business date pinned by the launch request.
+        businessTime:
+          type: string
+          pattern: ^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$
+          description: Business time pinned by the launch request.
+        returnCode:
+          type: integer
+          minimum: 0
+          description: Final maximum batch return code; omitted before the run is terminal.
+        recordsRead:
+          type: integer
+          minimum: 0
+          description: Aggregate records read across completed steps; omitted until available.
+        recordsWritten:
+          type: integer
+          minimum: 0
+          description: Aggregate records written across completed steps; omitted until available.
+        recordsUpdated:
+          type: integer
+          minimum: 0
+          description: Aggregate shared-live records updated across completed steps; omitted until available.
+        recordsRejected:
+          type: integer
+          minimum: 0
+          description: Aggregate records rejected or omitted by a reported rule path; omitted until available.
+        outputs:
+          type: array
+          description: Logical batch products and reports; items never expose server filesystem paths.
+          items:
+            $ref: '#/components/schemas/EifdTifIncrementOutput'
+        messages:
+          type: array
+          description: Operational and business-rule messages observed so far.
+          items:
+            $ref: '#/components/schemas/EifdTifIncrementMessage'
+    EifdTifIncrementOutput:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - recordCount
+      properties:
+        name:
+          type: string
+          description: Stable logical product name, such as agencySummaryReport; never a local path.
+        recordCount:
+          type: integer
+          minimum: 0
+        generation:
+          type: integer
+          minimum: 1
+          description: Shared-live logical generation when the product is versioned.
+    EifdTifIncrementMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - severity
+      - text
+      properties:
+        severity:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - ERROR
+        text:
+          type: string
+        ruleId:
+          type: string
+          description: Exact accepted EIFD business-rule identifier when the message reports a rule outcome.
+          example: asrea740-003
+    EifdTifIncrementErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        ruleId:
+          type: string
+          description: Exact accepted EIFD rule when a business-rule violation caused the error; omitted for operational errors.
+          enum:
+          - asrea740-001
+          - asrea740-002
+          - asrea742-005
+          - asrea742-006
+          - asrea748-001
+    AgencyEqualizedValuation:
+      type: object
+      properties:
+        agencyNumber:
+          type: string
+          maxLength: 9
+        annexedPropertyEqualizedValue:
+          type: integer
+          format: int64
+        burdenPercent:
+          type: number
+        connectingAgency1:
+          type: string
+          maxLength: 9
+        connectingAgency2:
+          type: string
+          maxLength: 9
+        connectingAgency3:
+          type: string
+          maxLength: 9
+        connectingAgency4:
+          type: string
+          maxLength: 9
+        cookCountyAirPollutionValue:
+          type: integer
+          format: int64
+        cookCountyRailroadValue:
+          type: integer
+          format: int64
+        cookCountyRealEstateValue:
+          type: integer
+          format: int64
+        cookCountyUseTaxValue:
+          type: integer
+          format: int64
+        deKalbCountyEqualizedValue:
+          type: integer
+          format: int64
+        disconnectedPropertyEqualizedValue:
+          type: integer
+          format: int64
+        disconnectedTifDifference:
+          type: integer
+          format: int64
+        duPageCountyEqualizedValue:
+          type: integer
+          format: int64
+        grundyCountyEqualizedValue:
+          type: integer
+          format: int64
+        kaneCountyEqualizedValue:
+          type: integer
+          format: int64
+        kankakeeCountyEqualizedValue:
+          type: integer
+          format: int64
+        kendallCountyEqualizedValue:
+          type: integer
+          format: int64
+        laSalleCountyEqualizedValue:
+          type: integer
+          format: int64
+        lakeCountyEqualizedValue:
+          type: integer
+          format: int64
+        limitingTaxRateOverride:
+          type: number
+        livingstonCountyEqualizedValue:
+          type: integer
+          format: int64
+        mcHenryCountyEqualizedValue:
+          type: integer
+          format: int64
+        newPropertyEqualizedValue:
+          type: integer
+          format: int64
+        overlapAnnexedPropertyEqualizedValue:
+          type: integer
+          format: int64
+        overlapDisconnectedPropertyEqualizedValue:
+          type: integer
+          format: int64
+        overlapDisconnectedTifDifference:
+          type: integer
+          format: int64
+        overlapNewPropertyEqualizedValue:
+          type: integer
+          format: int64
+        parentAgency1:
+          type: string
+          maxLength: 9
+        parentAgency2:
+          type: string
+          maxLength: 9
+        parentAgency3:
+          type: string
+          maxLength: 9
+        parentAgency4:
+          type: string
+          maxLength: 9
+        parentAgency5:
+          type: string
+          maxLength: 9
+        previousTaxYear1:
+          type: integer
+        previousTaxYear1Extension:
+          type: number
+        previousTaxYear2:
+          type: integer
+        previousTaxYear2Extension:
+          type: number
+        previousTaxYear3:
+          type: integer
+        previousTaxYear3Extension:
+          type: number
+        taxCapIndicator:
+          type: boolean
+        taxYear:
+          type: integer
+        willCountyEqualizedValue:
+          type: integer
+          format: int64
+    AssessmentDetail:
+      type: object
+      properties:
+        age:
+          type: integer
+        area:
+          type: integer
+          format: int64
+        assessmentClass:
+          type: integer
+        cdu:
+          type: string
+          maxLength: 2
+        conditionFactor:
+          type: number
+        cornerFactor:
+          type: number
+        decimalScale:
+          type: integer
+        depth:
+          type: integer
+          format: int64
+        depthFactor:
+          type: number
+        detailCode:
+          type: string
+          maxLength: 1
+        detailType:
+          type: string
+          maxLength: 1
+        extraCornerFactor:
+          type: number
+        frontFootage:
+          type: integer
+          format: int64
+        improvementYear:
+          type: integer
+        keyParcelNumber:
+          type: integer
+          format: int64
+        landConditionFactor:
+          type: number
+        multicode:
+          type: integer
+        occupancyFactor:
+          type: number
+        occurrenceNumber:
+          type: integer
+        parcelNumber:
+          type: integer
+          format: int64
+        parcelVolumeNumber:
+          type: integer
+        percentAssessed:
+          type: number
+        reproductionCost:
+          type: integer
+          format: int64
+        splitCode:
+          type: string
+          maxLength: 1
+        unitMeasure:
+          type: string
+          maxLength: 2
+        unitPrice:
+          type: number
+        valuation:
+          type: integer
+          format: int64
+    AssessmentParcel:
+      type: object
+      properties:
+        archivedPreConversionProposedTotal:
+          type: integer
+          format: int64
+        assessmentStatus:
+          type: string
+          maxLength: 1
+        clerkMajorClass:
+          type: string
+          maxLength: 1
+        combinedHomeownerNonHomeownerValue:
+          type: integer
+          format: int64
+        currentImprovementValue:
+          type: integer
+          format: int64
+        currentLandValue:
+          type: integer
+          format: int64
+        currentTotalValue:
+          type: integer
+          format: int64
+        detailQuestionnaireCount:
+          type: integer
+        farmValue:
+          type: integer
+          format: int64
+        overallClass:
+          type: integer
+        parcelNumber:
+          type: integer
+          format: int64
+        parcelStatus:
+          type: string
+          maxLength: 1
+        priorImprovementValue:
+          type: integer
+          format: int64
+        priorLandValue:
+          type: integer
+          format: int64
+        priorTotalValue:
+          type: integer
+          format: int64
+        proposedImprovementValue:
+          type: integer
+          format: int64
+        proposedLandValue:
+          type: integer
+          format: int64
+        proposedTotalValue:
+          type: integer
+          format: int64
+        salesSegmentCount:
+          type: integer
+        taxCode:
+          type: integer
+        taxType:
+          type: string
+          maxLength: 1
+        volumeNumber:
+          type: integer
+    FrozenAgencyAdjustment:
+      type: object
+      properties:
+        agencyNumber:
+          type: string
+          maxLength: 9
+        annexedAssessedValue:
+          type: integer
+          format: int64
+        annexedEqualizedValue:
+          type: integer
+          format: int64
+        current288Value:
+          type: integer
+          format: int64
+        disconnectedAssessedValue:
+          type: integer
+          format: int64
+        disconnectedEqualizedValue:
+          type: integer
+          format: int64
+        expired288Value:
+          type: integer
+          format: int64
+        expiredIncentiveEqualizedValue:
+          type: integer
+          format: int64
+        expiredIncentiveTaxAmount:
+          type: number
+        expiredIncentiveValue:
+          type: integer
+          format: int64
+        firstTimeValue:
+          type: integer
+          format: int64
+        frozenEqualizedValue:
+          type: integer
+          format: int64
+        frozenTaxAmount:
+          type: number
+        taxCode:
+          type: string
+          maxLength: 5
+        taxRate:
+          type: number
+        tifCurrentEqualizedValue:
+          type: integer
+          format: int64
+        tifDifferenceEqualizedValue:
+          type: integer
+          format: int64
+        tifPriorFrozenEqualizedValue:
+          type: integer
+          format: int64
+        totalFrozenValue:
+          type: integer
+          format: int64
+    FrozenValuation:
+      type: object
+      properties:
+        changeActionCurrentImprovementValue:
+          type: integer
+          format: int64
+        changeActionCurrentLandValue:
+          type: integer
+          format: int64
+        changeActionCurrentParcelCount:
+          type: integer
+          format: int64
+        changeActionCurrentTotalValue:
+          type: integer
+          format: int64
+        changeActionPriorImprovementValue:
+          type: integer
+          format: int64
+        changeActionPriorLandValue:
+          type: integer
+          format: int64
+        changeActionPriorParcelCount:
+          type: integer
+          format: int64
+        changeActionPriorTotalValue:
+          type: integer
+          format: int64
+        currentImprovementValue:
+          type: integer
+          format: int64
+        currentLandValue:
+          type: integer
+          format: int64
+        currentParcelCount:
+          type: integer
+          format: int64
+        currentTotalValue:
+          type: integer
+          format: int64
+        divisionNumber:
+          type: string
+          maxLength: 14
+        noChangeActionCurrentImprovementValue:
+          type: integer
+          format: int64
+        noChangeActionCurrentLandValue:
+          type: integer
+          format: int64
+        noChangeActionCurrentParcelCount:
+          type: integer
+          format: int64
+        noChangeActionCurrentTotalValue:
+          type: integer
+          format: int64
+        noChangeActionPriorImprovementValue:
+          type: integer
+          format: int64
+        noChangeActionPriorLandValue:
+          type: integer
+          format: int64
+        noChangeActionPriorParcelCount:
+          type: integer
+          format: int64
+        noChangeActionPriorTotalValue:
+          type: integer
+          format: int64
+        priorImprovementValue:
+          type: integer
+          format: int64
+        priorLandValue:
+          type: integer
+          format: int64
+        priorParcelCount:
+          type: integer
+          format: int64
+        priorTotalValue:
+          type: integer
+          format: int64
+        proposedActualValue:
+          type: integer
+          format: int64
+        proposedCurrent288Value:
+          type: integer
+          format: int64
+        proposedExpired288Value:
+          type: integer
+          format: int64
+        proposedImprovementValue:
+          type: integer
+          format: int64
+        proposedTotalValue:
+          type: integer
+          format: int64
+    HomeownerExemption:
+      type: object
+      properties:
+        applicationYear:
+          type: integer
+        assessedValue:
+          type: integer
+          format: int64
+        assessmentClass:
+          type: integer
+        certificateOfErrorNumber:
+          type: integer
+        city:
+          type: string
+          maxLength: 12
+        clerksClass:
+          type: integer
+        cooperativeQuantity:
+          type: integer
+        eligibilityIndicator:
+          type: integer
+        equalizationFactor:
+          type: number
+        equalizedValue:
+          type: integer
+          format: int64
+        exemptionType:
+          type: integer
+        keyParcelNumber:
+          type: integer
+          format: int64
+        mailingAddress:
+          type: string
+          maxLength: 22
+        occupancyFactor:
+          type: number
+        ownerName:
+          type: string
+          maxLength: 22
+        propertyNumber:
+          type: integer
+          format: int64
+        proration:
+          type: number
+        recordCode:
+          type: integer
+        responseStatus:
+          type: integer
+        secondaryResponseStatus:
+          type: integer
+        splitCode:
+          type: integer
+        state:
+          type: string
+          maxLength: 2
+        taxCode:
+          type: integer
+        taxType:
+          type: integer
+        tertiaryStatus:
+          type: integer
+        volumeNumber:
+          type: integer
+        zipCode:
+          type: integer
+          format: int64
+    HomeownerMaster:
+      type: object
+      properties:
+        applicationYear:
+          type: integer
+        assessedValue:
+          type: integer
+          format: int64
+        assessmentClass:
+          type: integer
+        certificateOfErrorNumber:
+          type: integer
+        city:
+          type: string
+          maxLength: 12
+        cooperativeQuantity:
+          type: integer
+        equalizationFactor:
+          type: number
+        equalizedValue:
+          type: integer
+          format: int64
+        exemptionType:
+          type: integer
+        mailingAddress:
+          type: string
+          maxLength: 22
+        npheAmount:
+          type: integer
+          format: int64
+        npheBaseYear:
+          type: integer
+        npheStatus:
+          type: string
+          maxLength: 2
+        occupancyFactor:
+          type: number
+        ownerName:
+          type: string
+          maxLength: 22
+        propertyNumber:
+          type: integer
+          format: int64
+        proration:
+          type: number
+        responseStatus:
+          type: integer
+        secondaryResponseStatus:
+          type: integer
+        state:
+          type: string
+          maxLength: 2
+        taxCode:
+          type: integer
+        taxType:
+          type: integer
+        temporaryAssessedValue:
+          type: integer
+          format: int64
+        tertiaryStatus:
+          type: integer
+        volumeNumber:
+          type: integer
+        zipCode:
+          type: integer
+          format: int64
+    MaintainedHomesteadExemption:
+      type: object
+      properties:
+        applicationYear:
+          type: integer
+        assessedValue:
+          type: integer
+          format: int64
+        assessmentClass:
+          type: integer
+        certificateOfErrorNumber:
+          type: integer
+        city:
+          type: string
+          maxLength: 12
+        clerksClass:
+          type: integer
+        cooperativeQuantity:
+          type: integer
+        equalizationFactor:
+          type: number
+        equalizedValue:
+          type: integer
+          format: int64
+        exemptionType:
+          type: integer
+        mailingAddress:
+          type: string
+          maxLength: 22
+        npheAmount:
+          type: integer
+          format: int64
+        npheBaseYear:
+          type: integer
+        npheStatus:
+          type: string
+          maxLength: 2
+        occupancyFactor:
+          type: number
+        ownerName:
+          type: string
+          maxLength: 22
+        propertyNumber:
+          type: integer
+          format: int64
+        proration:
+          type: number
+        responseStatus:
+          type: integer
+        secondaryResponseStatus:
+          type: integer
+        state:
+          type: string
+          maxLength: 2
+        taxCode:
+          type: integer
+        taxType:
+          type: string
+          maxLength: 1
+        tertiaryStatus:
+          type: integer
+        volumeNumber:
+          type: integer
+        zipCode:
+          type: integer
+          format: int64
+    SeniorFreezeApplicant:
+      type: object
+      properties:
+        age:
+          type: integer
+        applicantAddress:
+          type: string
+          maxLength: 22
+        applicantCity:
+          type: string
+          maxLength: 12
+        applicantFirstName:
+          type: string
+          maxLength: 15
+        applicantLastName:
+          type: string
+          maxLength: 20
+        applicantMiddleInitial:
+          type: string
+          maxLength: 1
+        applicantOldName:
+          type: string
+          maxLength: 22
+        applicantState:
+          type: string
+          maxLength: 2
+        applicantTitle:
+          type: string
+          maxLength: 2
+        applicantZipCode:
+          type: integer
+          format: int64
+        baseYear:
+          type: integer
+        baseYearEligibleEqualizedValue:
+          type: integer
+          format: int64
+        baseYearIndicator:
+          type: string
+          maxLength: 1
+        batchNumber:
+          type: integer
+        birthDate:
+          type: string
+          maxLength: 8
+        civilServiceBenefits:
+          type: number
+        cooperativeSeniorShares:
+          type: integer
+        denialDate:
+          type: integer
+        firstApplicationDate:
+          type: integer
+        homeownerBaseYear:
+          type: integer
+        homeownerBaseYearAssessedValue:
+          type: integer
+          format: int64
+        homeownerBaseYearEqualizationFactor:
+          type: number
+        homeownerBaseYearEqualizedValue:
+          type: integer
+          format: int64
+        homeownerEligibilityIndicator:
+          type: integer
+        homeownerStatus:
+          type: string
+          maxLength: 1
+        homesteadBatchNumber:
+          type: integer
+        homesteadPercentShares:
+          type: number
+        homesteadShares:
+          type: integer
+        homesteadStatus:
+          type: string
+          maxLength: 1
+        homesteadYearApplied:
+          type: integer
+        interestIncome:
+          type: number
+        lastApplicationDate:
+          type: integer
+        lifeCareFacilityIndicator:
+          type: string
+          maxLength: 1
+        maintenanceIndicator:
+          type: integer
+        nameMaintenanceIndicator:
+          type: integer
+        netCapitalGain:
+          type: number
+        netRentalIncome:
+          type: number
+        noIncomeIndicator:
+          type: string
+          maxLength: 1
+        notarizedIndicator:
+          type: string
+          maxLength: 1
+        otherBenefits:
+          type: number
+        otherIncome:
+          type: number
+        percentSeniorShares:
+          type: number
+        phoneNumber:
+          type: integer
+          format: int64
+        publicAid:
+          type: number
+        qualificationDate:
+          type: integer
+        railroadBenefits:
+          type: number
+        returnedDate:
+          type: integer
+        seniorFreezePercent:
+          type: number
+        seniorFreezeStatus:
+          type: string
+          maxLength: 1
+        signedIndicator:
+          type: string
+          maxLength: 1
+        socialSecurityIncome:
+          type: number
+        socialSecurityNumber:
+          type: integer
+          format: int64
+        totalIncome:
+          type: number
+        veteransBenefits:
+          type: number
+        wages:
+          type: number
+    SeniorFreezeMaster:
+      type: object
+      properties:
+        baseValueManualCalculationIndicator:
+          type: string
+          maxLength: 1
+        baseValueNoCalculationIndicator:
+          type: string
+          maxLength: 1
+        baseValueYear:
+          type: integer
+        baseValueYearClass:
+          type: integer
+        baseYearEligibleComputedFullAssessedValue:
+          type: integer
+          format: int64
+        baseYearEqualizedValue:
+          type: integer
+          format: int64
+        baseYearFullAssessedValue:
+          type: integer
+          format: int64
+        baseYearTotalEligibleComputedEqualizedValue:
+          type: integer
+          format: int64
+        buildingShares:
+          type: integer
+        buildingUnits:
+          type: integer
+        calculationType:
+          type: string
+          maxLength: 1
+        class288ExpirationAssessedValue:
+          type: integer
+          format: int64
+        class288ExpirationEqualizedValue:
+          type: integer
+          format: int64
+        class288OverLimitAssessedValue:
+          type: integer
+          format: int64
+        class288OverLimitEqualizedValue:
+          type: integer
+          format: int64
+        currentYearClass:
+          type: integer
+        currentYearEligibleComputedAssessedValue:
+          type: integer
+          format: int64
+        currentYearEligibleComputedEqualizedValue:
+          type: integer
+          format: int64
+        currentYearFarmIndicator:
+          type: string
+          maxLength: 1
+        currentYearFinalEqualizedValueDifference:
+          type: integer
+          format: int64
+        currentYearFullAssessedValue:
+          type: integer
+          format: int64
+        currentYearFullEqualizedValue:
+          type: integer
+          format: int64
+        currentYearNotEligibleAssessedValue:
+          type: integer
+          format: int64
+        currentYearNotEligibleEqualizedValue:
+          type: integer
+          format: int64
+        homeownerUnits:
+          type: integer
+        homesteadUnits:
+          type: integer
+        keyParcelNumber:
+          type: integer
+          format: int64
+        mailingCity:
+          type: string
+          maxLength: 28
+        mailingDirection:
+          type: string
+          maxLength: 2
+        mailingHouseNumber:
+          type: string
+          maxLength: 5
+        mailingState:
+          type: string
+          maxLength: 2
+        mailingStreet:
+          type: string
+          maxLength: 22
+        mailingSuffix:
+          type: string
+          maxLength: 4
+        mailingZipCode:
+          type: integer
+          format: int64
+        maintenanceIndicator:
+          type: integer
+        masterName:
+          type: string
+          maxLength: 50
+        occupancyFactor:
+          type: number
+        originalBaseValueYear:
+          type: integer
+        originalBaseYearEligibleComputedFullAssessedValue:
+          type: integer
+          format: int64
+        originalBaseYearEqualizedValue:
+          type: integer
+          format: int64
+        originalBaseYearFullAssessedValue:
+          type: integer
+          format: int64
+        originalBaseYearTotalEligibleComputedEqualizedValue:
+          type: integer
+          format: int64
+        originalCurrentYearFinalEqualizedValueDifference:
+          type: integer
+          format: int64
+        originalManualCalculationIndicator:
+          type: string
+          maxLength: 1
+        propertyProration:
+          type: number
+        recordCode:
+          type: string
+          maxLength: 1
+        seniorFreezeShares:
+          type: integer
+        splitCode:
+          type: integer

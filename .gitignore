@@ -1,0 +1,21 @@
+.isomorphic/
+
+# Local dependencies, build output, and editor state.
+node_modules/
+target/
+dist/
+.idea/
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# Local credentials and assistant sessions are not publication artifacts.
+.env
+.env.*
+!.env.example
+.claude/
+.omp/
+
+# Browser-test output.
+playwright-report/
+test-results/

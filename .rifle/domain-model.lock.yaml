@@ -1,0 +1,1824 @@
+entities:
+  AgencyEqualizedValuation:
+    name: AgencyEqualizedValuation
+    source_bullet: eifd-tif-increment
+    evolved_by: []
+    fields:
+      agencyNumber:
+        name: agencyNumber
+        type: string
+        max_length: 9
+        unique: true
+        added_by: eifd-tif-increment
+        source_field: AEV-AGCYNO
+      annexedPropertyEqualizedValue:
+        name: annexedPropertyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-ANX-PROP-EQV
+      burdenPercent:
+        name: burdenPercent
+        type: decimal
+        precision: 5
+        scale: 2
+        added_by: eifd-tif-increment
+        source_field: AEV-PCT-BURDEN
+      connectingAgency1:
+        name: connectingAgency1
+        type: string
+        max_length: 9
+        added_by: eifd-tif-increment
+        source_field: AEV-CON-AGCY1
+      connectingAgency2:
+        name: connectingAgency2
+        type: string
+        max_length: 9
+        added_by: eifd-tif-increment
+        source_field: AEV-CON-AGCY2
+      connectingAgency3:
+        name: connectingAgency3
+        type: string
+        max_length: 9
+        added_by: eifd-tif-increment
+        source_field: AEV-CON-AGCY3
+      connectingAgency4:
+        name: connectingAgency4
+        type: string
+        max_length: 9
+        added_by: eifd-tif-increment
+        source_field: AEV-CON-AGCY4
+      cookCountyAirPollutionValue:
+        name: cookCountyAirPollutionValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-CC-AIRPOL
+      cookCountyRailroadValue:
+        name: cookCountyRailroadValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-CC-RR
+      cookCountyRealEstateValue:
+        name: cookCountyRealEstateValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-CC-RE
+      cookCountyUseTaxValue:
+        name: cookCountyUseTaxValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-CC-USETAX
+      deKalbCountyEqualizedValue:
+        name: deKalbCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-DKB-EQV
+      disconnectedPropertyEqualizedValue:
+        name: disconnectedPropertyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-DIS-PROP-EQV
+      disconnectedTifDifference:
+        name: disconnectedTifDifference
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-DIS-TIF-DIF
+      duPageCountyEqualizedValue:
+        name: duPageCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-DPG-EQV
+      grundyCountyEqualizedValue:
+        name: grundyCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-GRN-EQV
+      kaneCountyEqualizedValue:
+        name: kaneCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-KNE-EQV
+      kankakeeCountyEqualizedValue:
+        name: kankakeeCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-KNK-EQV
+      kendallCountyEqualizedValue:
+        name: kendallCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-KND-EQV
+      laSalleCountyEqualizedValue:
+        name: laSalleCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-LSL-EQV
+      lakeCountyEqualizedValue:
+        name: lakeCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-LAK-EQV
+      limitingTaxRateOverride:
+        name: limitingTaxRateOverride
+        type: decimal
+        precision: 9
+        scale: 6
+        added_by: eifd-tif-increment
+        source_field: AEV-LIMT-TXRTE-OVRD
+      livingstonCountyEqualizedValue:
+        name: livingstonCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-LVN-EQV
+      mcHenryCountyEqualizedValue:
+        name: mcHenryCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-MCH-EQV
+      newPropertyEqualizedValue:
+        name: newPropertyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-NEW-PROP-EQV
+      overlapAnnexedPropertyEqualizedValue:
+        name: overlapAnnexedPropertyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-OVLP-ANX-PROP-EQV
+      overlapDisconnectedPropertyEqualizedValue:
+        name: overlapDisconnectedPropertyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-OVLP-DIS-PROP-EQV
+      overlapDisconnectedTifDifference:
+        name: overlapDisconnectedTifDifference
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-OVLP-DIS-TIF-DIF
+      overlapNewPropertyEqualizedValue:
+        name: overlapNewPropertyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-OVLP-NEW-PROP-EQV
+      parentAgency1:
+        name: parentAgency1
+        type: string
+        max_length: 9
+        added_by: eifd-tif-increment
+        source_field: AEV-PAR-AGY1
+      parentAgency2:
+        name: parentAgency2
+        type: string
+        max_length: 9
+        added_by: eifd-tif-increment
+        source_field: AEV-PAR-AGY2
+      parentAgency3:
+        name: parentAgency3
+        type: string
+        max_length: 9
+        added_by: eifd-tif-increment
+        source_field: AEV-PAR-AGY3
+      parentAgency4:
+        name: parentAgency4
+        type: string
+        max_length: 9
+        added_by: eifd-tif-increment
+        source_field: AEV-PAR-AGY4
+      parentAgency5:
+        name: parentAgency5
+        type: string
+        max_length: 9
+        added_by: eifd-tif-increment
+        source_field: AEV-PAR-AGY5
+      previousTaxYear1:
+        name: previousTaxYear1
+        type: integer
+        added_by: eifd-tif-increment
+        source_field: AEV-PREV-TXYR1
+      previousTaxYear1Extension:
+        name: previousTaxYear1Extension
+        type: decimal
+        precision: 13
+        scale: 2
+        added_by: eifd-tif-increment
+        source_field: AEV-PREV-TXYR1-TX-XT
+      previousTaxYear2:
+        name: previousTaxYear2
+        type: integer
+        added_by: eifd-tif-increment
+        source_field: AEV-PREV-TXYR2
+      previousTaxYear2Extension:
+        name: previousTaxYear2Extension
+        type: decimal
+        precision: 13
+        scale: 2
+        added_by: eifd-tif-increment
+        source_field: AEV-PREV-TXYR2-TX-XT
+      previousTaxYear3:
+        name: previousTaxYear3
+        type: integer
+        added_by: eifd-tif-increment
+        source_field: AEV-PREV-TXYR3
+      previousTaxYear3Extension:
+        name: previousTaxYear3Extension
+        type: decimal
+        precision: 13
+        scale: 2
+        added_by: eifd-tif-increment
+        source_field: AEV-PREV-TXYR3-TX-XT
+      taxCapIndicator:
+        name: taxCapIndicator
+        type: boolean
+        added_by: eifd-tif-increment
+        source_field: AEV-TAXCAP
+        source_mapping:
+          N: 'false'
+          Y: 'true'
+      taxYear:
+        name: taxYear
+        type: integer
+        added_by: eifd-tif-increment
+        source_field: AEV-TAX-YEAR
+      willCountyEqualizedValue:
+        name: willCountyEqualizedValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: AEV-WIL-EQV
+  AssessmentDetail:
+    name: AssessmentDetail
+    source_bullet: assessed-value-preparation
+    evolved_by: []
+    fields:
+      age:
+        name: age
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: D2-AGE
+      area:
+        name: area
+        type: long
+        added_by: assessed-value-preparation
+        source_field: D2-AREA
+      assessmentClass:
+        name: assessmentClass
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: D1-CLS
+      cdu:
+        name: cdu
+        type: string
+        max_length: 2
+        added_by: assessed-value-preparation
+        source_field: D2-CDU
+      conditionFactor:
+        name: conditionFactor
+        type: decimal
+        precision: 3
+        scale: 1
+        added_by: assessed-value-preparation
+        source_field: D2-COND
+      cornerFactor:
+        name: cornerFactor
+        type: decimal
+        precision: 5
+        scale: 4
+        added_by: assessed-value-preparation
+        source_field: D1-CFCTR
+      decimalScale:
+        name: decimalScale
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: D1-DEC
+      depth:
+        name: depth
+        type: long
+        added_by: assessed-value-preparation
+        source_field: D1-DPTH
+      depthFactor:
+        name: depthFactor
+        type: decimal
+        precision: 5
+        scale: 3
+        added_by: assessed-value-preparation
+        source_field: D1-DFCTR
+      detailCode:
+        name: detailCode
+        type: string
+        max_length: 1
+        added_by: assessed-value-preparation
+        source_field: D1-CD
+      detailType:
+        name: detailType
+        type: string
+        max_length: 1
+        added_by: assessed-value-preparation
+        source_field: D1-TYP
+      extraCornerFactor:
+        name: extraCornerFactor
+        type: decimal
+        precision: 5
+        scale: 5
+        added_by: assessed-value-preparation
+        source_field: D1-ECFCTR
+      frontFootage:
+        name: frontFootage
+        type: long
+        added_by: assessed-value-preparation
+        source_field: D1-FF
+      improvementYear:
+        name: improvementYear
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: D3-YR
+      keyParcelNumber:
+        name: keyParcelNumber
+        type: long
+        added_by: assessed-value-preparation
+        source_field: D2-KEYPCL
+      landConditionFactor:
+        name: landConditionFactor
+        type: decimal
+        precision: 3
+        scale: 1
+        added_by: assessed-value-preparation
+        source_field: D1-EI (ASDTLQRD01 D1-CND overlay)
+      multicode:
+        name: multicode
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: D1-MC
+      occupancyFactor:
+        name: occupancyFactor
+        type: decimal
+        precision: 3
+        scale: 1
+        added_by: assessed-value-preparation
+        source_field: D5-OCCFAC
+      occurrenceNumber:
+        name: occurrenceNumber
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: M-DTL-QST ordinal (1..M-DTL-QST-CTR)
+      parcelNumber:
+        name: parcelNumber
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-PROP
+      parcelVolumeNumber:
+        name: parcelVolumeNumber
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: M-VOL
+      percentAssessed:
+        name: percentAssessed
+        type: decimal
+        precision: 7
+        scale: 5
+        added_by: assessed-value-preparation
+        source_field: D2-PCASSD
+      reproductionCost:
+        name: reproductionCost
+        type: long
+        added_by: assessed-value-preparation
+        source_field: D3-REPCST
+      splitCode:
+        name: splitCode
+        type: string
+        max_length: 1
+        added_by: assessed-value-preparation
+        source_field: D2-SC
+      unitMeasure:
+        name: unitMeasure
+        type: string
+        max_length: 2
+        added_by: assessed-value-preparation
+        source_field: D1-UM
+      unitPrice:
+        name: unitPrice
+        type: decimal
+        precision: 7
+        scale: 2
+        added_by: assessed-value-preparation
+        source_field: D1-UPR
+      valuation:
+        name: valuation
+        type: long
+        added_by: assessed-value-preparation
+        source_field: D1-VAL
+  AssessmentParcel:
+    name: AssessmentParcel
+    source_bullet: assessed-value-preparation
+    evolved_by: []
+    fields:
+      archivedPreConversionProposedTotal:
+        name: archivedPreConversionProposedTotal
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(12)
+      assessmentStatus:
+        name: assessmentStatus
+        type: string
+        max_length: 1
+        added_by: assessed-value-preparation
+        source_field: M-STAT1
+      clerkMajorClass:
+        name: clerkMajorClass
+        type: string
+        max_length: 1
+        added_by: assessed-value-preparation
+        source_field: M-STAT3
+      combinedHomeownerNonHomeownerValue:
+        name: combinedHomeownerNonHomeownerValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(11)
+      currentImprovementValue:
+        name: currentImprovementValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(5)
+      currentLandValue:
+        name: currentLandValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(4)
+      currentTotalValue:
+        name: currentTotalValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(6)
+      detailQuestionnaireCount:
+        name: detailQuestionnaireCount
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: M-DTL-QST-CTR
+      farmValue:
+        name: farmValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(10)
+      overallClass:
+        name: overallClass
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: M-CLS
+      parcelNumber:
+        name: parcelNumber
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-PROP
+      parcelStatus:
+        name: parcelStatus
+        type: string
+        max_length: 1
+        added_by: assessed-value-preparation
+        source_field: M-STAT2
+      priorImprovementValue:
+        name: priorImprovementValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(2)
+      priorLandValue:
+        name: priorLandValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(1)
+      priorTotalValue:
+        name: priorTotalValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(3)
+      proposedImprovementValue:
+        name: proposedImprovementValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(8)
+      proposedLandValue:
+        name: proposedLandValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(7)
+      proposedTotalValue:
+        name: proposedTotalValue
+        type: long
+        added_by: assessed-value-preparation
+        source_field: M-VALUE(9)
+      salesSegmentCount:
+        name: salesSegmentCount
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: M-SLS-CTR
+      taxCode:
+        name: taxCode
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: M-TXCD
+      taxType:
+        name: taxType
+        type: string
+        max_length: 1
+        added_by: assessed-value-preparation
+        source_field: M-TXTYP
+      volumeNumber:
+        name: volumeNumber
+        type: integer
+        added_by: assessed-value-preparation
+        source_field: M-VOL
+  FrozenAgencyAdjustment:
+    name: FrozenAgencyAdjustment
+    source_bullet: tax-rate-input-preparation
+    evolved_by: []
+    fields:
+      agencyNumber:
+        name: agencyNumber
+        type: string
+        max_length: 9
+        added_by: tax-rate-input-preparation
+        source_field: FA-AGCY
+      annexedAssessedValue:
+        name: annexedAssessedValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-ANNEXEDAV
+      annexedEqualizedValue:
+        name: annexedEqualizedValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-ANNEXEDEV
+      current288Value:
+        name: current288Value
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-CURR-288
+      disconnectedAssessedValue:
+        name: disconnectedAssessedValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-DISCONAV
+      disconnectedEqualizedValue:
+        name: disconnectedEqualizedValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-DISCONEV
+      expired288Value:
+        name: expired288Value
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-EXPR-288
+      expiredIncentiveEqualizedValue:
+        name: expiredIncentiveEqualizedValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-EXPINCEV
+      expiredIncentiveTaxAmount:
+        name: expiredIncentiveTaxAmount
+        type: decimal
+        precision: 11
+        scale: 2
+        added_by: tax-rate-input-preparation
+        source_field: FA-EXPINCTX
+      expiredIncentiveValue:
+        name: expiredIncentiveValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-EXPINC
+      firstTimeValue:
+        name: firstTimeValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-FRST-TIME
+      frozenEqualizedValue:
+        name: frozenEqualizedValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-FROZ-EQLZD
+      frozenTaxAmount:
+        name: frozenTaxAmount
+        type: decimal
+        precision: 15
+        scale: 2
+        added_by: tax-rate-input-preparation
+        source_field: FA-FROZ-TXAMT
+      taxCode:
+        name: taxCode
+        type: string
+        max_length: 5
+        added_by: tax-rate-input-preparation
+        source_field: FA-TXCD
+      taxRate:
+        name: taxRate
+        type: decimal
+        precision: 6
+        scale: 3
+        added_by: tax-rate-input-preparation
+        source_field: FA-TXRTE
+      tifCurrentEqualizedValue:
+        name: tifCurrentEqualizedValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-CURREV
+      tifDifferenceEqualizedValue:
+        name: tifDifferenceEqualizedValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-TIFEV
+      tifPriorFrozenEqualizedValue:
+        name: tifPriorFrozenEqualizedValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-TIFAV
+      totalFrozenValue:
+        name: totalFrozenValue
+        type: long
+        added_by: tax-rate-input-preparation
+        source_field: FA-TOT-FROZ
+  FrozenValuation:
+    name: FrozenValuation
+    source_bullet: eifd-tif-increment
+    evolved_by: []
+    fields:
+      changeActionCurrentImprovementValue:
+        name: changeActionCurrentImprovementValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(19)
+      changeActionCurrentLandValue:
+        name: changeActionCurrentLandValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(18)
+      changeActionCurrentParcelCount:
+        name: changeActionCurrentParcelCount
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(21)
+      changeActionCurrentTotalValue:
+        name: changeActionCurrentTotalValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(20)
+      changeActionPriorImprovementValue:
+        name: changeActionPriorImprovementValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(15)
+      changeActionPriorLandValue:
+        name: changeActionPriorLandValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(14)
+      changeActionPriorParcelCount:
+        name: changeActionPriorParcelCount
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(17)
+      changeActionPriorTotalValue:
+        name: changeActionPriorTotalValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(16)
+      currentImprovementValue:
+        name: currentImprovementValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(6)
+      currentLandValue:
+        name: currentLandValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(5)
+      currentParcelCount:
+        name: currentParcelCount
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(8)
+      currentTotalValue:
+        name: currentTotalValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(7)
+      divisionNumber:
+        name: divisionNumber
+        type: string
+        max_length: 14
+        unique: true
+        added_by: eifd-tif-increment
+        source_field: FV-DIVNO
+      noChangeActionCurrentImprovementValue:
+        name: noChangeActionCurrentImprovementValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(27)
+      noChangeActionCurrentLandValue:
+        name: noChangeActionCurrentLandValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(26)
+      noChangeActionCurrentParcelCount:
+        name: noChangeActionCurrentParcelCount
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(29)
+      noChangeActionCurrentTotalValue:
+        name: noChangeActionCurrentTotalValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(28)
+      noChangeActionPriorImprovementValue:
+        name: noChangeActionPriorImprovementValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(23)
+      noChangeActionPriorLandValue:
+        name: noChangeActionPriorLandValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(22)
+      noChangeActionPriorParcelCount:
+        name: noChangeActionPriorParcelCount
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(25)
+      noChangeActionPriorTotalValue:
+        name: noChangeActionPriorTotalValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(24)
+      priorImprovementValue:
+        name: priorImprovementValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(2)
+      priorLandValue:
+        name: priorLandValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(1)
+      priorParcelCount:
+        name: priorParcelCount
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(4)
+      priorTotalValue:
+        name: priorTotalValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(3)
+      proposedActualValue:
+        name: proposedActualValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(13)
+      proposedCurrent288Value:
+        name: proposedCurrent288Value
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(11)
+      proposedExpired288Value:
+        name: proposedExpired288Value
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(10)
+      proposedImprovementValue:
+        name: proposedImprovementValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(9)
+      proposedTotalValue:
+        name: proposedTotalValue
+        type: long
+        added_by: eifd-tif-increment
+        source_field: FV-VAL(12)
+  HomeownerExemption:
+    name: HomeownerExemption
+    source_bullet: property-tax-exemptions
+    evolved_by: []
+    fields:
+      applicationYear:
+        name: applicationYear
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-YRAPPL
+      assessedValue:
+        name: assessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HE-ASSDVAL
+      assessmentClass:
+        name: assessmentClass
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-CLASS
+      certificateOfErrorNumber:
+        name: certificateOfErrorNumber
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-C-OF-E
+      city:
+        name: city
+        type: string
+        max_length: 12
+        added_by: property-tax-exemptions
+        source_field: HE-CITY
+      clerksClass:
+        name: clerksClass
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-CLERKS-CLS
+      cooperativeQuantity:
+        name: cooperativeQuantity
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-COOPQTY
+      eligibilityIndicator:
+        name: eligibilityIndicator
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-IND
+      equalizationFactor:
+        name: equalizationFactor
+        type: decimal
+        precision: 5
+        scale: 4
+        added_by: property-tax-exemptions
+        source_field: HE-EQFCTR
+      equalizedValue:
+        name: equalizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HE-EQVAL
+      exemptionType:
+        name: exemptionType
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-H-V
+      keyParcelNumber:
+        name: keyParcelNumber
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HE-KEYPCL
+      mailingAddress:
+        name: mailingAddress
+        type: string
+        max_length: 22
+        added_by: property-tax-exemptions
+        source_field: HE-ADDR
+      occupancyFactor:
+        name: occupancyFactor
+        type: decimal
+        precision: 5
+        scale: 1
+        added_by: property-tax-exemptions
+        source_field: HE-OCCFAC
+      ownerName:
+        name: ownerName
+        type: string
+        max_length: 22
+        added_by: property-tax-exemptions
+        source_field: HE-NAME
+      propertyNumber:
+        name: propertyNumber
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HE-PROP
+      proration:
+        name: proration
+        type: decimal
+        precision: 7
+        scale: 6
+        added_by: property-tax-exemptions
+        source_field: HE-PRORATE
+      recordCode:
+        name: recordCode
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-RECCD
+      responseStatus:
+        name: responseStatus
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-STAT1
+      secondaryResponseStatus:
+        name: secondaryResponseStatus
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-STAT2
+      splitCode:
+        name: splitCode
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-SPLIT-CD
+      state:
+        name: state
+        type: string
+        max_length: 2
+        added_by: property-tax-exemptions
+        source_field: HE-STATE
+      taxCode:
+        name: taxCode
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-TXCD
+      taxType:
+        name: taxType
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-TXTYP
+      tertiaryStatus:
+        name: tertiaryStatus
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-STAT3
+      volumeNumber:
+        name: volumeNumber
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HE-VOL
+      zipCode:
+        name: zipCode
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HE-ZIP
+  HomeownerMaster:
+    name: HomeownerMaster
+    source_bullet: property-tax-exemptions
+    evolved_by: []
+    fields:
+      applicationYear:
+        name: applicationYear
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-YRAPPL
+      assessedValue:
+        name: assessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HO-ASSDVAL
+      assessmentClass:
+        name: assessmentClass
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-CLASS
+      certificateOfErrorNumber:
+        name: certificateOfErrorNumber
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-C-OF-E
+      city:
+        name: city
+        type: string
+        max_length: 12
+        added_by: property-tax-exemptions
+        source_field: HO-CITY
+      cooperativeQuantity:
+        name: cooperativeQuantity
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-COOPQTY
+      equalizationFactor:
+        name: equalizationFactor
+        type: decimal
+        precision: 5
+        scale: 4
+        added_by: property-tax-exemptions
+        source_field: HO-EQFCTR
+      equalizedValue:
+        name: equalizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HO-EQVAL
+      exemptionType:
+        name: exemptionType
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-H-V
+      mailingAddress:
+        name: mailingAddress
+        type: string
+        max_length: 22
+        added_by: property-tax-exemptions
+        source_field: HO-ADDR
+      npheAmount:
+        name: npheAmount
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HO-NPHE
+      npheBaseYear:
+        name: npheBaseYear
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-NPHE-BSYR
+      npheStatus:
+        name: npheStatus
+        type: string
+        max_length: 2
+        added_by: property-tax-exemptions
+        source_field: HO-NPHE-STATUS
+      occupancyFactor:
+        name: occupancyFactor
+        type: decimal
+        precision: 5
+        scale: 1
+        added_by: property-tax-exemptions
+        source_field: HO-OCCFAC
+      ownerName:
+        name: ownerName
+        type: string
+        max_length: 22
+        added_by: property-tax-exemptions
+        source_field: HO-NAME
+      propertyNumber:
+        name: propertyNumber
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HO-PROP
+      proration:
+        name: proration
+        type: decimal
+        precision: 7
+        scale: 6
+        added_by: property-tax-exemptions
+        source_field: HO-PRORATE
+      responseStatus:
+        name: responseStatus
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-STAT1
+      secondaryResponseStatus:
+        name: secondaryResponseStatus
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-STAT2
+      state:
+        name: state
+        type: string
+        max_length: 2
+        added_by: property-tax-exemptions
+        source_field: HO-STATE
+      taxCode:
+        name: taxCode
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-TXCD
+      taxType:
+        name: taxType
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-TXTYP
+      temporaryAssessedValue:
+        name: temporaryAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HO-TEMP-ASSD
+      tertiaryStatus:
+        name: tertiaryStatus
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-STAT3
+      volumeNumber:
+        name: volumeNumber
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HO-VOL
+      zipCode:
+        name: zipCode
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HO-ZIP
+  MaintainedHomesteadExemption:
+    name: MaintainedHomesteadExemption
+    source_bullet: property-tax-exemptions
+    evolved_by: []
+    fields:
+      applicationYear:
+        name: applicationYear
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-YR
+      assessedValue:
+        name: assessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HM-ASSDVAL
+      assessmentClass:
+        name: assessmentClass
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-CLS
+      certificateOfErrorNumber:
+        name: certificateOfErrorNumber
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-C-OF-E
+      city:
+        name: city
+        type: string
+        max_length: 12
+        added_by: property-tax-exemptions
+        source_field: HM-CITY
+      clerksClass:
+        name: clerksClass
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-CLERK-CLS
+      cooperativeQuantity:
+        name: cooperativeQuantity
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-COOP
+      equalizationFactor:
+        name: equalizationFactor
+        type: decimal
+        precision: 5
+        scale: 4
+        added_by: property-tax-exemptions
+        source_field: HM-EQFACT
+      equalizedValue:
+        name: equalizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HM-EQVAL
+      exemptionType:
+        name: exemptionType
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-HIV
+      mailingAddress:
+        name: mailingAddress
+        type: string
+        max_length: 22
+        added_by: property-tax-exemptions
+        source_field: HM-ADDRESS
+      npheAmount:
+        name: npheAmount
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HM-NPHE
+      npheBaseYear:
+        name: npheBaseYear
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-NPHE-BSYR
+      npheStatus:
+        name: npheStatus
+        type: string
+        max_length: 2
+        added_by: property-tax-exemptions
+        source_field: HM-NPHE-STATUS
+      occupancyFactor:
+        name: occupancyFactor
+        type: decimal
+        precision: 5
+        scale: 1
+        added_by: property-tax-exemptions
+        source_field: HM-OCCFAC
+      ownerName:
+        name: ownerName
+        type: string
+        max_length: 22
+        added_by: property-tax-exemptions
+        source_field: HM-NAME
+      propertyNumber:
+        name: propertyNumber
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HM-PROP
+      proration:
+        name: proration
+        type: decimal
+        precision: 7
+        scale: 6
+        added_by: property-tax-exemptions
+        source_field: HM-PRORAT
+      responseStatus:
+        name: responseStatus
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-STAT1
+      secondaryResponseStatus:
+        name: secondaryResponseStatus
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-STAT2
+      state:
+        name: state
+        type: string
+        max_length: 2
+        added_by: property-tax-exemptions
+        source_field: HM-STATE
+      taxCode:
+        name: taxCode
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-TXCD
+      taxType:
+        name: taxType
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: HM-TXTYP
+      tertiaryStatus:
+        name: tertiaryStatus
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-STAT3
+      volumeNumber:
+        name: volumeNumber
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: HM-VOL
+      zipCode:
+        name: zipCode
+        type: long
+        added_by: property-tax-exemptions
+        source_field: HM-ZIP
+  SeniorFreezeApplicant:
+    name: SeniorFreezeApplicant
+    source_bullet: property-tax-exemptions
+    evolved_by: []
+    fields:
+      age:
+        name: age
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-AGE
+      applicantAddress:
+        name: applicantAddress
+        type: string
+        max_length: 22
+        added_by: property-tax-exemptions
+        source_field: C150-APPADDR
+      applicantCity:
+        name: applicantCity
+        type: string
+        max_length: 12
+        added_by: property-tax-exemptions
+        source_field: C150-APPCITY
+      applicantFirstName:
+        name: applicantFirstName
+        type: string
+        max_length: 15
+        added_by: property-tax-exemptions
+        source_field: C150-APPFSTNAM
+      applicantLastName:
+        name: applicantLastName
+        type: string
+        max_length: 20
+        added_by: property-tax-exemptions
+        source_field: C150-APPLSTNAM
+      applicantMiddleInitial:
+        name: applicantMiddleInitial
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C150-APPMI
+      applicantOldName:
+        name: applicantOldName
+        type: string
+        max_length: 22
+        added_by: property-tax-exemptions
+        source_field: C150-APPOLDNAM
+      applicantState:
+        name: applicantState
+        type: string
+        max_length: 2
+        added_by: property-tax-exemptions
+        source_field: C150-APPSTATE
+      applicantTitle:
+        name: applicantTitle
+        type: string
+        max_length: 2
+        added_by: property-tax-exemptions
+        source_field: C150-APPTITLE
+      applicantZipCode:
+        name: applicantZipCode
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C150-APPZIP
+      baseYear:
+        name: baseYear
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-BASE-YR
+      baseYearEligibleEqualizedValue:
+        name: baseYearEligibleEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C150-BSYR-EQVAL
+      baseYearIndicator:
+        name: baseYearIndicator
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C150-BSYR-IND
+      batchNumber:
+        name: batchNumber
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-BATCH
+      birthDate:
+        name: birthDate
+        type: string
+        max_length: 8
+        added_by: property-tax-exemptions
+        source_field: C150-BIRTHDTE
+      civilServiceBenefits:
+        name: civilServiceBenefits
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-CSBEN
+      cooperativeSeniorShares:
+        name: cooperativeSeniorShares
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-COOPSENSHRS
+      denialDate:
+        name: denialDate
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-DENIALDTE
+      firstApplicationDate:
+        name: firstApplicationDate
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-FSTAPPDTE
+      homeownerBaseYear:
+        name: homeownerBaseYear
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-HOBASYR
+      homeownerBaseYearAssessedValue:
+        name: homeownerBaseYearAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C150-HOBYAV
+      homeownerBaseYearEqualizationFactor:
+        name: homeownerBaseYearEqualizationFactor
+        type: decimal
+        precision: 5
+        scale: 4
+        added_by: property-tax-exemptions
+        source_field: C150-HOBYEQFAC
+      homeownerBaseYearEqualizedValue:
+        name: homeownerBaseYearEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C150-HOBYEV
+      homeownerEligibilityIndicator:
+        name: homeownerEligibilityIndicator
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-ELGIND
+      homeownerStatus:
+        name: homeownerStatus
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C150-HOSTAT
+      homesteadBatchNumber:
+        name: homesteadBatchNumber
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-HSBATCH
+      homesteadPercentShares:
+        name: homesteadPercentShares
+        type: decimal
+        precision: 6
+        scale: 3
+        added_by: property-tax-exemptions
+        source_field: C150-PCTSHARES
+      homesteadShares:
+        name: homesteadShares
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-SHARES
+      homesteadStatus:
+        name: homesteadStatus
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C150-HSSTAT
+      homesteadYearApplied:
+        name: homesteadYearApplied
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-HSYRAPPLD
+      interestIncome:
+        name: interestIncome
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-INT
+      lastApplicationDate:
+        name: lastApplicationDate
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-LSTAPPDTE
+      lifeCareFacilityIndicator:
+        name: lifeCareFacilityIndicator
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C150-LIFECARE
+      maintenanceIndicator:
+        name: maintenanceIndicator
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-MAINTIND
+      nameMaintenanceIndicator:
+        name: nameMaintenanceIndicator
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-NAMMAINTIND
+      netCapitalGain:
+        name: netCapitalGain
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-NETCAPGAIN
+      netRentalIncome:
+        name: netRentalIncome
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-NETRENT
+      noIncomeIndicator:
+        name: noIncomeIndicator
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C150-NOINCOME
+      notarizedIndicator:
+        name: notarizedIndicator
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C150-NOTARIZED
+      otherBenefits:
+        name: otherBenefits
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-OTHBEN
+      otherIncome:
+        name: otherIncome
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-OTHINC
+      percentSeniorShares:
+        name: percentSeniorShares
+        type: decimal
+        precision: 6
+        scale: 6
+        added_by: property-tax-exemptions
+        source_field: C150-PCTSENSHRS
+      phoneNumber:
+        name: phoneNumber
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C150-PHONE
+      publicAid:
+        name: publicAid
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-PUBAID
+      qualificationDate:
+        name: qualificationDate
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-QUALDTE
+      railroadBenefits:
+        name: railroadBenefits
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-RRBEN
+      returnedDate:
+        name: returnedDate
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C150-RTNDDTE
+      seniorFreezePercent:
+        name: seniorFreezePercent
+        type: decimal
+        precision: 2
+        scale: 1
+        added_by: property-tax-exemptions
+        source_field: C150-SFPCT
+      seniorFreezeStatus:
+        name: seniorFreezeStatus
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C150-SFSTAT
+      signedIndicator:
+        name: signedIndicator
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C150-SIGNED
+      socialSecurityIncome:
+        name: socialSecurityIncome
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-SSINC
+      socialSecurityNumber:
+        name: socialSecurityNumber
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C150-SSN
+      totalIncome:
+        name: totalIncome
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-TOTINC
+      veteransBenefits:
+        name: veteransBenefits
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-VETBEN
+      wages:
+        name: wages
+        type: decimal
+        precision: 9
+        scale: 2
+        added_by: property-tax-exemptions
+        source_field: C150-WAGES
+  SeniorFreezeMaster:
+    name: SeniorFreezeMaster
+    source_bullet: property-tax-exemptions
+    evolved_by: []
+    fields:
+      baseValueManualCalculationIndicator:
+        name: baseValueManualCalculationIndicator
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C145-BVYMANCALCIND
+      baseValueNoCalculationIndicator:
+        name: baseValueNoCalculationIndicator
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C145-BVYNOCALCIND
+      baseValueYear:
+        name: baseValueYear
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-BASVALYR
+      baseValueYearClass:
+        name: baseValueYearClass
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-BVYCLS
+      baseYearEligibleComputedFullAssessedValue:
+        name: baseYearEligibleComputedFullAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-BVYELCOMPFULLAV
+      baseYearEqualizedValue:
+        name: baseYearEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-BVYEV
+      baseYearFullAssessedValue:
+        name: baseYearFullAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-BVYFULLAV
+      baseYearTotalEligibleComputedEqualizedValue:
+        name: baseYearTotalEligibleComputedEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-BVYTOTELCOMPEV
+      buildingShares:
+        name: buildingShares
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-BLDGSHARES
+      buildingUnits:
+        name: buildingUnits
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-BLDGUNITS
+      calculationType:
+        name: calculationType
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C145-CALC-TYP
+      class288ExpirationAssessedValue:
+        name: class288ExpirationAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-288EXPAV
+      class288ExpirationEqualizedValue:
+        name: class288ExpirationEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-288EXPEV
+      class288OverLimitAssessedValue:
+        name: class288OverLimitAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-288OVRLIMAV
+      class288OverLimitEqualizedValue:
+        name: class288OverLimitEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-288OVRLIMEV
+      currentYearClass:
+        name: currentYearClass
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-CYCLS
+      currentYearEligibleComputedAssessedValue:
+        name: currentYearEligibleComputedAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-CYELCOMPAV
+      currentYearEligibleComputedEqualizedValue:
+        name: currentYearEligibleComputedEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-CYELCOMPEV
+      currentYearFarmIndicator:
+        name: currentYearFarmIndicator
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C145-CYFARMIND
+      currentYearFinalEqualizedValueDifference:
+        name: currentYearFinalEqualizedValueDifference
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-CYFNLEVDIFF
+      currentYearFullAssessedValue:
+        name: currentYearFullAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-CYFULLAV
+      currentYearFullEqualizedValue:
+        name: currentYearFullEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-CYFULLEV
+      currentYearNotEligibleAssessedValue:
+        name: currentYearNotEligibleAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-CYNOTELAV
+      currentYearNotEligibleEqualizedValue:
+        name: currentYearNotEligibleEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-CYNOTELEV
+      homeownerUnits:
+        name: homeownerUnits
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-HOUNITS
+      homesteadUnits:
+        name: homesteadUnits
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-HSUNITS
+      keyParcelNumber:
+        name: keyParcelNumber
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-KEYPCL
+      mailingCity:
+        name: mailingCity
+        type: string
+        max_length: 28
+        added_by: property-tax-exemptions
+        source_field: C145-CITY
+      mailingDirection:
+        name: mailingDirection
+        type: string
+        max_length: 2
+        added_by: property-tax-exemptions
+        source_field: C145-DIR
+      mailingHouseNumber:
+        name: mailingHouseNumber
+        type: string
+        max_length: 5
+        added_by: property-tax-exemptions
+        source_field: C145-HSENO
+      mailingState:
+        name: mailingState
+        type: string
+        max_length: 2
+        added_by: property-tax-exemptions
+        source_field: C145-STATE
+      mailingStreet:
+        name: mailingStreet
+        type: string
+        max_length: 22
+        added_by: property-tax-exemptions
+        source_field: C145-STREET
+      mailingSuffix:
+        name: mailingSuffix
+        type: string
+        max_length: 4
+        added_by: property-tax-exemptions
+        source_field: C145-SUFF
+      mailingZipCode:
+        name: mailingZipCode
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-ZIP
+      maintenanceIndicator:
+        name: maintenanceIndicator
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-MAINTIND
+      masterName:
+        name: masterName
+        type: string
+        max_length: 50
+        added_by: property-tax-exemptions
+        source_field: C145-MASTNAME
+      occupancyFactor:
+        name: occupancyFactor
+        type: decimal
+        precision: 5
+        scale: 1
+        added_by: property-tax-exemptions
+        source_field: C145-OCCFAC
+      originalBaseValueYear:
+        name: originalBaseValueYear
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-BASVALYR-OR
+      originalBaseYearEligibleComputedFullAssessedValue:
+        name: originalBaseYearEligibleComputedFullAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-BVYELCOMPFULLAV-OR
+      originalBaseYearEqualizedValue:
+        name: originalBaseYearEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-BVYEV-OR
+      originalBaseYearFullAssessedValue:
+        name: originalBaseYearFullAssessedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-BVYFULLAV-OR
+      originalBaseYearTotalEligibleComputedEqualizedValue:
+        name: originalBaseYearTotalEligibleComputedEqualizedValue
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-BVYTOTELCOMPEV-OR
+      originalCurrentYearFinalEqualizedValueDifference:
+        name: originalCurrentYearFinalEqualizedValueDifference
+        type: long
+        added_by: property-tax-exemptions
+        source_field: C145-CYFNLEVDIFF-OR
+      originalManualCalculationIndicator:
+        name: originalManualCalculationIndicator
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C145-BVYMANCALCIND-OR
+      propertyProration:
+        name: propertyProration
+        type: decimal
+        precision: 7
+        scale: 6
+        added_by: property-tax-exemptions
+        source_field: C145-PROPCT
+      recordCode:
+        name: recordCode
+        type: string
+        max_length: 1
+        added_by: property-tax-exemptions
+        source_field: C145-RECCODE
+      seniorFreezeShares:
+        name: seniorFreezeShares
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-SFSHARES
+      splitCode:
+        name: splitCode
+        type: integer
+        added_by: property-tax-exemptions
+        source_field: C145-SPLTCD
